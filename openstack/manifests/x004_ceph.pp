@@ -83,10 +83,8 @@ class openstack::x004_ceph (
     #      ;
     #    }
 
+    ceph::pool { 'rbd': ensure => 'absent' } ->
     ceph::pool {
-      'rbd':
-        ensure => 'absent';
-
       'volumes':
         pg_num => '64';
 
@@ -99,7 +97,6 @@ class openstack::x004_ceph (
       'vms':
         pg_num => '64';
     }
-
   } else {
     ceph::key { 'client.admin': secret => $admin_key }
   }
