@@ -64,13 +64,13 @@ class openstack::x004_ceph (
       inject_keyring => "/var/lib/ceph/mon/ceph-${::hostname}/keyring",
     }
 
-    ceph::osd {
-      '/dev/sdb':
-      ;
-
-      '/dev/sdc':
-      ;
-    }
+    #    ceph::osd {
+    #      '/dev/sdb':
+    #      ;
+    #
+    #      '/dev/sdc':
+    #      ;
+    #    }
 
     ceph::key { 'client.bootstrap-osd':
       keyring_path => '/var/lib/ceph/bootstrap-osd/ceph.keyring',
