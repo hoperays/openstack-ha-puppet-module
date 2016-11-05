@@ -75,13 +75,13 @@ class openstack::x004_ceph (
       cap_mon      => 'allow profile bootstrap-osd',
     }
 
-    ceph::osd {
-      '/dev/sdb':
-      ;
-
-      '/dev/sdc':
-      ;
-    }
+    #    ceph::osd {
+    #      '/dev/sdb':
+    #      ;
+    #
+    #      '/dev/sdc':
+    #      ;
+    #    }
 
     ceph::pool {
       'rbd':
