@@ -53,43 +53,45 @@ class openstack::x004_ceph (
       value => $osd_crush_chooseleaf_type;
   }
 
-  # if $::hostname =~ /^controller-\d+$/ {
-  #}
-  ceph::mon { $::hostname: key => $mon_key, }
+  ceph::key { 'client.admin': secret => $admin_key }
 
-  Ceph::Key {
-    inject         => true,
-    inject_as_id   => 'mon.',
-    inject_keyring => "/var/lib/ceph/mon/ceph-${::hostname}/keyring",
+  if $::hostname =~ /^controller-\d+$/ {
+    ceph::mon { $::hostname: key => $mon_key, }
+
+    Ceph::Key {
+      inject         => true,
+      inject_as_id   => 'mon.',
+      inject_keyring => "/var/lib/ceph/mon/ceph-${::hostname}/keyring",
+    }
+
+    ceph::osd {
+      'sdb':
+      ;
+
+      'sdc':
+      ;
+    }
+
+    ceph::key { 'client.bootstrap-osd':
+      keyring_path => '/var/lib/ceph/bootstrap-osd/ceph.keyring',
+      secret       => $bootstrap_osd_key,
+    }
+
+    ceph::pool {
+      'rbd':
+        ensure => 'absent';
+
+      'volumes':
+        pg_num => '64';
+
+      'images':
+        pg_num => '64';
+
+      'backups':
+        pg_num => '64';
+
+      'vms':
+        pg_num => '64';
+    }
   }
-
-  ceph::key { 'client.admin':
-    secret  => $admin_key,
-    cap_mon => 'allow *',
-    cap_osd => 'allow *',
-    cap_mds => 'allow',
-  }
-
-  ceph::key { 'client.bootstrap-osd':
-    secret  => $bootstrap_osd_key,
-    cap_mon => 'allow profile bootstrap-osd',
-  }
-
-  #  ceph::pool {
-  #    'rbd':
-  #      ensure => 'absent';
-  #
-  #    'volumes':
-  #      pg_num => '64';
-  #
-  #    'images':
-  #      pg_num => '64';
-  #
-  #    'backups':
-  #      pg_num => '64';
-  #
-  #    'vms':
-  #      pg_num => '64';
-  #  }
 }
-
