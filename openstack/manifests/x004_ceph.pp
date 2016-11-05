@@ -70,8 +70,17 @@ class openstack::x004_ceph (
     }
 
     ceph::key { 'client.bootstrap-osd':
-      secret  => $bootstrap_osd_key,
-      cap_mon => 'allow profile bootstrap-osd',
+      keyring_path => '/var/lib/ceph/bootstrap-osd/ceph.keyring',
+      secret       => $bootstrap_osd_key,
+      cap_mon      => 'allow profile bootstrap-osd',
+    }
+
+    ceph::osd {
+      '/dev/sdb':
+      ;
+
+      '/dev/sdc':
+      ;
     }
 
     ceph::pool {
@@ -90,21 +99,7 @@ class openstack::x004_ceph (
       'vms':
         pg_num => '64';
     }
-  }
 
-  if $::hostname =~ /^controller-\d+$/ {
-    ceph::osd {
-      '/dev/sdb':
-      ;
-
-      '/dev/sdc':
-      ;
-    }
-
-    ceph::key { 'client.bootstrap-osd':
-      keyring_path => '/var/lib/ceph/bootstrap-osd/ceph.keyring',
-      secret       => $bootstrap_osd_key,
-    }
   } else {
     ceph::key { 'client.admin': secret => $admin_key }
   }
