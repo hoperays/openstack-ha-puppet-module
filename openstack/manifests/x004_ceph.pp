@@ -65,10 +65,10 @@ class openstack::x004_ceph (
     }
 
     ceph::osd {
-      'sdb':
+      '/dev/sdb':
       ;
 
-      'sdc':
+      '/dev/sdc':
       ;
     }
 
