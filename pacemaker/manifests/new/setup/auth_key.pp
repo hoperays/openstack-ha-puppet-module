@@ -47,7 +47,7 @@ class pacemaker::new::setup::auth_key (
   }
 
   file { 'pacemaker-auth-key' :
-    ensure => $key_ensure,
+    ensure => link,
     path   => '/etc/pacemaker/authkey',
     target => '/etc/corosync/authkey',
     owner  => $cluster_user,
