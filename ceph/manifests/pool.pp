@@ -109,6 +109,10 @@ test $(ceph osd pool get ${name} size | sed 's/.*:\s*//g') -eq ${size}",
 
   } elsif $ensure == absent {
 
+    Ceph_config<||> -> Exec["delete-${name}"]
+    Ceph::Mon<||> -> Exec["delete-${name}"]
+    Ceph::Key<||> -> Exec["delete-${name}"]
+    Ceph::Osd<||> -> Exec["delete-${name}"]
     exec { "delete-${name}":
       command => "/bin/true # comment to satisfy puppet syntax requirements
 set -ex
@@ -117,7 +121,7 @@ ceph osd pool delete ${name} ${name} --yes-i-really-really-mean-it",
 set -ex
 ceph osd lspools | grep ${name}",
       timeout => $exec_timeout,
-    } -> Ceph::Mon<| ensure == absent |>
+    }
 
   } else {
 
