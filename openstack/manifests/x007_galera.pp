@@ -49,6 +49,7 @@ class openstack::x007_galera (
     service_manage          => $manage_resources,
     service_enabled         => $manage_resources,
     remove_default_accounts => $remove_default_accounts,
+    require                 => Package['mariadb-server-galera']
   }
 
   if $::hostname == $galera_master {

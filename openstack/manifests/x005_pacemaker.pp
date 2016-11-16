@@ -12,6 +12,7 @@ class openstack::x005_pacemaker (
     cluster_name             => $cluster_name,
     cluster_auth_key         => $cluster_auth_key,
     cluster_auth_enabled     => $cluster_auth_enabled,
+    require                  => Class['x003_ntp']
   }
 
   pacemaker_property { 'stonith-enabled':
@@ -44,4 +45,3 @@ class openstack::x005_pacemaker (
     value  => '1min',
   }
 }
-

@@ -20,12 +20,4 @@ class openstack {
     'openstack::x006_haproxy',
     'openstack::x007_galera']:
   }
-  Class['openstack::x001_firewall'] ->
-  Class['openstack::x002_hosts'] ->
-  Class['openstack::x003_ntp'] ->
-  Class['openstack::x004_ceph'] ->
-  Class['openstack::x005_pacemaker'] ->
-  Class['openstack::x006_haproxy'] ->
-  Class['openstack::x007_galera']
 }
-

@@ -32,6 +32,7 @@ class openstack::x006_haproxy (
       maxconn => '10000',
     }
     ,
+    require          => Class['x005_pacemaker']
   }
 
   haproxy::listen { 'monitor':
@@ -518,50 +519,6 @@ class openstack::x006_haproxy (
     options           => 'check inter 1s',
   }
 
-  #  haproxy::frontend { 'vip-impala':
-  #    ipaddress => "$controller_vip",
-  #    ports     => '21000',
-  #    options   => {
-  #      default_backend => 'impala-vms',
-  #    }
-  #  }
-  #
-  #  haproxy::backend { 'impala-vms':
-  #    options => {
-  #      'mode'    => 'tcp',
-  #      'option'  => 'tcplog',
-  #      'balance' => 'leastconn',
-  #    }
-  #  }
-  #
-  #  haproxy::balancermember { 'cdh-1-impala':
-  #    listening_service => 'impala-vms',
-  #    server_names      => 'cdh-1',
-  #    ipaddresses       => '192.168.0.51',
-  #    ports             => '21000',
-  #  }
-  #
-  #  haproxy::balancermember { 'cdh-2-impala':
-  #    listening_service => 'impala-vms',
-  #    server_names      => 'cdh-2',
-  #    ipaddresses       => '192.168.0.54',
-  #    ports             => '21000',
-  #  }
-  #
-  #  haproxy::balancermember { 'cdh-3-impala':
-  #    listening_service => 'impala-vms',
-  #    server_names      => 'cdh-3',
-  #    ipaddresses       => '192.168.0.52',
-  #    ports             => '21000',
-  #  }
-  #
-  #  haproxy::balancermember { 'cdh-4-impala':
-  #    listening_service => 'impala-vms',
-  #    server_names      => 'cdh-3',
-  #    ipaddresses       => '192.168.0.53',
-  #    ports             => '21000',
-  #  }
-
   pacemaker_resource { 'controller-vip':
     primitive_class    => 'ocf',
     primitive_provider => 'heartbeat',
@@ -597,4 +554,3 @@ class openstack::x006_haproxy (
     second => 'haproxy-clone',
   }
 }
-

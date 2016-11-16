@@ -14,6 +14,6 @@ class openstack::x003_ntp {
     },
     iburst_enable     => true,
     interfaces        => [$ipaddress_eth0],
+    require           => Class['x002_hosts']
   }
 }
-

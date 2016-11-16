@@ -19,7 +19,8 @@ class openstack::x004_ceph (
   # ceph-authtool --gen-print-key
   $admin_key = 'AQDtZ+xX3678NxAAnWIyLVy2dVQ0wZePqWG09Q==',
   $mon_key   = 'AQDuZ+xXWjN8JhAAEBD7j3EaFVhXQBJzjLdf2Q==',
-  $bootstrap_osd_key           = 'AQBMdOxXzLkwHxAA8TeFuJyvG6/NHziVyb06bg==',) {
+  $bootstrap_osd_key           = 'AQBMdOxXzLkwHxAA8TeFuJyvG6/NHziVyb06bg==',
+  $bootstrap_mds_key           = 'AQAyGSxY9+bgNRAAdMFl/EjA6KM5hP1wBcDZog==',) {
   class { 'ceph':
     fsid                   => $fsid,
     mon_initial_members    => $mon_initial_members,
@@ -31,6 +32,7 @@ class openstack::x004_ceph (
     mon_osd_nearfull_ratio => $mon_osd_nearfull_ratio,
     osd_pool_default_size  => $osd_pool_default_size,
     osd_journal_size       => $osd_journal_size,
+    require                => Class['x003_ntp']
   }
 
   ceph_config {
@@ -66,7 +68,7 @@ class openstack::x004_ceph (
       secret  => $admin_key,
       cap_mon => 'allow *',
       cap_osd => 'allow *',
-      cap_mds => 'allow',
+      cap_mds => 'allow *',
     }
 
     ceph::key { 'client.bootstrap-osd':
@@ -75,16 +77,24 @@ class openstack::x004_ceph (
       cap_mon      => 'allow profile bootstrap-osd',
     }
 
+    ceph::key { 'client.bootstrap-mds':
+      keyring_path => '/var/lib/ceph/bootstrap-mds/ceph.keyring',
+      secret       => $bootstrap_mds_key,
+      cap_mon      => 'allow profile bootstrap-mds',
+    }
+
     #    ceph::osd {
-    #      '/dev/sdb':
-    #      ;
-    #
     #      '/dev/sdc':
-    #      ;
+    #        journal => '/dev/sdb';
+    #
+    #      '/dev/sdd':
+    #        journal => '/dev/sdb';
     #    }
 
-    ceph::pool { 'rbd': ensure => 'absent' } ->
     ceph::pool {
+      'rbd':
+        ensure => 'absent';
+
       'volumes':
         pg_num => '64';
 
