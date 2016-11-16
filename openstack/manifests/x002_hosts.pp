@@ -1,7 +1,8 @@
 class openstack::x002_hosts {
   host { 'pxeserver':
-    ensure => present,
-    ip     => '192.168.103.200',
+    ensure  => present,
+    ip      => '192.168.103.200',
+    require => Classs['x001_firewall']
   } ->
   host { 'controller-vip':
     ensure => present,
@@ -32,4 +33,3 @@ class openstack::x002_hosts {
     ip     => '192.168.0.136',
   }
 }
-
