@@ -17,7 +17,6 @@ class openstack {
     'openstack::x003_ntp',
     'openstack::x004_ceph',
     'openstack::x005_pacemaker',
-    'openstack::x006_haproxy',
-    'openstack::x007_galera']:
+    'openstack::x006_haproxy']:
   }
 }
