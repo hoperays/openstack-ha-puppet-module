@@ -39,6 +39,8 @@ class openstack::x007_galera (
     }
   }
 
+  package { 'mariadb-server-galera': }
+
   class { '::mysql::server':
     config_file             => $mysql_config_file,
     override_options        => $mysql_server_options,
