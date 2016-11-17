@@ -77,6 +77,7 @@ class openstack::x007_galera (
       }
       ,
       complex_type       => 'master',
+      require            => Class['::mysql::server'],
     }
 
     exec { 'galera-ready':
@@ -131,12 +132,13 @@ class openstack::x007_galera (
     content => "MYSQL_USERNAME=clustercheck\nMYSQL_PASSWORD=$status_password\nMYSQL_HOST=localhost\n",
   }
 
-  $galera_set_pwd = "/bin/touch /root/.my.cnf && \
+  exec { 'galera-set-root-password':
+    command => "/bin/touch /root/.my.cnf && \
                       /bin/echo \"UPDATE mysql.user SET Password = PASSWORD('$root_password') WHERE user = 'root'; \
                       flush privileges;\" | \
-                      /bin/mysql --defaults-extra-file=/root/.my.cnf -u root"
-
-  exec { 'galera-set-root-password': command => $galera_set_pwd, }
+                      /bin/mysql --defaults-extra-file=/root/.my.cnf -u root",
+    require => Exec['galera-ready'],
+  }
 
   file { '/root/.my.cnf':
     ensure  => file,
