@@ -123,7 +123,7 @@ class openstack::x006_galera (
       tries       => 180,
       try_sleep   => 10,
       environment => ['AVAILABLE_WHEN_READONLY=0'],
-      require     => Exec['create-root-sysconfig-clustercheck'],
+      require     => Pacemaker_resource['galera'],
     }
 
     Exec['galera-ready'] -> Mysql_database <| |>
