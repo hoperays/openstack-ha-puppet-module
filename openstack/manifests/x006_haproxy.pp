@@ -1,12 +1,15 @@
 class openstack::x006_haproxy (
-  $controller_vip = '192.168.0.130',
-  $controller_1   = '192.168.0.131',
-  $controller_2   = '192.168.0.132',
-  $controller_3   = '192.168.0.133',) {
+  $controller_vip   = '192.168.0.130',
+  $controller_1     = '192.168.0.131',
+  $controller_2     = '192.168.0.132',
+  $controller_3     = '192.168.0.133',
+  $haproxy_master   = 'controller-1',
+  $bind_address     = $::ipaddress_eth0,
+  $manage_resources = false,) {
   class { 'haproxy':
-    service_ensure   => false,
+    service_ensure   => $manage_resources,
     global_options   => {
-      log     => "${::ipaddress_eth0} local0",
+      log     => "$bind_address local0",
       chroot  => '/var/lib/haproxy',
       pidfile => '/var/run/haproxy.pid',
       maxconn => '4000',
@@ -518,39 +521,41 @@ class openstack::x006_haproxy (
     options           => 'check inter 1s',
   }
 
-  pacemaker_resource { 'controller-vip':
-    primitive_class    => 'ocf',
-    primitive_provider => 'heartbeat',
-    primitive_type     => 'IPaddr2',
-    parameters         => {
-      'ip'           => "$controller_vip",
-      'cidr_netmask' => '23',
-      'nic'          => 'eth0',
-    }
-    ,
-    operations         => {
-      'monitor' => {
-        'interval' => '30s',
+  if $::hostname == $haproxy_master {
+    pacemaker_resource { 'controller-vip':
+      primitive_class    => 'ocf',
+      primitive_provider => 'heartbeat',
+      primitive_type     => 'IPaddr2',
+      parameters         => {
+        'ip'           => "$controller_vip",
+        'cidr_netmask' => '23',
+        'nic'          => 'eth0',
       }
       ,
+      operations         => {
+        'monitor' => {
+          'interval' => '30s',
+        }
+        ,
+      }
+      ,
+      require            => Class['haproxy'],
+    } ->
+    pacemaker_resource { 'haproxy':
+      primitive_class => 'systemd',
+      primitive_type  => 'haproxy',
+      complex_type    => 'clone',
+    } ->
+    pacemaker_order { 'order-controller-vip-haproxy-clone':
+      first_action  => 'start',
+      first         => 'controller-vip',
+      second_action => 'start',
+      second        => 'haproxy-clone',
+      kind          => 'optional',
+    } ->
+    pacemaker_colocation { 'colocation-haproxy-clone-controller-vip':
+      first  => 'controller-vip',
+      second => 'haproxy-clone',
     }
-    ,
-    require            => Class['haproxy'],
-  } ->
-  pacemaker_resource { 'haproxy':
-    primitive_class => 'systemd',
-    primitive_type  => 'haproxy',
-    complex_type    => 'clone',
-  } ->
-  pacemaker_order { 'order-controller-vip-haproxy-clone':
-    first_action  => 'start',
-    first         => 'controller-vip',
-    second_action => 'start',
-    second        => 'haproxy-clone',
-    kind          => 'optional',
-  } ->
-  pacemaker_colocation { 'colocation-haproxy-clone-controller-vip':
-    first  => 'controller-vip',
-    second => 'haproxy-clone',
   }
 }
