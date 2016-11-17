@@ -22,4 +22,6 @@ class openstack {
   class { 'openstack::x005_pacemaker': require => Class['openstack::x003_ntp'] }
 
   class { 'openstack::x006_haproxy': require => Class['openstack::x005_pacemaker'] }
+
+  class { 'openstack::x007_galera': require => Class['openstack::x005_pacemaker'] }
 }
