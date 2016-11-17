@@ -4,7 +4,7 @@ class openstack::x006_haproxy (
   $controller_2   = '192.168.0.132',
   $controller_3   = '192.168.0.133',) {
   class { 'haproxy':
-    # service_ensure   => false,
+    service_ensure   => false,
     global_options   => {
       log     => "${::ipaddress_eth0} local0",
       chroot  => '/var/lib/haproxy',
@@ -535,6 +535,7 @@ class openstack::x006_haproxy (
       ,
     }
     ,
+    require            => Class['haproxy'],
   } ->
   pacemaker_resource { 'haproxy':
     primitive_class => 'systemd',
