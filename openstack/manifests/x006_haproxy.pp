@@ -32,7 +32,6 @@ class openstack::x006_haproxy (
       maxconn => '10000',
     }
     ,
-    require          => Class['x005_pacemaker']
   }
 
   haproxy::listen { 'monitor':

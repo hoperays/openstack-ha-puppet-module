@@ -32,7 +32,6 @@ class openstack::x004_ceph (
     mon_osd_nearfull_ratio => $mon_osd_nearfull_ratio,
     osd_pool_default_size  => $osd_pool_default_size,
     osd_journal_size       => $osd_journal_size,
-    require                => Class['x003_ntp']
   }
 
   ceph_config {
