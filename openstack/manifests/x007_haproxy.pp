@@ -1,4 +1,4 @@
-class openstack::x006_haproxy (
+class openstack::x007_haproxy (
   $controller_vip   = '192.168.0.130',
   $controller_1     = '192.168.0.131',
   $controller_2     = '192.168.0.132',

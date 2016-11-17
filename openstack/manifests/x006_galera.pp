@@ -1,4 +1,4 @@
-class openstack::x007_galera (
+class openstack::x006_galera (
   $galera_servers          = 'controller-1,controller-2,controller-3',
   $galera_master           = 'controller-1',
   $bind_address            = $::ipaddress_eth0,
@@ -52,6 +52,43 @@ class openstack::x007_galera (
     require                 => Package['mariadb-server-galera']
   }
 
+  file { '/etc/sysconfig/clustercheck':
+    ensure  => file,
+    mode    => '0600',
+    owner   => 'root',
+    group   => 'root',
+    content => "MYSQL_USERNAME=clustercheck\nMYSQL_PASSWORD=$status_password\nMYSQL_HOST=localhost\n",
+    require => Class['::mysql::server'],
+  }
+
+  mysql_user { 'clustercheck@localhost':
+    ensure        => 'present',
+    password_hash => mysql_password($status_password),
+    require       => Class['::mysql::server'],
+  }
+
+  mysql_grant { 'clustercheck@localhost/*.*':
+    ensure     => 'present',
+    options    => ['GRANT'],
+    privileges => ['PROCESS'],
+    table      => '*.*',
+    user       => 'clustercheck@localhost',
+    require    => Mysql_user['clustercheck@localhost'],
+  }
+
+  xinetd::service { 'galera-monitor':
+    port           => '9200',
+    server         => '/usr/bin/clustercheck',
+    per_source     => 'UNLIMITED',
+    log_on_success => '',
+    log_on_failure => 'HOST',
+    flags          => 'REUSE',
+    service_type   => 'UNLISTED',
+    user           => 'root',
+    group          => 'root',
+    require        => File['/etc/sysconfig/clustercheck'],
+  }
+
   if $::hostname == $galera_master {
     pacemaker_resource { 'galera':
       primitive_class    => 'ocf',
@@ -77,75 +114,18 @@ class openstack::x007_galera (
       }
       ,
       complex_type       => 'master',
-      require            => Class['::mysql::server'],
+      require            => Xinetd::Service['galera-monitor'],
     }
 
-    mysql_user { 'clustercheck@localhost':
-      ensure        => 'present',
-      password_hash => mysql_password($status_password),
-      require       => Exec['galera-ready'],
-    }
-
-    mysql_grant { 'clustercheck@localhost/*.*':
-      ensure     => 'present',
-      options    => ['GRANT'],
-      privileges => ['PROCESS'],
-      table      => '*.*',
-      user       => 'clustercheck@localhost',
+    exec { 'galera-ready':
+      command     => '/usr/bin/clustercheck >/dev/null',
+      timeout     => 30,
+      tries       => 180,
+      try_sleep   => 10,
+      environment => ['AVAILABLE_WHEN_READONLY=0'],
+      require     => Exec['create-root-sysconfig-clustercheck'],
     }
 
     Exec['galera-ready'] -> Mysql_database <| |>
-  }
-
-  exec { 'galera-ready':
-    command     => '/usr/bin/clustercheck >/dev/null',
-    timeout     => 30,
-    tries       => 180,
-    try_sleep   => 10,
-    environment => ['AVAILABLE_WHEN_READONLY=0'],
-    require     => Exec['create-root-sysconfig-clustercheck'],
-  }
-
-  exec { 'create-root-sysconfig-clustercheck':
-    command => "/bin/echo 'MYSQL_USERNAME=root\nMYSQL_PASSWORD=\'\'\nMYSQL_HOST=localhost\n' > /etc/sysconfig/clustercheck",
-    unless  => '/bin/test -e /etc/sysconfig/clustercheck && grep -q clustercheck /etc/sysconfig/clustercheck',
-  }
-
-  xinetd::service { 'galera-monitor':
-    port           => '9200',
-    server         => '/usr/bin/clustercheck',
-    per_source     => 'UNLIMITED',
-    log_on_success => '',
-    log_on_failure => 'HOST',
-    flags          => 'REUSE',
-    service_type   => 'UNLISTED',
-    user           => 'root',
-    group          => 'root',
-    require        => Exec['create-root-sysconfig-clustercheck'],
-  }
-
-  file { '/etc/sysconfig/clustercheck':
-    ensure  => file,
-    mode    => '0600',
-    owner   => 'root',
-    group   => 'root',
-    content => "MYSQL_USERNAME=clustercheck\nMYSQL_PASSWORD=$status_password\nMYSQL_HOST=localhost\n",
-  }
-
-  exec { 'galera-set-root-password':
-    command => "/bin/touch /root/.my.cnf && \
-                      /bin/echo \"UPDATE mysql.user SET Password = PASSWORD('$root_password') WHERE user = 'root'; \
-                      flush privileges;\" | \
-                      /bin/mysql --defaults-extra-file=/root/.my.cnf -u root",
-    require => Exec['galera-ready'],
-  }
-
-  file { '/root/.my.cnf':
-    ensure  => file,
-    mode    => '0600',
-    owner   => 'root',
-    group   => 'root',
-    content => "[client]\nuser=root\npassword=$root_password\n[mysql]\nuser=root\npassword=$root_password",
-    require => Exec['galera-set-root-password'],
   }
 }
