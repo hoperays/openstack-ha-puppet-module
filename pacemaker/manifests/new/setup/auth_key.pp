@@ -46,13 +46,15 @@ class pacemaker::new::setup::auth_key (
     mode    => '0640',
   }
 
-    file { 'pacemaker-auth-key':
-    ensure  => link,
-    path    => '/etc/pacemaker/authkey',
-    target  => '/etc/corosync/authkey',
-    owner   => $cluster_user,
-    group   => $cluster_group,
-    require => File['corosync-auth-key'],
+  file { 'pacemaker-auth-key':
+    ensure => $cluster_auth_enabled ? {
+      true    => 'link',
+      default => 'absent',
+    },
+    path   => '/etc/pacemaker/authkey',
+    target => '/etc/corosync/authkey',
+    owner  => $cluster_user,
+    group  => $cluster_group,
   }
 
   # authkey should be placed before the cluster is created
