@@ -80,15 +80,6 @@ class openstack::x007_galera (
       require            => Class['::mysql::server'],
     }
 
-    exec { 'galera-ready':
-      command     => '/usr/bin/clustercheck >/dev/null',
-      timeout     => 30,
-      tries       => 180,
-      try_sleep   => 10,
-      environment => ['AVAILABLE_WHEN_READONLY=0'],
-      require     => Exec['create-root-sysconfig-clustercheck'],
-    }
-
     mysql_user { 'clustercheck@localhost':
       ensure        => 'present',
       password_hash => mysql_password($status_password),
@@ -104,6 +95,15 @@ class openstack::x007_galera (
     }
 
     Exec['galera-ready'] -> Mysql_database <| |>
+  }
+
+  exec { 'galera-ready':
+    command     => '/usr/bin/clustercheck >/dev/null',
+    timeout     => 30,
+    tries       => 180,
+    try_sleep   => 10,
+    environment => ['AVAILABLE_WHEN_READONLY=0'],
+    require     => Exec['create-root-sysconfig-clustercheck'],
   }
 
   exec { 'create-root-sysconfig-clustercheck':
