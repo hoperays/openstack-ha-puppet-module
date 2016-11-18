@@ -86,7 +86,7 @@ class openstack::x006_galera (
     service_type   => 'UNLISTED',
     user           => 'root',
     group          => 'root',
-    require        => File['/etc/sysconfig/clustercheck'],
+    require        => [File['/etc/sysconfig/clustercheck'], Mysql_grant['clustercheck@localhost/*.*']],
   }
 
   if $::hostname == $galera_master {
