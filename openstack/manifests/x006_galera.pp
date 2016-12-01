@@ -35,7 +35,7 @@ class openstack::x006_galera (
       'wsrep_drupal_282555_workaround' => '0',
       'wsrep_causal_reads'  => '0',
       'wsrep_sst_method'    => 'rsync',
-      # 'wsrep_provider_options'        => "gmcast.listen_addr=tcp://${gmcast_listen_addr}:4567;",
+      'wsrep_provider_options'         => "gmcast.listen_addr=tcp://${::hostname}:4567;",
     }
   }
 
