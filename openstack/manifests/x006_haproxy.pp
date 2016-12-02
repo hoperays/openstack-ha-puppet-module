@@ -526,8 +526,8 @@ class openstack::x006_haproxy (
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "pcs status | grep -q 'partition with quorum' > /dev/null 2>&1",
-      unless    => "pcs status | grep -q 'partition with quorum' > /dev/null 2>&1",
+      command   => "/usr/sbin/pcs status | grep -q 'partition with quorum' > /dev/null 2>&1",
+      unless    => "/usr/sbin/pcs status | grep -q 'partition with quorum' > /dev/null 2>&1",
     }
 
     pacemaker::resource::ip { 'controller-vip':
