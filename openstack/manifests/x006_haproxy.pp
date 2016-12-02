@@ -522,29 +522,16 @@ class openstack::x006_haproxy (
   }
 
   if $::hostname == $haproxy_master {
-    pacemaker_resource { 'controller-vip':
-      primitive_class    => 'ocf',
-      primitive_provider => 'heartbeat',
-      primitive_type     => 'IPaddr2',
-      parameters         => {
-        'ip'           => "$controller_vip",
-        'cidr_netmask' => '23',
-        'nic'          => 'eth0',
-      }
-      ,
-      operations         => {
-        'monitor' => {
-          'interval' => '30s',
-        }
-        ,
-      }
-      ,
-      require            => Class['haproxy'],
+    pcmk_resource { 'controller-vip':
+      resource_type   => 'IPaddr2',
+      resource_params => "ip=${controller_vip} cidr_netmask=23 nic=eth0",
+      op_params       => 'monitor interval=30s',
+      require         => Class['haproxy'],
     } ->
-    pacemaker_resource { 'haproxy':
-      primitive_class => 'systemd',
-      primitive_type  => 'haproxy',
-      complex_type    => 'clone',
+    pacemaker::resource::service { 'haproxy':
+      service_name => 'haproxy',
+      op_params    => 'monitor start-delay=10s',
+      clone_params => true,
     } ->
     pacemaker_order { 'order-controller-vip-haproxy-clone':
       first_action  => 'start',
