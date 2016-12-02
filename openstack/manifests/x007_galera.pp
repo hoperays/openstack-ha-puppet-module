@@ -1,7 +1,6 @@
-class openstack::x006_galera (
+class openstack::x007_galera (
   $galera_servers        = 'controller-1,controller-2,controller-3',
   $galera_master         = 'controller-1',
-  $root_password         = 'root1234',
   $clustercheck_password = 'clustercheck1234',
   $mysql_config_file     = '/etc/my.cnf.d/galera.cnf',
   $manage_resources      = false,) {
@@ -32,8 +31,6 @@ class openstack::x006_galera (
       'wsrep_sst_method'    => 'rsync',
       'wsrep_cluster_address'          => "gcomm://${galera_servers}",
       'wsrep_on'            => 'ON',
-      # 'open_files_limit'    => '-1',
-      # 'wsrep_provider_options'         => "gmcast.listen_addr=tcp://${::hostname}:4567;",
     }
   }
 
@@ -73,6 +70,7 @@ class openstack::x006_galera (
       op_params       => "promote timeout=300s on-fail=block",
       master_params   => true,
       require         => Exec['create-root-sysconfig-clustercheck'],
+      before          => Exec['galera-ready'],
     }
 
     mysql_user { 'clustercheck@localhost':
