@@ -530,12 +530,11 @@ class openstack::x006_haproxy (
       unless    => "/usr/sbin/pcs status | grep -q 'partition with quorum' > /dev/null 2>&1",
     }
 
-    pacemaker::resource::ip { 'controller-vip':
-      ip_address   => $controller_vip,
-      cidr_netmask => '23',
-      nic          => 'eth0',
-      require      => Class['haproxy'],
-    }
+    pcmk_resource { 'controller-vip':
+      resource_type   => 'IPaddr2',
+      resource_params => "ip=${controller_vip} cidr_netmask=23 nic=eth0",
+      require         => Class['haproxy'],
+    } ->
     pacemaker::resource::service { 'haproxy':
       service_name => 'haproxy',
       clone_params => true,
