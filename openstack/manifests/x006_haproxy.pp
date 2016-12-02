@@ -522,15 +522,22 @@ class openstack::x006_haproxy (
   }
 
   if $::hostname == $haproxy_master {
-    pcmk_resource { 'controller-vip':
-      resource_type   => 'IPaddr2',
-      resource_params => "ip=${controller_vip} cidr_netmask=23 nic=eth0",
-      op_params       => 'monitor interval=30s',
-      require         => Class['haproxy'],
-    } ->
+    exec { 'wait-for-settle':
+      timeout   => '3600',
+      tries     => '360',
+      try_sleep => '10',
+      command   => "pcs status | grep -q 'partition with quorum' > /dev/null 2>&1",
+      unless    => "pcs status | grep -q 'partition with quorum' > /dev/null 2>&1",
+    }
+
+    pacemaker::resource::ip { 'controller-vip':
+      ip_address   => $controller_vip,
+      cidr_netmask => '23',
+      nic          => 'eth0',
+      require      => Class['haproxy'],
+    }
     pacemaker::resource::service { 'haproxy':
       service_name => 'haproxy',
-      op_params    => 'monitor start-delay=10s',
       clone_params => true,
     } ->
     pacemaker_order { 'order-controller-vip-haproxy-clone':
