@@ -32,9 +32,9 @@ class openstack::y001_keystone (
 
   if $::hostname == $bootstrap_node {
     class { '::keystone::db::mysql':
-      password      => $keystone_password,
-      host          => 'controller-vip',
-      allowed_hosts => $cluster_nodes,
+      password => $keystone_password,
+      host     => 'controller-vip',
+    # allowed_hosts => $cluster_nodes,
     } ->
     class { '::keystone::db::sync': }
   }
