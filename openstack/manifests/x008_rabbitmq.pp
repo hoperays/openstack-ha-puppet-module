@@ -8,8 +8,12 @@ class openstack::x008_rabbitmq (
     cluster_node_type        => 'ram',
     erlang_cookie            => 'CECDFFCEFEDBFAAECDFA',
     wipe_db_on_cookie_change => true,
-    service_ensure           => 'stopped',
-    service_manage           => false
+  }
+
+  class { 'rabbitmq::service':
+    service_ensure => 'stopped',
+    service_manage => false,
+    require        => Class['rabbitmq'],
   }
 
   if $::hostname == $bootstrap_node {
@@ -19,7 +23,7 @@ class openstack::x008_rabbitmq (
       meta_params     => 'notify=true',
       clone_params    => 'ordered=true interleave=true',
       # op_params       => 'start timeout=200s stop timeout=200s',
-      require         => Class['rabbitmq'],
+      require         => Class['rabbitmq::service'],
     }
   }
 }
