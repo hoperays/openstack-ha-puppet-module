@@ -28,4 +28,6 @@ class openstack {
   class { 'openstack::x008_rabbitmq': require => Class['openstack::x005_pacemaker'] }
 
   class { 'openstack::x009_memcached': require => Class['openstack::x005_pacemaker'] }
+
+  class { 'openstack::x010_mongodb': require => Class['openstack::x005_pacemaker'] }
 }
