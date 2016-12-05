@@ -29,5 +29,7 @@ class openstack {
 
   class { 'openstack::x009_memcached': require => Class['openstack::x005_pacemaker'] }
 
-  class { 'openstack::x010_mongodb': require => Class['openstack::x005_pacemaker'] }
+  # class { 'openstack::x010_mongodb': require => Class['openstack::x005_pacemaker'] }
+
+  # class { 'openstack::x011_redis': require => Class['openstack::x005_pacemaker'] }
 }
