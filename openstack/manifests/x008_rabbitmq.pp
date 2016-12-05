@@ -12,7 +12,7 @@ class openstack::x008_rabbitmq (
     service_manage           => false
   }
 
-  if ::hostname == $bootstrap_node {
+  if $::hostname == $bootstrap_node {
     pacemaker::resource::ocf { 'rabbitmq':
       ocf_agent_name  => 'ocf:heartbeat:rabbitmq-cluster',
       resource_params => "set_policy='ha-all ^(?!amq\\.).* {\"ha-mode\":\"all\"}'",
