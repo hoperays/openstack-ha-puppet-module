@@ -26,4 +26,6 @@ class openstack {
   class { 'openstack::x007_galera': require => Class['openstack::x006_haproxy'] }
 
   class { 'openstack::x008_rabbitmq': require => Class['openstack::x005_pacemaker'] }
+
+  class { 'openstack::x009_memcached': require => Class['openstack::x005_pacemaker'] }
 }
