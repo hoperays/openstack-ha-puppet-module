@@ -9,7 +9,7 @@ class openstack::x008_rabbitmq (
     erlang_cookie            => 'CECDFFCEFEDBFAAECDFA',
     wipe_db_on_cookie_change => true,
     service_manage           => true,
-    service_ensure           => false,
+    service_ensure           => 'stopped',
   }
 
   if $::hostname == $bootstrap_node {
