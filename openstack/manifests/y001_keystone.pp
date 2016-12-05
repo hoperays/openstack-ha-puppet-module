@@ -1,4 +1,4 @@
-class openstack::x001_keystone (
+class openstack::y001_keystone (
   $keystone_password     = 'keystone1234',
   $host                  = 'controller-vip',
   $cluster_nodes         = [
@@ -32,7 +32,7 @@ class openstack::x001_keystone (
     } ->
     class { '::keystone::db::sync': } ->
     exec { 'keystone-manage fernet_setup':
-      command     => "keystone-manage fernet_setup --keystone-user keystone --keystone-group keystone",
+      command     => 'keystone-manage fernet_setup --keystone-user keystone --keystone-group keystone',
       path        => '/usr/bin',
       refreshonly => true,
       creates     => "${fernet_key_repository}/0",
@@ -43,19 +43,19 @@ class openstack::x001_keystone (
     keystone_config { 'fernet_tokens/key_repository': value => $fernet_key_repository; }
   }
 
-  class { '::keystone::roles::admin':
-    email    => undef,
-    password => undef,
-  }
-
-  class { '::keystone::endpoint':
-    public_url => "https://${host}:5000/",
-    admin_url  => "https://${host}:35357/",
-  }
-
-  keystone_config { 'ssl/enable': value => true }
-
-  class { 'apache': }
-
-  class { '::keystone::wsgi::apache': ssl => true }
+  #  class { '::keystone::roles::admin':
+  #    email    => undef,
+  #    password => undef,
+  #  }
+  #
+  #  class { '::keystone::endpoint':
+  #    public_url => "https://${host}:5000/",
+  #    admin_url  => "https://${host}:35357/",
+  #  }
+  #
+  #  keystone_config { 'ssl/enable': value => true }
+  #
+  #  class { 'apache': }
+  #
+  #  class { '::keystone::wsgi::apache': ssl => true }
 }
