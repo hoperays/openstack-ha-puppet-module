@@ -50,5 +50,6 @@ class openstack::x005_pacemaker (
     try_sleep => '10',
     command   => "/usr/sbin/pcs status | grep -q 'partition with quorum' > /dev/null 2>&1",
     unless    => "/usr/sbin/pcs status | grep -q 'partition with quorum' > /dev/null 2>&1",
+    require   => Class['pacemaker::new'],
   }
 }

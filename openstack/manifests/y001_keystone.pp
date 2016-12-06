@@ -11,10 +11,10 @@ class openstack::y001_keystone (
       host          => 'localhost',
       allowed_hosts => $allowed_hosts,
     }
-    $enable_fernet_setup = true
+    # $enable_fernet_setup = true
     $sync_db = true
   } else {
-    $enable_fernet_setup = false
+    # $enable_fernet_setup = false
     $sync_db = false
   }
 
@@ -29,16 +29,28 @@ class openstack::y001_keystone (
     public_bind_host     => $::hostname,
     admin_bind_host      => $::hostname,
     token_provider       => 'fernet',
-    enable_fernet_setup  => $enable_fernet_setup,
+    # enable_fernet_setup  => $enable_fernet_setup,
     sync_db              => $sync_db,
     enabled              => false,
   }
 
-  if $::hostname =~ /^controller-\d+$/ and $::hostname != $bootstrap_node {
+  if $::hostname == $bootstrap_node {
+    exec { 'keystone-manage fernet_setup':
+      timeout   => '3600',
+      tries     => '360',
+      try_sleep => '10',
+      command   => "/usr/bin/keystone-manage fernet_setup --keystone-user keystone --keystone-group keystone > /dev/null 2>&1",
+      unless    => "/usr/bin/keystone-manage fernet_setup --keystone-user keystone --keystone-group keystone > /dev/null 2>&1",
+      require   => Class['::keystone'],
+    }
+  } elsif $::hostname =~ /^controller-\d+$/ {
     exec { 'rsync fernet keys':
-      command => "/usr/bin/rsync -avzP ${bootstrap_node}:/etc/keystone/fernet-keys/ /etc/keystone/fernet-keys/ > /dev/null 2>&1",
-      unless  => "/usr/bin/rsync -avzP ${bootstrap_node}:/etc/keystone/fernet-keys/ /etc/keystone/fernet-keys/ > /dev/null 2>&1",
-      require => Class['::keystone'],
+      timeout   => '3600',
+      tries     => '360',
+      try_sleep => '10',
+      command   => "/usr/bin/rsync -avzP ${bootstrap_node}:/etc/keystone/fernet-keys/ /etc/keystone/fernet-keys/ > /dev/null 2>&1",
+      unless    => "/usr/bin/rsync -avzP ${bootstrap_node}:/etc/keystone/fernet-keys/ /etc/keystone/fernet-keys/ > /dev/null 2>&1",
+      require   => Class['::keystone'],
     }
   }
 
