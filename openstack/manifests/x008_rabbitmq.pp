@@ -2,6 +2,7 @@ class openstack::x008_rabbitmq (
   $cluster_nodes  = ['controller-1', 'controller-2', 'controller-3'],
   $bootstrap_node = 'controller-1') {
   class { 'rabbitmq':
+    package_provider         => 'yum',
     admin_enable             => false,
     service_manage           => true,
     service_ensure           => 'stopped',
