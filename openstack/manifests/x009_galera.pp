@@ -1,4 +1,4 @@
-class openstack::x007_galera (
+class openstack::x009_galera (
   $galera_servers        = 'controller-1,controller-2,controller-3',
   $galera_master         = 'controller-1',
   $clustercheck_password = 'clustercheck1234',
