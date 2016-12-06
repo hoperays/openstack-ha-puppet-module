@@ -1,10 +1,15 @@
 class openstack::y001_keystone (
-  $cluster_nodes     = ['controller-1', 'controller-2', 'controller-3'],
+  $admin_token       = 'e38f3dd7116ee3bc3dba',
+  $cluster_nodes     = [
+    'controller-1',
+    'controller-2',
+    'controller-3'],
   $keystone_password = 'keystone1234',
   $host              = 'controller-vip',
   $bootstrap_node    = 'controller-1',
-  $allowed_hosts     = ['%', 'localhost'],
-  $admin_token       = 'e38f3dd7116ee3bc3dba',) {
+  $allowed_hosts     = [
+    '%',
+    'localhost'],) {
   if $::hostname == $bootstrap_node {
     $enable_fernet_setup = true
   } else {
@@ -23,7 +28,7 @@ class openstack::y001_keystone (
     admin_bind_host      => $::hostname,
     token_provider       => 'fernet',
     enable_fernet_setup  => $enable_fernet_setup,
-    verbose              => true,
+    # verbose              => true,
     sync_db              => false,
     enabled              => false,
   }
