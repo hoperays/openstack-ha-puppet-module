@@ -43,4 +43,12 @@ class openstack::x005_pacemaker (
     ensure => 'present',
     value  => '1min',
   }
+
+  exec { 'wait-for-settle':
+    timeout   => '3600',
+    tries     => '360',
+    try_sleep => '10',
+    command   => "/usr/sbin/pcs status | grep -q 'partition with quorum' > /dev/null 2>&1",
+    unless    => "/usr/sbin/pcs status | grep -q 'partition with quorum' > /dev/null 2>&1",
+  }
 }

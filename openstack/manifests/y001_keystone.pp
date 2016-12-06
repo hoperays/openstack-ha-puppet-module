@@ -1,19 +1,21 @@
 class openstack::y001_keystone (
-  $admin_token       = 'e38f3dd7116ee3bc3dba',
-  $cluster_nodes     = [
-    'controller-1',
-    'controller-2',
-    'controller-3'],
-  $keystone_password = 'keystone1234',
-  $host              = 'controller-vip',
   $bootstrap_node    = 'controller-1',
-  $allowed_hosts     = [
-    '%',
-    'localhost'],) {
+  $keystone_password = 'keystone1234',
+  $allowed_hosts     = ['%'],
+  $admin_token       = 'e38f3dd7116ee3bc3dba',
+  $cluster_nodes     = ['controller-1', 'controller-2', 'controller-3'],
+  $host              = 'controller-vip',) {
   if $::hostname == $bootstrap_node {
+    class { '::keystone::db::mysql':
+      password      => $keystone_password,
+      host          => 'localhost',
+      allowed_hosts => $allowed_hosts,
+    }
     $enable_fernet_setup = true
+    $sync_db = true
   } else {
     $enable_fernet_setup = false
+    $sync_db = false
   }
 
   class { '::keystone':
@@ -28,18 +30,16 @@ class openstack::y001_keystone (
     admin_bind_host      => $::hostname,
     token_provider       => 'fernet',
     enable_fernet_setup  => $enable_fernet_setup,
-    # verbose              => true,
-    sync_db              => false,
+    sync_db              => $sync_db,
     enabled              => false,
   }
 
-  if $::hostname == $bootstrap_node {
-    class { '::keystone::db::mysql':
-      password      => $keystone_password,
-      host          => 'controller-vip',
-      allowed_hosts => $allowed_hosts,
-    } ->
-    class { '::keystone::db::sync': }
+  if $::hostname =~ /^controller-\d+$/ and $::hostname != $bootstrap_node {
+    exec { 'rsync fernet keys':
+      command => "/usr/bin/rsync -avzP ${bootstrap_node}:/etc/keystone/fernet-keys/ /etc/keystone/fernet-keys/ > /dev/null 2>&1",
+      unless  => "/usr/bin/rsync -avzP ${bootstrap_node}:/etc/keystone/fernet-keys/ /etc/keystone/fernet-keys/ > /dev/null 2>&1",
+      require => Class['::keystone'],
+    }
   }
 
   #  class { '::keystone::roles::admin':
