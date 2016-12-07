@@ -61,7 +61,8 @@ class openstack::y001_keystone (
   }
 
   class { '::keystone::wsgi::apache':
-    ssl => true
+    bind_host       => $::hostname,
+    admin_bind_host => $::hostname,
   }
 
   if $::hostname == $bootstrap_node {
