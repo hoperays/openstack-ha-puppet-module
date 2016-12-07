@@ -22,8 +22,8 @@ class openstack::y001_keystone (
     admin_token          => $admin_token,
     rabbit_hosts         => $cluster_nodes,
     rabbit_ha_queues     => true,
-    admin_endpoint       => "https://${host}:35357/",
-    public_endpoint      => "https://${host}:5000/",
+    admin_endpoint       => "http://${host}:35357/",
+    public_endpoint      => "http://${host}:5000/",
     database_connection  => "mysql+pymysql://keystone:${keystone_password}@${host}/keystone",
     database_max_retries => '-1',
     public_bind_host     => $::hostname,
@@ -62,6 +62,7 @@ class openstack::y001_keystone (
   }
 
   class { '::keystone::wsgi::apache':
+    ssl             => false,
     bind_host       => $::ipaddress_eth0,
     admin_bind_host => $::ipaddress_eth0,
   }
