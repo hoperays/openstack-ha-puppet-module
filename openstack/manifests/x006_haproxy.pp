@@ -3,7 +3,7 @@ class openstack::x006_haproxy (
   $controller_1     = '192.168.0.131',
   $controller_2     = '192.168.0.132',
   $controller_3     = '192.168.0.133',
-  $haproxy_master   = 'controller-1',
+  $bootstrap_node   = 'controller-1',
   $bind_address     = $::ipaddress_eth0,
   $manage_resources = false,) {
   class { 'haproxy':
@@ -521,7 +521,7 @@ class openstack::x006_haproxy (
     options           => 'check inter 1s',
   }
 
-  if $::hostname == $haproxy_master {
+  if $::hostname == $bootstrap_node {
     pcmk_resource { 'controller-vip':
       resource_type   => 'IPaddr2',
       resource_params => "ip=${controller_vip} cidr_netmask=23 nic=eth0",

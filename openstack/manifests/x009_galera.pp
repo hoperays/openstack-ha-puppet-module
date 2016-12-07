@@ -1,6 +1,6 @@
 class openstack::x009_galera (
   $galera_servers        = 'controller-1,controller-2,controller-3',
-  $galera_master         = 'controller-1',
+  $bootstrap_node        = 'controller-1',
   $clustercheck_password = 'clustercheck1234',
   $mysql_config_file     = '/etc/my.cnf.d/galera.cnf',
   $manage_resources      = false,) {
@@ -61,7 +61,7 @@ class openstack::x009_galera (
     require   => Exec['create-root-sysconfig-clustercheck'],
   }
 
-  if $::hostname == $galera_master {
+  if $::hostname == $bootstrap_node {
     pacemaker::resource::ocf { 'galera':
       ensure          => 'present',
       ocf_agent_name  => 'heartbeat:galera',
