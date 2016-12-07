@@ -56,7 +56,8 @@ class openstack::y001_keystone (
   }
 
   class { 'apache':
-    service_manage => false,
+    service_ensure => 'stopped',
+    service_enable => false,
   }
 
   class { '::keystone::wsgi::apache':
