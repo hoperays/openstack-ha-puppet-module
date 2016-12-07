@@ -86,7 +86,13 @@ class openstack::y001_keystone (
       public_url   => "http://${host}:5000/v3",
       internal_url => "http://${host}:5000/v3",
     } ->
-    keystone_domain { 'default': ensure => 'absent', } ->
+    exec { 'delete domain default':
+      timeout   => '3600',
+      tries     => '360',
+      try_sleep => '10',
+      command   => '/usr/bin/openstack domain set --disable default && /usr/bin/openstack domain delete default',
+      unless    => '/usr/bin/openstack domain set --disable default && /usr/bin/openstack domain delete default',
+    } ->
     keystone_domain { 'default':
       ensure      => 'present',
       enabled     => true,
