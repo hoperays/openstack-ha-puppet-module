@@ -87,6 +87,22 @@ class openstack::x009_galera (
       user       => 'clustercheck@localhost',
       require    => Mysql_user['clustercheck@localhost'],
     }
+
+    mysql_user { ['root@127.0.0.1', 'root@::1', '@localhost', '@%']:
+      ensure  => 'absent',
+      require => Exec['galera-ready'],
+    }
+
+    exec { 'delete user host like controller-%':
+      command => '/usr/bin/mysql -e "delete from mysql.user where host like \'controller-%\';"',
+      unless  => '/usr/bin/mysql -e "delete from mysql.user where host like \'controller-%\';"',
+      require => Exec['galera-ready'],
+    }
+
+    mysql_database { 'test':
+      ensure  => 'absent',
+      require => Exec['galera-ready'],
+    }
   }
 
   #  class { 'mysql::server::account_security':
