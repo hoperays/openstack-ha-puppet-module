@@ -55,11 +55,13 @@ class openstack::y001_keystone (
     }
   }
 
-  keystone_config { 'ssl/enable': value => true }
+  class { 'apache':
+    service_manage => false,
+  }
 
-  class { 'apache': service_manage => false, }
-
-  class { '::keystone::wsgi::apache': ssl => true }
+  class { '::keystone::wsgi::apache':
+    ssl => true
+  }
 
   if $::hostname == $bootstrap_node {
     pacemaker::resource::ocf { 'apache':
@@ -69,8 +71,6 @@ class openstack::y001_keystone (
       require        => Class['::keystone::wsgi::apache'],
     }
   }
-
-  # pcs resource create httpd apache --clone
 
   #  class { '::keystone::roles::admin':
   #    email    => undef,
