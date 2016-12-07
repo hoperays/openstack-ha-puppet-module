@@ -31,6 +31,7 @@ class openstack::y001_keystone (
     token_provider       => 'fernet',
     # enable_fernet_setup  => $enable_fernet_setup,
     sync_db              => $sync_db,
+    manage_service       => false,
     enabled              => false,
   }
 
@@ -54,19 +55,25 @@ class openstack::y001_keystone (
     }
   }
 
+  keystone_config { 'ssl/enable': value => true }
+
+  class { 'apache': service_manage => false, }
+
+  class { '::keystone::wsgi::apache': ssl => true }
+
+  if $::hostname == $bootstrap_node {
+    pacemaker::resource::ocf { 'apache':
+      ensure         => 'present',
+      ocf_agent_name => 'heartbeat:apache',
+      clone_params   => true,
+      require        => Class['::keystone::wsgi::apache'],
+    }
+  }
+
+  # pcs resource create httpd apache --clone
+
   #  class { '::keystone::roles::admin':
   #    email    => undef,
   #    password => undef,
   #  }
-  #
-  #  class { '::keystone::endpoint':
-  #    public_url => "https://${host}:5000/",
-  #    admin_url  => "https://${host}:35357/",
-  #  }
-  #
-  #  keystone_config { 'ssl/enable': value => true }
-  #
-  #  class { 'apache': }
-  #
-  #  class { '::keystone::wsgi::apache': ssl => true }
 }
