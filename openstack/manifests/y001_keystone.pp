@@ -61,8 +61,8 @@ class openstack::y001_keystone (
   }
 
   class { '::keystone::wsgi::apache':
-    bind_host       => $::hostname,
-    admin_bind_host => $::hostname,
+    bind_host       => $::ipaddress_eth0,
+    admin_bind_host => $::ipaddress_eth0,
   }
 
   if $::hostname == $bootstrap_node {
