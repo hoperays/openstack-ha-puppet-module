@@ -43,7 +43,8 @@ class openstack::x002_hosts {
     path    => '/root/.ssh/authorized_keys',
     content => 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDP4XkPBLjwgZ69L4TZND0813BW4OMUg3IutgcpS667sUzpbHkyMiRYBrIkM+7CXnllznadBIOk/sxVbC3ZJaKhVr4F8wbxYL63sWWPliaXVfomtRBETlezfLdupmqOye3+OFxuXVyxd3678A6f2nGoYM5FUghE65lTst/u3ZgqQneyrL3ajHFI1aNYyFh+0gZACeUY9f3NEQocIMgmCU5v60SZ6H3/6+SP3dqgOOl1WdKWzXtf1lDfP++vDy9wBHE0xUgwBB1OPZAc+oed9mnwlHSxZ2Vg6uxquCHpb96qTcuVRxIv/1rcnBfYb7k7HM4ZRAmgbg0MQy+5IyV9IF6b root@controller-1
 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDP4XkPBLjwgZ69L4TZND0813BW4OMUg3IutgcpS667sUzpbHkyMiRYBrIkM+7CXnllznadBIOk/sxVbC3ZJaKhVr4F8wbxYL63sWWPliaXVfomtRBETlezfLdupmqOye3+OFxuXVyxd3678A6f2nGoYM5FUghE65lTst/u3ZgqQneyrL3ajHFI1aNYyFh+0gZACeUY9f3NEQocIMgmCU5v60SZ6H3/6+SP3dqgOOl1WdKWzXtf1lDfP++vDy9wBHE0xUgwBB1OPZAc+oed9mnwlHSxZ2Vg6uxquCHpb96qTcuVRxIv/1rcnBfYb7k7HM4ZRAmgbg0MQy+5IyV9IF6b root@controller-2
-ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDP4XkPBLjwgZ69L4TZND0813BW4OMUg3IutgcpS667sUzpbHkyMiRYBrIkM+7CXnllznadBIOk/sxVbC3ZJaKhVr4F8wbxYL63sWWPliaXVfomtRBETlezfLdupmqOye3+OFxuXVyxd3678A6f2nGoYM5FUghE65lTst/u3ZgqQneyrL3ajHFI1aNYyFh+0gZACeUY9f3NEQocIMgmCU5v60SZ6H3/6+SP3dqgOOl1WdKWzXtf1lDfP++vDy9wBHE0xUgwBB1OPZAc+oed9mnwlHSxZ2Vg6uxquCHpb96qTcuVRxIv/1rcnBfYb7k7HM4ZRAmgbg0MQy+5IyV9IF6b root@controller-3',
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDP4XkPBLjwgZ69L4TZND0813BW4OMUg3IutgcpS667sUzpbHkyMiRYBrIkM+7CXnllznadBIOk/sxVbC3ZJaKhVr4F8wbxYL63sWWPliaXVfomtRBETlezfLdupmqOye3+OFxuXVyxd3678A6f2nGoYM5FUghE65lTst/u3ZgqQneyrL3ajHFI1aNYyFh+0gZACeUY9f3NEQocIMgmCU5v60SZ6H3/6+SP3dqgOOl1WdKWzXtf1lDfP++vDy9wBHE0xUgwBB1OPZAc+oed9mnwlHSxZ2Vg6uxquCHpb96qTcuVRxIv/1rcnBfYb7k7HM4ZRAmgbg0MQy+5IyV9IF6b root@controller-3
+',
     group   => 'root',
     owner   => 'root',
     mode    => '0400',
@@ -79,7 +80,8 @@ AHRLQeN18NeXpuPO3gaRB27tvKpx3cXU2LU4jjHmbfvJka/amJAnospAZgC/uJUi
 OozMNQKBgQCs1uzkc/UrWeh0yHqPlRQrfGi7jP0jJzHQ1zR9m+Ee41LQJA6PPdof
 Ns8m8JdlBgKTlTI4y1rlIRgB1bZOYmyEjR4g5cMkn/xd4jO2eDRVcTRYY9Vt0DJz
 fHiAV2iSID4k7AO+06xGz+aAsRyRxoyF6QhYjdfBWh6YY2oaM7fkqg==
------END RSA PRIVATE KEY-----',
+-----END RSA PRIVATE KEY-----
+',
       group   => 'root',
       owner   => 'root',
       mode    => '0600',
@@ -88,7 +90,8 @@ fHiAV2iSID4k7AO+06xGz+aAsRyRxoyF6QhYjdfBWh6YY2oaM7fkqg==
     file { 'id_rsa.pub':
       ensure  => 'present',
       path    => '/root/.ssh/id_rsa.pub',
-      content => "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDP4XkPBLjwgZ69L4TZND0813BW4OMUg3IutgcpS667sUzpbHkyMiRYBrIkM+7CXnllznadBIOk/sxVbC3ZJaKhVr4F8wbxYL63sWWPliaXVfomtRBETlezfLdupmqOye3+OFxuXVyxd3678A6f2nGoYM5FUghE65lTst/u3ZgqQneyrL3ajHFI1aNYyFh+0gZACeUY9f3NEQocIMgmCU5v60SZ6H3/6+SP3dqgOOl1WdKWzXtf1lDfP++vDy9wBHE0xUgwBB1OPZAc+oed9mnwlHSxZ2Vg6uxquCHpb96qTcuVRxIv/1rcnBfYb7k7HM4ZRAmgbg0MQy+5IyV9IF6b root@${::hostname}",
+      content => "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDP4XkPBLjwgZ69L4TZND0813BW4OMUg3IutgcpS667sUzpbHkyMiRYBrIkM+7CXnllznadBIOk/sxVbC3ZJaKhVr4F8wbxYL63sWWPliaXVfomtRBETlezfLdupmqOye3+OFxuXVyxd3678A6f2nGoYM5FUghE65lTst/u3ZgqQneyrL3ajHFI1aNYyFh+0gZACeUY9f3NEQocIMgmCU5v60SZ6H3/6+SP3dqgOOl1WdKWzXtf1lDfP++vDy9wBHE0xUgwBB1OPZAc+oed9mnwlHSxZ2Vg6uxquCHpb96qTcuVRxIv/1rcnBfYb7k7HM4ZRAmgbg0MQy+5IyV9IF6b root@${::hostname}
+",
       group   => 'root',
       owner   => 'root',
       mode    => '0644',
