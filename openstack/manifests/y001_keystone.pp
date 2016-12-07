@@ -72,11 +72,10 @@ class openstack::y001_keystone (
       ocf_agent_name => 'heartbeat:apache',
       clone_params   => true,
       require        => Class['::keystone::wsgi::apache'],
+    } ->
+    class { '::keystone::roles::admin':
+      email    => 'admin@example.org',
+      password => 'admin1234',
     }
   }
-
-  #  class { '::keystone::roles::admin':
-  #    email    => undef,
-  #    password => undef,
-  #  }
 }
