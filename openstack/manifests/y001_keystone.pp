@@ -56,6 +56,7 @@ class openstack::y001_keystone (
   }
 
   class { 'apache':
+    ip             => $::ipaddress_eth0,
     service_ensure => 'stopped',
     service_enable => false,
   }
