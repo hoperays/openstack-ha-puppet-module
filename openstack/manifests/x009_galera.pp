@@ -53,21 +53,21 @@ class openstack::x009_galera (
   }
 
   exec { 'galera-ready':
-    command     => '/usr/bin/clustercheck >/dev/null',
-    timeout     => 30,
-    tries       => 180,
-    try_sleep   => 10,
-    environment => ['AVAILABLE_WHEN_READONLY=0'],
-    require     => Exec['create-root-sysconfig-clustercheck'],
+    timeout   => '3600',
+    tries     => '360',
+    try_sleep => '10',
+    command   => '/usr/bin/clustercheck >/dev/null 2>&1',
+    unless    => '/usr/bin/clustercheck >/dev/null 2>&1',
+    require   => Exec['create-root-sysconfig-clustercheck'],
   }
 
   if $::hostname == $galera_master {
-    pcmk_resource { 'galera':
-      ensure          => $ensure,
-      resource_type   => "ocf:heartbeat:galera",
+    pacemaker::resource::ocf { 'galera':
+      ensure          => 'present',
+      ocf_agent_name  => 'heartbeat:galera',
       resource_params => "enable_creation=true wsrep_cluster_address='gcomm://${galera_servers}' additional_parameters='--open-files-limit=16384'",
-      meta_params     => "master-max=3 ordered=true",
-      op_params       => "promote timeout=300s on-fail=block",
+      meta_params     => 'master-max=3 ordered=true',
+      op_params       => 'promote timeout=300s on-fail=block',
       master_params   => true,
       require         => Exec['create-root-sysconfig-clustercheck'],
       before          => Exec['galera-ready'],
@@ -89,9 +89,9 @@ class openstack::x009_galera (
     }
   }
 
-  class { 'mysql::server::account_security':
-    require => Exec['galera-ready'],
-  }
+  #  class { 'mysql::server::account_security':
+  #    require => Exec['galera-ready'],
+  #  }
 
   file { '/etc/sysconfig/clustercheck':
     ensure  => file,
