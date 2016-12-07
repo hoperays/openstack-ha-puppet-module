@@ -74,7 +74,7 @@ class openstack::y001_keystone (
       clone_params   => true,
       require        => Class['::keystone::wsgi::apache'],
     } ->
-    keystone_service { 'identity':
+    keystone_service { 'keystone':
       ensure      => 'present',
       type        => 'identity',
       description => 'OpenStack Identity Service',
@@ -86,6 +86,7 @@ class openstack::y001_keystone (
       public_url   => "http://${host}:5000/v3",
       internal_url => "http://${host}:5000/v3",
     } ->
+    keystone_domain { 'default': ensure => 'absent', } ->
     keystone_domain { 'default':
       ensure      => 'present',
       enabled     => true,
