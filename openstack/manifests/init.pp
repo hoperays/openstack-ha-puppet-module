@@ -29,7 +29,7 @@ class openstack {
 
   class { 'openstack::x009_galera': require => Class['openstack::x006_haproxy'] }
 
-  class { 'openstack::y001_keystone': require => Class['openstack::x009_galera'] }
+  class { 'openstack::y001_keystone': require => [Class['openstack::x008_rabbitmq'], Class['openstack::x009_galera']] }
 
   # class { 'openstack::x010_mongodb': require => Class['openstack::x005_pacemaker'] }
   # class { 'openstack::x011_redis': require => Class['openstack::x005_pacemaker'] }
