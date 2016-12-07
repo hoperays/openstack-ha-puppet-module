@@ -105,7 +105,7 @@ class openstack::y001_keystone (
       domain   => 'default',
     } ->
     keystone_role { 'admin': ensure => 'present', } ->
-    keystone_user_role { 'admin::admin':
+    keystone_user_role { 'admin::default@admin::default':
       ensure         => 'present',
       user           => 'admin',
       user_domain    => 'default',
