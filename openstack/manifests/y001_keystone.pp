@@ -74,9 +74,50 @@ class openstack::y001_keystone (
       clone_params   => true,
       require        => Class['::keystone::wsgi::apache'],
     } ->
-    class { '::keystone::roles::admin':
-      email    => 'admin@example.org',
+    keystone_service { 'identity':
+      ensure      => 'present',
+      type        => 'identity',
+      description => 'OpenStack Identity Service',
+    } ->
+    keystone_endpoint { 'identity':
+      ensure       => 'present',
+      region       => 'RegionOne',
+      admin_url    => "http://${host}:35357/v3",
+      public_url   => "http://${host}:5000/v3",
+      internal_url => "http://${host}:5000/v3",
+    } ->
+    keystone_domain { 'default':
+      ensure      => 'present',
+      enabled     => true,
+      description => 'Default Domain',
+    } ->
+    keystone_tenant { 'admin':
+      ensure      => 'present',
+      enabled     => true,
+      description => 'Admin Project',
+      domain      => 'default',
+    } ->
+    keystone_user { 'admin':
+      ensure   => 'present',
+      enabled  => true,
       password => 'admin1234',
+      # email    => 'admin@example.org',
+      domain   => 'default',
+    } ->
+    keystone_role { 'admin': ensure => 'present', } ->
+    keystone_user_role { 'admin_admin':
+      ensure         => 'present',
+      user           => 'admin',
+      user_domain    => 'default',
+      project        => 'admin',
+      project_domain => 'default',
+      roles          => ['admin'],
+    } ->
+    keystone_tenant { 'services':
+      ensure      => 'present',
+      enabled     => true,
+      description => 'Services Project',
+      domain      => 'default',
     }
   }
 }
