@@ -11,6 +11,9 @@ class openstack::y002_glance (
       host          => 'localhost',
       allowed_hosts => $allowed_hosts,
     }
+    $sync_db = true
+  } else {
+    $sync_db = false
   }
 
   class { '::glance::api':
@@ -21,8 +24,8 @@ class openstack::y002_glance (
     auth_uri              => "http://${host}:5000/",
     identity_uri          => "http://${host}:35357/",
     memcached_servers     => $cluster_nodes,
-    auth_type             => 'password',
-    keystone_tenant       => 'services',
+    auth_type             => 'keystone',
+    keystone_tenant       => 'service',
     keystone_user         => 'glance',
     keystone_password     => $glance_password,
     pipeline              => 'keystone',
@@ -30,6 +33,7 @@ class openstack::y002_glance (
     show_image_direct_url => true,
     stores                => ['rbd', 'http'],
     default_store         => 'rbd',
+    multi_store           => true,
     #
     manage_service        => false,
     enabled               => false,
@@ -40,6 +44,7 @@ class openstack::y002_glance (
     rabbit_userid    => 'guest',
     rabbit_hosts     => $cluster_nodes,
     rabbit_ha_queues => true,
+    rabbit_use_ssl   => false,
   }
 
   class { '::glance::backend::rbd':
@@ -58,12 +63,12 @@ class openstack::y002_glance (
     auth_uri             => "http://${host}:5000/",
     identity_uri         => "http://${host}:35357/",
     memcached_servers    => $cluster_nodes,
-    auth_type            => 'password',
-    keystone_tenant      => 'services',
+    auth_type            => 'keystone',
+    keystone_tenant      => 'service',
     keystone_user        => 'glance',
     keystone_password    => $glance_password,
     pipeline             => 'keystone',
-    #
+    sync_db              => $sync_db,
     manage_service       => false,
     enabled              => false,
   }
@@ -95,7 +100,6 @@ class openstack::y002_glance (
       project_domain => 'default',
       roles          => ['admin'],
     } ->
-    class { '::glance::db::sync': } ->
     pacemaker::resource::service { 'openstack-glance-registry': clone_params => 'interleave=true', } ->
     pacemaker::resource::service { 'openstack-glance-api': clone_params => 'interleave=true', } ->
     pacemaker::constraint::base { 'order-openstack-glance-registry-clone-openstack-glance-api-clone-Optional':
