@@ -53,24 +53,31 @@ class openstack::y001_keystone (
       unless    => "/usr/bin/keystone-manage fernet_setup --keystone-user keystone --keystone-group keystone > /dev/null 2>&1",
       require   => Class['::keystone'],
     } ->
-    exec { 'keystone-ready':
-      # wait for all nodes to complete the ::keystone::wsgi::apache installation
+    exec { 'rsync fernet-keys':
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/usr/bin/ssh controller-1 '/usr/bin/ls -l /etc/httpd/conf.d/10-keystone_wsgi_admin.conf' > /dev/null 2>&1 && \
-                    /usr/bin/ssh controller-2 '/usr/bin/ls -l /etc/httpd/conf.d/10-keystone_wsgi_admin.conf' > /dev/null 2>&1 && \
-                    /usr/bin/ssh controller-3 '/usr/bin/ls -l /etc/httpd/conf.d/10-keystone_wsgi_admin.conf' > /dev/null 2>&1",
-      unless    => "/usr/bin/ssh controller-1 '/usr/bin/ls -l /etc/httpd/conf.d/10-keystone_wsgi_admin.conf' > /dev/null 2>&1 && \
-                    /usr/bin/ssh controller-2 '/usr/bin/ls -l /etc/httpd/conf.d/10-keystone_wsgi_admin.conf' > /dev/null 2>&1 && \
-                    /usr/bin/ssh controller-3 '/usr/bin/ls -l /etc/httpd/conf.d/10-keystone_wsgi_admin.conf' > /dev/null 2>&1",
+      command   => "/usr/bin/rsync -avzP /etc/keystone/fernet-keys/ controller-2:/etc/keystone/fernet-keys/ > /dev/null 2>&1 &&\
+                    /usr/bin/rsync -avzP /etc/keystone/fernet-keys/ controller-3:/etc/keystone/fernet-keys/ > /dev/null 2>&1",
+      unless    => "/usr/bin/rsync -avzP /etc/keystone/fernet-keys/ controller-2:/etc/keystone/fernet-keys/ > /dev/null 2>&1 &&\
+                    /usr/bin/rsync -avzP /etc/keystone/fernet-keys/ controller-3:/etc/keystone/fernet-keys/ > /dev/null 2>&1",
     } ->
     pacemaker::resource::ocf { 'apache':
       ensure         => 'present',
       ocf_agent_name => 'heartbeat:apache',
       clone_params   => 'interleave=true',
     } ->
-    # exec { 'sleep 30s': command => '/usr/bin/sleep 30', } ->
+    exec { 'keystone-ready':
+      timeout   => '3600',
+      tries     => '360',
+      try_sleep => '10',
+      command   => "/usr/bin/openstack --os-token ${admin_token} --os-url http://${host}:35357/v3 --os-identity-api-version 3 domain list > /dev/null 2>&1 && \
+                    /usr/bin/openstack --os-token ${admin_token} --os-url http://${host}:35357/v3 --os-identity-api-version 3 domain list > /dev/null 2>&1 && \
+                    /usr/bin/openstack --os-token ${admin_token} --os-url http://${host}:35357/v3 --os-identity-api-version 3 domain list > /dev/null 2>&1",
+      unless    => "/usr/bin/openstack --os-token ${admin_token} --os-url http://${host}:35357/v3 --os-identity-api-version 3 domain list > /dev/null 2>&1 && \
+                    /usr/bin/openstack --os-token ${admin_token} --os-url http://${host}:35357/v3 --os-identity-api-version 3 domain list > /dev/null 2>&1 && \
+                    /usr/bin/openstack --os-token ${admin_token} --os-url http://${host}:35357/v3 --os-identity-api-version 3 domain list > /dev/null 2>&1",
+    } ->
     keystone_service { 'keystone':
       ensure      => 'present',
       type        => 'identity',
@@ -118,15 +125,6 @@ class openstack::y001_keystone (
       enabled     => true,
       description => 'Service Project',
       domain      => 'default',
-    }
-  } elsif $::hostname =~ /^controller-\d+$/ {
-    exec { 'rsync fernet keys':
-      timeout   => '3600',
-      tries     => '360',
-      try_sleep => '10',
-      command   => "/usr/bin/rsync -avzP ${bootstrap_node}:/etc/keystone/fernet-keys/ /etc/keystone/fernet-keys/ > /dev/null 2>&1",
-      unless    => "/usr/bin/rsync -avzP ${bootstrap_node}:/etc/keystone/fernet-keys/ /etc/keystone/fernet-keys/ > /dev/null 2>&1",
-      require   => Class['::keystone'],
     }
   }
 
