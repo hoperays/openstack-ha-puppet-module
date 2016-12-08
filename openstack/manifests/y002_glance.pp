@@ -55,7 +55,6 @@ class openstack::y002_glance (
     database_connection  => "mysql+pymysql://glance:${glance_password}@${host}/glance",
     database_max_retries => '-1',
     bind_host            => $::hostname,
-    registry_host        => $host,
     auth_uri             => "http://${host}:5000/",
     identity_uri         => "http://${host}:35357/",
     memcached_servers    => $cluster_nodes,
