@@ -541,8 +541,8 @@ class openstack::x006_haproxy (
     } ->
     pcmk_constraint { 'colocation-haproxy-clone-controller-vip-INFINITY':
       constraint_type => 'colocation',
-      resource        => 'controller-vip',
-      location        => 'haproxy-clone',
+      resource        => 'haproxy-clone',
+      location        => 'controller-vip',
       score           => 'INFINITY',
     }
   }
