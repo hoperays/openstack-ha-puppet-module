@@ -539,11 +539,10 @@ class openstack::x006_haproxy (
       second_resource   => 'haproxy-clone',
       constraint_params => 'kind=Optional',
     } ->
-    pcmk_constraint { 'colocation-haproxy-clone-controller-vip-INFINITY':
-      constraint_type => 'colocation',
-      resource        => 'haproxy-clone',
-      location        => 'controller-vip',
-      score           => 'INFINITY',
+    pacemaker::constraint::colocation { 'colocation-haproxy-clone-controller-vip-INFINITY':
+      source => 'haproxy-clone',
+      target => 'controller-vip',
+      score  => 'INFINITY',
     }
   }
 }
