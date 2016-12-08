@@ -52,19 +52,7 @@ class openstack::y001_keystone (
       command   => "/usr/bin/keystone-manage fernet_setup --keystone-user keystone --keystone-group keystone > /dev/null 2>&1",
       unless    => "/usr/bin/keystone-manage fernet_setup --keystone-user keystone --keystone-group keystone > /dev/null 2>&1",
       require   => Class['::keystone'],
-    }
-  } elsif $::hostname =~ /^controller-\d+$/ {
-    exec { 'rsync fernet keys':
-      timeout   => '3600',
-      tries     => '360',
-      try_sleep => '10',
-      command   => "/usr/bin/rsync -avzP ${bootstrap_node}:/etc/keystone/fernet-keys/ /etc/keystone/fernet-keys/ > /dev/null 2>&1",
-      unless    => "/usr/bin/rsync -avzP ${bootstrap_node}:/etc/keystone/fernet-keys/ /etc/keystone/fernet-keys/ > /dev/null 2>&1",
-      require   => Class['::keystone'],
-    }
-  }
-
-  if $::hostname == $bootstrap_node {
+    } ->
     exec { 'keystone-ready':
       # wait for all nodes to complete the ::keystone::wsgi::apache installation
       timeout   => '3600',
@@ -76,12 +64,11 @@ class openstack::y001_keystone (
       unless    => "/usr/bin/ssh controller-1 '/usr/bin/ls -l /etc/httpd/conf.d/10-keystone_wsgi_admin.conf' > /dev/null 2>&1 && \
                     /usr/bin/ssh controller-2 '/usr/bin/ls -l /etc/httpd/conf.d/10-keystone_wsgi_admin.conf' > /dev/null 2>&1 && \
                     /usr/bin/ssh controller-3 '/usr/bin/ls -l /etc/httpd/conf.d/10-keystone_wsgi_admin.conf' > /dev/null 2>&1",
-      require   => Exec['keystone-manage fernet_setup'],
     } ->
     pacemaker::resource::ocf { 'apache':
       ensure         => 'present',
       ocf_agent_name => 'heartbeat:apache',
-      clone_params   => true,
+      clone_params   => 'interleave=true',
     } ->
     # exec { 'sleep 30s': command => '/usr/bin/sleep 30', } ->
     keystone_service { 'keystone':
@@ -104,18 +91,15 @@ class openstack::y001_keystone (
     } ->
     keystone_domain { 'default':
       ensure      => 'present',
-      enabled     => true,
       description => 'Default Domain',
     } ->
     keystone_tenant { 'admin':
       ensure      => 'present',
-      enabled     => true,
       description => 'Admin Project',
       domain      => 'default',
     } ->
     keystone_user { 'admin':
       ensure   => 'present',
-      enabled  => true,
       password => 'admin1234',
       # email    => 'admin@example.org',
       domain   => 'default',
@@ -129,11 +113,20 @@ class openstack::y001_keystone (
       project_domain => 'default',
       roles          => ['admin'],
     } ->
-    keystone_tenant { 'services':
+    keystone_tenant { 'service':
       ensure      => 'present',
       enabled     => true,
-      description => 'Services Project',
+      description => 'Service Project',
       domain      => 'default',
+    }
+  } elsif $::hostname =~ /^controller-\d+$/ {
+    exec { 'rsync fernet keys':
+      timeout   => '3600',
+      tries     => '360',
+      try_sleep => '10',
+      command   => "/usr/bin/rsync -avzP ${bootstrap_node}:/etc/keystone/fernet-keys/ /etc/keystone/fernet-keys/ > /dev/null 2>&1",
+      unless    => "/usr/bin/rsync -avzP ${bootstrap_node}:/etc/keystone/fernet-keys/ /etc/keystone/fernet-keys/ > /dev/null 2>&1",
+      require   => Class['::keystone'],
     }
   }
 
