@@ -527,10 +527,7 @@ class openstack::x006_haproxy (
       resource_params => "ip=${controller_vip} cidr_netmask=23 nic=eth0",
       require         => Class['haproxy'],
     } ->
-    pacemaker::resource::service { 'haproxy':
-      service_name => 'haproxy',
-      clone_params => true,
-    } ->
+    pacemaker::resource::service { 'haproxy': clone_params => true, } ->
     pacemaker::constraint::base { 'order-controller-vip-haproxy-clone-Optional':
       constraint_type   => 'order',
       first_action      => 'start',
