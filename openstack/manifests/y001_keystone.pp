@@ -11,10 +11,8 @@ class openstack::y001_keystone (
       host          => 'localhost',
       allowed_hosts => $allowed_hosts,
     }
-    # $enable_fernet_setup = true
     $sync_db = true
   } else {
-    # $enable_fernet_setup = false
     $sync_db = false
   }
 
@@ -29,10 +27,21 @@ class openstack::y001_keystone (
     public_bind_host     => $::hostname,
     admin_bind_host      => $::hostname,
     token_provider       => 'fernet',
-    # enable_fernet_setup  => $enable_fernet_setup,
     sync_db              => $sync_db,
     manage_service       => false,
     enabled              => false,
+  }
+
+  class { '::apache':
+    ip             => $::ipaddress_eth0,
+    service_ensure => 'stopped',
+    service_enable => false,
+  }
+
+  class { '::keystone::wsgi::apache':
+    ssl             => false,
+    bind_host       => $::ipaddress_eth0,
+    admin_bind_host => $::ipaddress_eth0,
   }
 
   if $::hostname == $bootstrap_node {
@@ -55,31 +64,32 @@ class openstack::y001_keystone (
     }
   }
 
-  class { 'apache':
-    ip             => $::ipaddress_eth0,
-    service_ensure => 'stopped',
-    service_enable => false,
-  }
-
-  class { '::keystone::wsgi::apache':
-    ssl             => false,
-    bind_host       => $::ipaddress_eth0,
-    admin_bind_host => $::ipaddress_eth0,
-  }
-
   if $::hostname == $bootstrap_node {
+    exec { 'keystone-ready':
+      # wait for all nodes to complete the ::keystone::wsgi::apache installation
+      timeout   => '3600',
+      tries     => '360',
+      try_sleep => '10',
+      command   => "/usr/bin/ssh controller-1 '/usr/bin/ls -l /etc/httpd/conf.d/10-keystone_wsgi_admin.conf' > /dev/null 2>&1 && \
+                    /usr/bin/ssh controller-2 '/usr/bin/ls -l /etc/httpd/conf.d/10-keystone_wsgi_admin.conf' > /dev/null 2>&1 && \
+                    /usr/bin/ssh controller-3 '/usr/bin/ls -l /etc/httpd/conf.d/10-keystone_wsgi_admin.conf' > /dev/null 2>&1",
+      unless    => "/usr/bin/ssh controller-1 '/usr/bin/ls -l /etc/httpd/conf.d/10-keystone_wsgi_admin.conf' > /dev/null 2>&1 && \
+                    /usr/bin/ssh controller-2 '/usr/bin/ls -l /etc/httpd/conf.d/10-keystone_wsgi_admin.conf' > /dev/null 2>&1 && \
+                    /usr/bin/ssh controller-3 '/usr/bin/ls -l /etc/httpd/conf.d/10-keystone_wsgi_admin.conf' > /dev/null 2>&1",
+      require   => Exec['keystone-manage fernet_setup'],
+    } ->
     pacemaker::resource::ocf { 'apache':
       ensure         => 'present',
       ocf_agent_name => 'heartbeat:apache',
       clone_params   => true,
-      require        => Class['::keystone::wsgi::apache'],
     } ->
+    # exec { 'sleep 30s': command => '/usr/bin/sleep 30', } ->
     keystone_service { 'keystone':
       ensure      => 'present',
       type        => 'identity',
       description => 'OpenStack Identity Service',
     } ->
-    keystone_endpoint { 'identity':
+    keystone_endpoint { 'keystone':
       ensure       => 'present',
       region       => 'RegionOne',
       admin_url    => "http://${host}:35357/v3",
@@ -87,11 +97,10 @@ class openstack::y001_keystone (
       internal_url => "http://${host}:5000/v3",
     } ->
     exec { 'delete domain default':
-      timeout   => '3600',
-      tries     => '360',
-      try_sleep => '10',
-      command   => '/usr/bin/openstack domain set --disable default && /usr/bin/openstack domain delete default',
-      unless    => '/usr/bin/openstack domain set --disable default && /usr/bin/openstack domain delete default',
+      command => "/usr/bin/openstack --os-token ${admin_token} --os-url http://${host}:35357/v3 --os-identity-api-version 3 domain set --disable default && \
+                  /usr/bin/openstack --os-token ${admin_token} --os-url http://${host}:35357/v3 --os-identity-api-version 3 domain delete default",
+      onlyif  => "/usr/bin/openstack --os-token ${admin_token} --os-url http://${host}:35357/v3 --os-identity-api-version 3 domain show default | \
+                  /usr/bin/grep 'The default domain' > /dev/null 2>&1",
     } ->
     keystone_domain { 'default':
       ensure      => 'present',
