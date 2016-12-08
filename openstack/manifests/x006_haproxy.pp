@@ -531,16 +531,19 @@ class openstack::x006_haproxy (
       service_name => 'haproxy',
       clone_params => true,
     } ->
-    pacemaker_order { 'order-controller-vip-haproxy-clone':
-      first_action  => 'start',
-      first         => 'controller-vip',
-      second_action => 'start',
-      second        => 'haproxy-clone',
-      kind          => 'optional',
+    pacemaker::constraint::base { 'order-controller-vip-haproxy-clone-Optional':
+      constraint_type   => 'order',
+      first_action      => 'start',
+      first_resource    => 'controller-vip',
+      second_action     => 'start',
+      second_resource   => 'haproxy-clone',
+      constraint_params => 'kind=Optional',
     } ->
-    pacemaker_colocation { 'colocation-haproxy-clone-controller-vip':
-      first  => 'controller-vip',
-      second => 'haproxy-clone',
+    pcmk_constraint { 'colocation-haproxy-clone-controller-vip-INFINITY':
+      constraint_type => 'colocation',
+      resource        => 'controller-vip',
+      location        => 'haproxy-clone',
+      score           => 'INFINITY',
     }
   }
 }
