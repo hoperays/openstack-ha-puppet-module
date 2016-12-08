@@ -1,6 +1,7 @@
 class openstack::x005_pacemaker (
   $cluster_password     = 'hacluster1234',
   $cluster_nodes        = 'controller-1 controller-2 controller-3',
+  $bootstrap_node       = 'controller-1',
   $cluster_name         = 'openstack-cluster',
   $cluster_auth_key     = 'remote1234',
   $cluster_auth_enabled = true,) {
@@ -14,34 +15,36 @@ class openstack::x005_pacemaker (
     cluster_auth_enabled     => $cluster_auth_enabled,
   }
 
-  pacemaker_property { 'stonith-enabled':
-    ensure => 'present',
-    value  => false,
-  }
+  if $::hostname == $bootstrap_node {
+    pacemaker_property { 'stonith-enabled':
+      ensure => 'present',
+      value  => false,
+    }
 
-  #  pacemaker_property { 'no-quorum-policy':
-  #    ensure => 'present',
-  #    value  => 'ignore',
-  #  }
+    #  pacemaker_property { 'no-quorum-policy':
+    #    ensure => 'present',
+    #    value  => 'ignore',
+    #  }
 
-  pacemaker_property { 'pe-warn-series-max':
-    ensure => 'present',
-    value  => '1000',
-  }
+    pacemaker_property { 'pe-warn-series-max':
+      ensure => 'present',
+      value  => '1000',
+    }
 
-  pacemaker_property { 'pe-input-series-max':
-    ensure => 'present',
-    value  => '1000',
-  }
+    pacemaker_property { 'pe-input-series-max':
+      ensure => 'present',
+      value  => '1000',
+    }
 
-  pacemaker_property { 'pe-error-series-max':
-    ensure => 'present',
-    value  => '1000',
-  }
+    pacemaker_property { 'pe-error-series-max':
+      ensure => 'present',
+      value  => '1000',
+    }
 
-  pacemaker_property { 'cluster-recheck-interval':
-    ensure => 'present',
-    value  => '1min',
+    pacemaker_property { 'cluster-recheck-interval':
+      ensure => 'present',
+      value  => '1min',
+    }
   }
 
   exec { 'wait-for-settle':
