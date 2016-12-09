@@ -65,7 +65,7 @@ class openstack::y002_glance (
   }
 
   file { '/etc/ceph/ceph.client.glance.keyring':
-    mode  => '0600',
+    mode  => '0644',
     owner => 'glance',
     group => 'glance',
   }
