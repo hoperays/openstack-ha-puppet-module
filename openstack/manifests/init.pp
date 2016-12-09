@@ -37,7 +37,7 @@ class openstack {
   }
 
   class { 'openstack::y002_glance':
-    require => Class['openstack::y001_keystone']
+    require => [Class['openstack::x004_ceph'], Class['openstack::y001_keystone']]
   }
 
   # class { 'openstack::x010_mongodb': require => Class['openstack::x005_pacemaker'] }
