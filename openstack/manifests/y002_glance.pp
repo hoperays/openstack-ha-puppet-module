@@ -21,13 +21,7 @@ class openstack::y002_glance (
     database_max_retries    => '-1',
     bind_host               => $::hostname,
     registry_host           => $host,
-    auth_uri                => "http://${host}:5000/",
-    identity_uri            => "http://${host}:35357/",
-    # memcached_servers       => $cluster_nodes,
-    auth_type               => 'keystone',
-    keystone_tenant         => 'service',
-    keystone_user           => 'glance',
-    keystone_password       => $glance_password,
+    #
     pipeline                => 'keystone',
     #
     show_image_direct_url   => true,
@@ -38,6 +32,18 @@ class openstack::y002_glance (
     #
     manage_service          => false,
     enabled                 => false,
+  }
+
+  class { '::glance::api::authtoken':
+    auth_uri            => "http://${host}:5000/",
+    auth_url            => "http://${host}:35357/",
+    memcached_servers   => $cluster_nodes,
+    auth_type           => 'password',
+    project_domain_name => 'default',
+    user_domain_name    => 'default',
+    project_name        => 'service',
+    username            => 'glance',
+    password            => 'glance1234',
   }
 
   class { '::glance::notify::rabbitmq':
@@ -62,19 +68,24 @@ class openstack::y002_glance (
     database_max_retries => '-1',
     bind_host            => $::hostname,
     #
-    auth_uri             => "http://${host}:5000/",
-    identity_uri         => "http://${host}:35357/",
-    # memcached_servers    => $cluster_nodes,
-    auth_type            => 'keystone',
-    keystone_tenant      => 'service',
-    keystone_user        => 'glance',
-    keystone_password    => $glance_password,
     pipeline             => 'keystone',
     #
     sync_db              => $sync_db,
     #
     manage_service       => false,
     enabled              => false,
+  }
+
+  class { '::glance::registry::authtoken':
+    auth_uri            => "http://${host}:5000/",
+    auth_url            => "http://${host}:35357/",
+    memcached_servers   => $cluster_nodes,
+    auth_type           => 'password',
+    project_domain_name => 'default',
+    user_domain_name    => 'default',
+    project_name        => 'service',
+    username            => 'glance',
+    password            => 'glance1234',
   }
 
   if $::hostname == $bootstrap_node {
