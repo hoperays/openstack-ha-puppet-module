@@ -15,10 +15,9 @@ describe 'glance::api::logging' do
       :logging_exception_prefix => '%(asctime)s.%(msecs)03d %(process)d TRACE %(name)s %(instance)s',
       :log_config_append => '/etc/glance/logging.conf',
       :publish_errors => true,
-      :default_log_levels => { 
+      :default_log_levels => {
         'amqp' => 'WARN', 'amqplib' => 'WARN', 'boto' => 'WARN',
-        'qpid' => 'WARN', 'sqlalchemy' => 'WARN', 'suds' => 'INFO',
-        'iso8601' => 'WARN',
+        'sqlalchemy' => 'WARN', 'suds' => 'INFO', 'iso8601' => 'WARN',
         'requests.packages.urllib3.connectionpool' => 'WARN' },
      :fatal_deprecations => true,
      :instance_format => '[instance: %(uuid)s] ',
@@ -29,7 +28,6 @@ describe 'glance::api::logging' do
      :log_facility => 'LOG_FOO',
      :log_dir => '/var/log',
      :log_file => '/var/tmp/glance_api_random.log',
-     :verbose => true,
      :debug => true,
     }
   end
@@ -58,12 +56,11 @@ describe 'glance::api::logging' do
 
   shared_examples 'basic default logging settings' do
     it 'configures glance logging settins with default values' do
-      is_expected.to contain_glance_api_config('DEFAULT/use_syslog').with(:value => 'false')
-      is_expected.to contain_glance_api_config('DEFAULT/use_stderr').with(:value => 'true')
+      is_expected.to contain_glance_api_config('DEFAULT/use_syslog').with(:value => '<SERVICE DEFAULT>')
+      is_expected.to contain_glance_api_config('DEFAULT/use_stderr').with(:value => '<SERVICE DEFAULT>')
       is_expected.to contain_glance_api_config('DEFAULT/log_dir').with(:value => '/var/log/glance')
       is_expected.to contain_glance_api_config('DEFAULT/log_file').with(:value => '/var/log/glance/api.log')
-      is_expected.to contain_glance_api_config('DEFAULT/verbose').with(:value => 'false')
-      is_expected.to contain_glance_api_config('DEFAULT/debug').with(:value => 'false')
+      is_expected.to contain_glance_api_config('DEFAULT/debug').with(:value => '<SERVICE DEFAULT>')
     end
   end
 
@@ -74,7 +71,6 @@ describe 'glance::api::logging' do
       is_expected.to contain_glance_api_config('DEFAULT/syslog_log_facility').with(:value => 'LOG_FOO')
       is_expected.to contain_glance_api_config('DEFAULT/log_dir').with(:value => '/var/log')
       is_expected.to contain_glance_api_config('DEFAULT/log_file').with(:value => '/var/tmp/glance_api_random.log')
-      is_expected.to contain_glance_api_config('DEFAULT/verbose').with(:value => 'true')
       is_expected.to contain_glance_api_config('DEFAULT/debug').with(:value => 'true')
     end
   end
@@ -99,7 +95,7 @@ describe 'glance::api::logging' do
         true)
 
       is_expected.to contain_glance_api_config('DEFAULT/default_log_levels').with_value(
-        'amqp=WARN,amqplib=WARN,boto=WARN,iso8601=WARN,qpid=WARN,requests.packages.urllib3.connectionpool=WARN,sqlalchemy=WARN,suds=INFO')
+        'amqp=WARN,amqplib=WARN,boto=WARN,iso8601=WARN,requests.packages.urllib3.connectionpool=WARN,sqlalchemy=WARN,suds=INFO')
 
       is_expected.to contain_glance_api_config('DEFAULT/fatal_deprecations').with_value(
         true)
@@ -123,7 +119,7 @@ describe 'glance::api::logging' do
      :default_log_levels, :fatal_deprecations,
      :instance_format, :instance_uuid_format,
      :log_date_format, ].each { |param|
-        it { is_expected.to contain_glance_api_config("DEFAULT/#{param}").with_ensure('absent') }
+        it { is_expected.to contain_glance_api_config("DEFAULT/#{param}").with_value('<SERVICE DEFAULT>') }
       }
   end
 

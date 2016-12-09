@@ -101,7 +101,7 @@ describe 'keystone::wsgi::apache' do
         'require'                     => 'File[keystone_wsgi_main]',
         'access_log_format'           => false,
       )}
-      it { is_expected.to contain_file("#{platform_parameters[:httpd_ports_file]}") }
+      it { is_expected.to contain_concat("#{platform_parameters[:httpd_ports_file]}") }
     end
 
     describe 'when overriding parameters using different ports' do
@@ -166,7 +166,7 @@ describe 'keystone::wsgi::apache' do
         'custom_fragment'             => 'LimitRequestFieldSize 81900'
       )}
 
-      it { is_expected.to contain_file("#{platform_parameters[:httpd_ports_file]}") }
+      it { is_expected.to contain_concat("#{platform_parameters[:httpd_ports_file]}") }
     end
 
     describe 'when admin_bind_host is not set default to bind_host' do
@@ -190,11 +190,26 @@ describe 'keystone::wsgi::apache' do
         'ip'                          => '10.42.51.1'
       )}
 
-      it { is_expected.to contain_file("#{platform_parameters[:httpd_ports_file]}") }
+      it { is_expected.to contain_concat("#{platform_parameters[:httpd_ports_file]}") }
     end
 
+    describe 'when servername_admin is overriden' do
+      let :params do
+        {
+          :servername            => 'dummy1.host',
+          :servername_admin      => 'dummy2.host',
+        }
+      end
 
+      it { is_expected.to contain_apache__vhost('keystone_wsgi_admin').with(
+        'servername'                  => 'dummy2.host',
+      )}
 
+      it { is_expected.to contain_apache__vhost('keystone_wsgi_main').with(
+        'servername'                  => 'dummy1.host',
+      )}
+
+    end
 
     describe 'when overriding parameters using same port' do
       let :params do
@@ -296,6 +311,42 @@ describe 'keystone::wsgi::apache' do
       )}
     end
 
+    describe 'when setting ssl cert and key' do
+      let :params do
+        {
+          :ssl_cert => 'some cert',
+          :ssl_key  => 'some key',
+        }
+      end
+      it { is_expected.to contain_apache__vhost('keystone_wsgi_main').with(
+          'ssl_cert' => 'some cert',
+          'ssl_key'  => 'some key',
+          )}
+      it { is_expected.to contain_apache__vhost('keystone_wsgi_admin').with(
+          'ssl_cert' => 'some cert',
+          'ssl_key'  => 'some key',
+          )}
+    end
+
+    describe 'when setting different ssl cert and key for admin' do
+      let :params do
+        {
+          :ssl_cert       => 'some cert',
+          :ssl_key        => 'some key',
+          :ssl_cert_admin => 'some cert admin',
+          :ssl_key_admin  => 'some key admin',
+        }
+      end
+      it { is_expected.to contain_apache__vhost('keystone_wsgi_main').with(
+          'ssl_cert' => 'some cert',
+          'ssl_key'  => 'some key',
+          )}
+      it { is_expected.to contain_apache__vhost('keystone_wsgi_admin').with(
+          'ssl_cert' => 'some cert admin',
+          'ssl_key'  => 'some key admin',
+          )}
+    end
+
     describe 'when overriding parameters using wsgi chunked request' do
       let :params do
         {
@@ -325,6 +376,47 @@ describe 'keystone::wsgi::apache' do
         'headers' => 'set X-Frame-Options "DENY"'
       )}
     end
+
+    describe 'when overriding script paths with link' do
+      let :params do
+        {
+          :wsgi_file_target          => 'link',
+          :wsgi_admin_script_source  => '/home/foo/admin-script',
+          :wsgi_public_script_source => '/home/foo/public-script',
+        }
+      end
+
+      it 'should contain correct files' do
+        is_expected.to contain_file('keystone_wsgi_admin').with(
+          'path'   => "#{facts[:wsgi_script_path]}/keystone-admin",
+          'target' => params[:wsgi_admin_script_source]
+        )
+        is_expected.to contain_file('keystone_wsgi_main').with(
+          'path'   => "#{facts[:wsgi_script_path]}/keystone-public",
+          'target' => params[:wsgi_public_script_source]
+        )
+      end
+    end
+
+    describe 'when overriding script paths with source' do
+      let :params do
+        {
+          :wsgi_admin_script_source  => '/home/foo/admin-script',
+          :wsgi_public_script_source => '/home/foo/public-script',
+        }
+      end
+
+      it 'should contain correct files' do
+        is_expected.to contain_file('keystone_wsgi_admin').with(
+          'path'   => "#{facts[:wsgi_script_path]}/keystone-admin",
+          'source' => params[:wsgi_admin_script_source]
+        )
+        is_expected.to contain_file('keystone_wsgi_main').with(
+          'path'   => "#{facts[:wsgi_script_path]}/keystone-public",
+          'source' => params[:wsgi_public_script_source]
+        )
+      end
+    end
   end
 
   on_supported_os({
@@ -333,7 +425,7 @@ describe 'keystone::wsgi::apache' do
       facts.merge!(OSDefaults.get_facts({}))
     end
 
-    let(:platform_params) do
+    let(:platform_parameters) do
       case facts[:osfamily]
       when 'Debian'
         {

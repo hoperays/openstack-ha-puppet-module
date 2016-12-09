@@ -21,13 +21,13 @@ describe 'keystone' do
 
   default_params = {
       'admin_token'                         => 'service_token',
+      'admin_password'                      => 'special_password',
       'package_ensure'                      => 'present',
       'client_package_ensure'               => 'present',
       'public_bind_host'                    => '0.0.0.0',
       'admin_bind_host'                     => '0.0.0.0',
       'public_port'                         => '5000',
       'admin_port'                          => '35357',
-      'verbose'                             => false,
       'debug'                               => false,
       'use_stderr'                          => true,
       'catalog_type'                        => 'sql',
@@ -52,11 +52,12 @@ describe 'keystone' do
       'manage_service'                      => true,
       'database_connection'                 => 'sqlite:////var/lib/keystone/keystone.db',
       'database_idle_timeout'               => '200',
-      'enable_pki_setup'                    => false,
-      'signing_certfile'                    => '/etc/keystone/ssl/certs/signing_cert.pem',
-      'signing_keyfile'                     => '/etc/keystone/ssl/private/signing_key.pem',
-      'signing_ca_certs'                    => '/etc/keystone/ssl/certs/ca.pem',
-      'signing_ca_key'                      => '/etc/keystone/ssl/private/cakey.pem',
+      'signing_certfile'                    => '<SERVICE DEFAULT>',
+      'signing_keyfile'                     => '<SERVICE DEFAULT>',
+      'signing_ca_certs'                    => '<SERVICE DEFAULT>',
+      'signing_ca_key'                      => '<SERVICE DEFAULT>',
+      'signing_cert_subject'                => '<SERVICE DEFAULT>',
+      'signing_key_size'                    => '<SERVICE DEFAULT>',
       'rabbit_host'                         => '<SERVICE DEFAULT>',
       'rabbit_password'                     => '<SERVICE DEFAULT>',
       'rabbit_userid'                       => '<SERVICE DEFAULT>',
@@ -64,9 +65,14 @@ describe 'keystone' do
       'rabbit_heartbeat_rate'               => '<SERVICE DEFAULT>',
       'admin_workers'                       => 20,
       'public_workers'                      => 20,
+      'member_role_id'                      => '<SERVICE DEFAULT>',
+      'member_role_name'                    => '<SERVICE DEFAULT>',
       'paste_config'                        => '<SERVICE DEFAULT>',
       'sync_db'                             => true,
-    }
+      'purge_config'                        => false,
+      'keystone_user'                       => 'keystone',
+      'keystone_group'                      => 'keystone',
+  }
 
   override_params = {
       'package_ensure'                      => 'latest',
@@ -76,7 +82,7 @@ describe 'keystone' do
       'public_port'                         => '5001',
       'admin_port'                          => '35358',
       'admin_token'                         => 'service_token_override',
-      'verbose'                             => true,
+      'admin_password'                      => 'admin_openstack_password',
       'debug'                               => true,
       'use_stderr'                          => false,
       'catalog_type'                        => 'template',
@@ -101,6 +107,8 @@ describe 'keystone' do
       'signing_keyfile'                     => '/etc/keystone/ssl/private/signing_key.pem',
       'signing_ca_certs'                    => '/etc/keystone/ssl/certs/ca.pem',
       'signing_ca_key'                      => '/etc/keystone/ssl/private/cakey.pem',
+      'signing_cert_subject'                => '/C=US/ST=Unset/L=Unset/O=Unset/CN=www.example.com',
+      'signing_key_size'                    => 2048,
       'rabbit_host'                         => '127.0.0.1',
       'rabbit_password'                     => 'openstack',
       'rabbit_userid'                       => 'admin',
@@ -108,8 +116,12 @@ describe 'keystone' do
       'rabbit_heartbeat_rate'               => '10',
       'rabbit_ha_queues'                    => true,
       'default_domain'                      => 'other_domain',
+      'member_role_id'                      => '123456789',
+      'member_role_name'                    => 'othermember',
       'paste_config'                        => '/usr/share/keystone/keystone-paste.ini',
-      'using_domain_config'                 => false
+      'using_domain_config'                 => false,
+      'keystone_user'                       => 'test_user',
+      'keystone_group'                      => 'test_group',
     }
 
   httpd_params = {'service_name' => 'httpd'}.merge(default_params)
@@ -144,11 +156,17 @@ describe 'keystone' do
     it 'should bootstrap $enable_bootstrap is true' do
       if param_hash['enable_bootstrap']
         is_expected.to contain_exec('keystone-manage bootstrap').with(
-          :command     => 'keystone-manage bootstrap --bootstrap-password service_token',
-          :user        => 'keystone',
+          :command     => 'keystone-manage bootstrap --bootstrap-password service_password',
+          :user        => param_hash['keystone_user'],
           :refreshonly => true
         )
       end
+    end
+
+    it 'passes purge to resource' do
+      is_expected.to contain_resources('keystone_config').with({
+        :purge => false
+      })
     end
 
     it 'should contain correct config' do
@@ -157,7 +175,8 @@ describe 'keystone' do
        'admin_bind_host',
        'public_port',
        'admin_port',
-       'verbose',
+       'member_role_id',
+       'member_role_name',
        'debug',
        'use_stderr'
       ].each do |config|
@@ -237,7 +256,7 @@ describe 'keystone' do
       if param_hash['rabbit_ha_queues']
         is_expected.to contain_keystone_config('oslo_messaging_rabbit/rabbit_ha_queues').with_value(param_hash['rabbit_ha_queues'])
       else
-        is_expected.to contain_keystone_config('oslo_messaging_rabbit/rabbit_ha_queues').with_value(false)
+        is_expected.to contain_keystone_config('oslo_messaging_rabbit/rabbit_ha_queues').with_value('<SERVICE DEFAULT>')
       end
 
     end
@@ -270,7 +289,7 @@ describe 'keystone' do
     end
   end
 
-  shared_examples_for "when using default class parameters for httpd" do
+  shared_examples_for "when using default class parameters for httpd on Debian" do
     let :params do
       httpd_params
     end
@@ -287,12 +306,28 @@ describe 'keystone' do
       }.to raise_error(RSpec::Expectations::ExpectationNotMetError, /expected that the catalogue would contain Service\[#{platform_parameters[:service_name]}\]/)
     end
 
-    it { is_expected.to contain_class('keystone::service').with(
-      'ensure'          => 'stopped',
-      'service_name'    => platform_parameters[:service_name],
-      'enable'          => false,
-      'validate'        => false
-    )}
+    it { is_expected.to contain_exec('restart_keystone').with(
+      'command' => "service #{platform_parameters[:httpd_service_name]} restart",
+    ) }
+  end
+
+  shared_examples_for "when using default class parameters for httpd on RedHat" do
+    let :params do
+      httpd_params
+    end
+
+    let :pre_condition do
+      'include ::keystone::wsgi::apache'
+    end
+
+    it_configures 'core keystone examples', httpd_params
+
+    it do
+      expect {
+        is_expected.to contain_service(platform_parameters[:service_name]).with('ensure' => 'running')
+      }.to raise_error(RSpec::Expectations::ExpectationNotMetError, /expected that the catalogue would contain Service\[#{platform_parameters[:service_name]}\]/)
+    end
+
     it { is_expected.to contain_service('httpd').with_before(/Anchor\[keystone::service::end\]/) }
     it { is_expected.to contain_exec('restart_keystone').with(
       'command' => "service #{platform_parameters[:httpd_service_name]} restart",
@@ -340,9 +375,17 @@ describe 'keystone' do
     describe 'when configuring as PKI' do
       let :params do
         {
-          'enable_pki_setup' => true,
-          'admin_token'      => 'service_token',
-          'token_provider'   => 'pki'
+          'enable_pki_setup'                    => true,
+          'admin_token'                         => 'service_token',
+          'token_provider'                      => 'pki',
+          'signing_certfile'                    => '/etc/keystone/ssl/certs/signing_cert.pem',
+          'signing_keyfile'                     => '/etc/keystone/ssl/private/signing_key.pem',
+          'signing_ca_certs'                    => '/etc/keystone/ssl/certs/ca.pem',
+          'signing_ca_key'                      => '/etc/keystone/ssl/private/cakey.pem',
+          'signing_cert_subject'                => '/C=US/ST=Unset/L=Unset/O=Unset/CN=www.example.com',
+          'signing_key_size'                    => 2048,
+          'keystone_user'                       => 'keystone',
+          'keystone_group'                      => 'keystone',
         }
       end
 
@@ -356,7 +399,7 @@ describe 'keystone' do
       end
 
       it { is_expected.to contain_exec('keystone-manage pki_setup').with(
-        :command => 'keystone-manage pki_setup --keystone-user keystone --keystone-group keystone',
+        :command => "keystone-manage pki_setup --keystone-user #{params['keystone_user']} --keystone-group #{params['keystone_group']}",
         :creates => '/etc/keystone/ssl/private/signing_key.pem'
       ) }
       it { is_expected.to contain_file('/var/cache/keystone').with_ensure('directory') }
@@ -635,7 +678,6 @@ describe 'keystone' do
     it { is_expected.to contain_keystone_config('cache/memcache_servers').with_value('SERVER3:11211,SERVER4:11211') }
   end
 
-
   describe 'do not configure memcache servers when not set' do
     let :params do
       default_params
@@ -691,8 +733,8 @@ describe 'keystone' do
       default_params
     end
 
-    it { is_expected.to contain_keystone_config('DEFAULT/notification_driver').with_value('<SERVICE DEFAULT>') }
-    it { is_expected.to contain_keystone_config('DEFAULT/notification_topics').with_value('<SERVICE DEFAULT>') }
+    it { is_expected.to contain_keystone_config('oslo_messaging_notifications/driver').with_value('<SERVICE DEFAULT>') }
+    it { is_expected.to contain_keystone_config('oslo_messaging_notifications/topics').with_value('<SERVICE DEFAULT>') }
     it { is_expected.to contain_keystone_config('DEFAULT/notification_format').with_value('<SERVICE DEFAULT>') }
     it { is_expected.to contain_keystone_config('DEFAULT/control_exchange').with_value('<SERVICE DEFAULT>') }
   end
@@ -748,17 +790,38 @@ describe 'keystone' do
   describe 'setting notification settings' do
     let :params do
       default_params.merge({
-        :notification_driver   => 'keystone.openstack.common.notifier.rpc_notifier',
-        :notification_topics   => 'notifications',
+        :notification_driver   => ['keystone.openstack.common.notifier.rpc_notifier'],
+        :notification_topics   => ['notifications'],
         :notification_format   => 'cadf',
         :control_exchange      => 'keystone'
       })
     end
 
-    it { is_expected.to contain_keystone_config('DEFAULT/notification_driver').with_value('keystone.openstack.common.notifier.rpc_notifier') }
-    it { is_expected.to contain_keystone_config('DEFAULT/notification_topics').with_value('notifications') }
+    it { is_expected.to contain_keystone_config('oslo_messaging_notifications/driver').with_value('keystone.openstack.common.notifier.rpc_notifier') }
+    it { is_expected.to contain_keystone_config('oslo_messaging_notifications/topics').with_value('notifications') }
     it { is_expected.to contain_keystone_config('DEFAULT/notification_format').with_value('cadf') }
     it { is_expected.to contain_keystone_config('DEFAULT/control_exchange').with_value('keystone') }
+  end
+
+  describe 'setting kombu settings' do
+    let :params do
+      default_params.merge({
+        :kombu_reconnect_delay => '1.0',
+        :kombu_compression     => 'gzip',
+      })
+    end
+
+    it { is_expected.to contain_keystone_config('oslo_messaging_rabbit/kombu_reconnect_delay').with_value('1.0') }
+    it { is_expected.to contain_keystone_config('oslo_messaging_rabbit/kombu_compression').with_value('gzip') }
+    it { is_expected.to contain_keystone_config('oslo_messaging_rabbit/kombu_failover_strategy').with_value('<SERVICE DEFAULT>') }
+  end
+
+  describe 'setting enable_proxy_headers_parsing' do
+    let :params do
+      default_params.merge({:enable_proxy_headers_parsing => true })
+    end
+
+    it { is_expected.to contain_keystone_config('oslo_middleware/enable_proxy_headers_parsing').with_value(true) }
   end
 
   describe 'setting sql policy driver' do
@@ -834,35 +897,97 @@ describe 'keystone' do
     it { is_expected.to contain_keystone_config('catalog/template_file').with_value('/some/template_file') }
   end
 
-  describe 'setting service_provider' do
-    let :facts do
-      @default_facts.merge(global_facts.merge({
-        :osfamily               => 'RedHat',
-        :operatingsystemrelease => '6.0'
-      }))
+  describe 'when using credentials' do
+    describe 'when enabling credential_setup' do
+      let :params do
+        default_params.merge({
+          'enable_credential_setup'   => true,
+          'credential_key_repository' => '/etc/keystone/credential-keys',
+        })
+      end
+      it { is_expected.to contain_file(params['credential_key_repository']).with(
+        :ensure => 'directory',
+        :owner  => params['keystone_user'],
+        :group  => params['keystone_group'],
+      ) }
+
+      it { is_expected.to contain_exec('keystone-manage credential_setup').with(
+        :command => "keystone-manage credential_setup --keystone-user #{params['keystone_user']} --keystone-group #{params['keystone_group']}",
+        :user    => params['keystone_user'],
+        :creates => '/etc/keystone/credential-keys/0',
+        :require => 'File[/etc/keystone/credential-keys]',
+      ) }
+      it { is_expected.to contain_keystone_config('credential/key_repository').with_value('/etc/keystone/credential-keys')}
     end
 
-    describe 'with default service_provider' do
+    describe 'when overriding the credential key directory' do
       let :params do
-        { 'admin_token'    => 'service_token' }
+        default_params.merge({
+          'enable_credential_setup'   => true,
+          'credential_key_repository' => '/var/lib/credential-keys',
+        })
+      end
+      it { is_expected.to contain_exec('keystone-manage credential_setup').with(
+        :creates => '/var/lib/credential-keys/0'
+      ) }
+    end
+
+    describe 'when overriding the keystone group and user' do
+      let :params do
+        default_params.merge({
+          'enable_credential_setup' => true,
+          'keystone_user'           => 'test_user',
+          'keystone_group'          => 'test_group',
+        })
       end
 
-      it { is_expected.to contain_service('keystone').with(
-        :provider => nil
+      it { is_expected.to contain_exec('keystone-manage credential_setup').with(
+        :command => "keystone-manage credential_setup --keystone-user #{params['keystone_user']} --keystone-group #{params['keystone_group']}",
+        :user    => params['keystone_user'],
+        :creates => '/etc/keystone/credential-keys/0',
+        :require => 'File[/etc/keystone/credential-keys]',
+      ) }
+    end
+
+    describe 'when setting credential_keys parameter' do
+      let :params do
+        default_params.merge({
+          'enable_credential_setup' => true,
+          'credential_keys' => {
+            '/etc/keystone/credential-keys/0' => {
+              'content' => 't-WdduhORSqoyAykuqWAQSYjg2rSRuJYySgI2xh48CI=',
+            },
+            '/etc/keystone/credential-keys/1' => {
+              'content' => 'GLlnyygEVJP4-H2OMwClXn3sdSQUZsM5F194139Unv8=',
+            },
+          }
+        })
+      end
+
+      it { is_expected.to_not contain_exec('keystone-manage credential_setup') }
+      it { is_expected.to contain_file('/etc/keystone/credential-keys/0').with(
+        'content'   => 't-WdduhORSqoyAykuqWAQSYjg2rSRuJYySgI2xh48CI=',
+        'owner'     => 'keystone',
+        'owner'     => 'keystone',
+        'subscribe' => 'Anchor[keystone::install::end]',
+      )}
+      it { is_expected.to contain_file('/etc/keystone/credential-keys/1').with(
+        'content'   => 'GLlnyygEVJP4-H2OMwClXn3sdSQUZsM5F194139Unv8=',
+        'owner'     => 'keystone',
+        'owner'     => 'keystone',
+        'subscribe' => 'Anchor[keystone::install::end]',
       )}
     end
 
-    describe 'with overrided service_provider' do
+    describe 'when disabling credential_setup' do
       let :params do
-        {
-          'admin_token'      => 'service_token',
-          'service_provider' => 'pacemaker'
-        }
+        default_params.merge({
+          'enable_credential_setup'   => false,
+          'credential_key_repository' => '/etc/keystone/credential-keys',
+        })
       end
-
-      it { is_expected.to contain_service('keystone').with(
-        :provider => 'pacemaker'
-      )}
+      it { is_expected.to_not contain_file(params['credential_key_repository']) }
+      it { is_expected.to_not contain_exec('keystone-manage credential_setup') }
     end
   end
 
@@ -873,14 +998,21 @@ describe 'keystone' do
           'enable_fernet_setup'    => true,
           'fernet_max_active_keys' => 5,
           'revoke_by_id'           => false,
-          'keystone_user'          => 'keystone',
-          'keystone_group'         => 'keystone'
+          'fernet_key_repository'  => '/etc/keystone/fernet-keys',
         })
       end
 
+      it { is_expected.to contain_file(params['fernet_key_repository']).with(
+        :ensure => 'directory',
+        :owner  => params['keystone_user'],
+        :group  => params['keystone_group'],
+      ) }
+
       it { is_expected.to contain_exec('keystone-manage fernet_setup').with(
-        :command => 'keystone-manage fernet_setup --keystone-user keystone --keystone-group keystone',
-        :creates => '/etc/keystone/fernet-keys/0'
+        :command => "keystone-manage fernet_setup --keystone-user #{params['keystone_user']} --keystone-group #{params['keystone_group']}",
+        :user    => params['keystone_user'],
+        :creates => '/etc/keystone/fernet-keys/0',
+        :require => 'File[/etc/keystone/fernet-keys]',
       ) }
       it { is_expected.to contain_keystone_config('fernet_tokens/max_active_keys').with_value(5)}
       it { is_expected.to contain_keystone_config('token/revoke_by_id').with_value(false)}
@@ -895,6 +1027,25 @@ describe 'keystone' do
       end
       it { is_expected.to contain_exec('keystone-manage fernet_setup').with(
         :creates => '/var/lib/fernet-keys/0'
+      ) }
+
+    end
+
+    describe 'when overriding the keystone group and user' do
+      let :params do
+        default_params.merge({
+          'enable_fernet_setup'   => true,
+          'fernet_key_repository' => '/etc/keystone/fernet-keys',
+          'keystone_user'         => 'test_user',
+          'keystone_group'        => 'test_group',
+        })
+      end
+
+      it { is_expected.to contain_exec('keystone-manage fernet_setup').with(
+        :command => "keystone-manage fernet_setup --keystone-user #{params['keystone_user']} --keystone-group #{params['keystone_group']}",
+        :user    => params['keystone_user'],
+        :creates => '/etc/keystone/fernet-keys/0',
+        :require => 'File[/etc/keystone/fernet-keys]',
       ) }
 
     end
@@ -951,7 +1102,7 @@ describe 'keystone' do
       }
     end
 
-    it_configures 'when using default class parameters for httpd'
+    it_configures 'when using default class parameters for httpd on RedHat'
     it_configures 'when configuring default domain'
   end
 
@@ -971,7 +1122,7 @@ describe 'keystone' do
       }
     end
 
-    it_configures 'when using default class parameters for httpd'
+    it_configures 'when using default class parameters for httpd on Debian'
     it_configures 'when configuring default domain'
   end
 

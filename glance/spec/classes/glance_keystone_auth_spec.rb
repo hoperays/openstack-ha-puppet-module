@@ -19,12 +19,12 @@ describe 'glance::keystone::auth' do
         :roles  => ['admin']
       ) }
 
-      it { is_expected.to contain_keystone_service('Image Service::image').with(
+      it { is_expected.to contain_keystone_service('glance::image').with(
         :ensure      => 'present',
         :description => 'OpenStack Image Service'
       ) }
 
-      it { is_expected.to contain_keystone_endpoint('RegionOne/Image Service::image').with(
+      it { is_expected.to contain_keystone_endpoint('RegionOne/glance::image').with(
         :ensure       => 'present',
         :public_url   => 'http://127.0.0.1:9292',
         :admin_url    => 'http://127.0.0.1:9292',
@@ -53,7 +53,7 @@ describe 'glance::keystone::auth' do
         :roles  => ['admin']
       ) }
 
-      it { is_expected.to contain_keystone_service('Image Service::imagey').with(
+      it { is_expected.to contain_keystone_service('glance::imagey').with(
         :ensure      => 'present',
         :description => 'OpenStack Image Service'
       ) }
@@ -69,37 +69,12 @@ describe 'glance::keystone::auth' do
           :admin_url        => 'https://10.10.10.12:81/v2' }
       end
 
-      it { is_expected.to contain_keystone_endpoint('RegionTwo/Image Service::image').with(
+      it { is_expected.to contain_keystone_endpoint('RegionTwo/glance::image').with(
         :ensure       => 'present',
         :public_url   => 'https://10.10.10.10:81/v2',
         :internal_url => 'https://10.10.10.11:81/v2',
         :admin_url    => 'https://10.10.10.12:81/v2'
       ) }
-    end
-
-    describe 'with deprecated endpoints parameters' do
-
-      let :params do
-        {
-          :password          => 'pass',
-          :public_address    => '10.0.0.1',
-          :admin_address     => '10.0.0.2',
-          :internal_address  => '10.0.0.3',
-          :port              => '9393',
-          :region            => 'RegionTwo',
-          :public_protocol   => 'https',
-          :admin_protocol    => 'https',
-          :internal_protocol => 'https'
-        }
-      end
-
-      it { is_expected.to contain_keystone_endpoint('RegionTwo/Image Service::image').with(
-        :ensure       => 'present',
-        :public_url   => 'https://10.0.0.1:9393',
-        :admin_url    => 'https://10.0.0.2:9393',
-        :internal_url => 'https://10.0.0.3:9393'
-      )}
-
     end
 
     describe 'when endpoint is not set' do
@@ -111,7 +86,7 @@ describe 'glance::keystone::auth' do
         }
       end
 
-      it { is_expected.to_not contain_keystone_endpoint('RegionOne/Image Service::image') }
+      it { is_expected.to_not contain_keystone_endpoint('RegionOne/glance::image') }
     end
 
     describe 'when disabling user configuration' do
@@ -126,7 +101,7 @@ describe 'glance::keystone::auth' do
 
       it { is_expected.to contain_keystone_user_role('glance@services') }
 
-      it { is_expected.to contain_keystone_service('Image Service::image').with(
+      it { is_expected.to contain_keystone_service('glance::image').with(
         :ensure      => 'present',
         :description => 'OpenStack Image Service'
       ) }
@@ -145,7 +120,7 @@ describe 'glance::keystone::auth' do
 
       it { is_expected.to_not contain_keystone_user_role('glance@services') }
 
-      it { is_expected.to contain_keystone_service('Image Service::image').with(
+      it { is_expected.to contain_keystone_service('glance::image').with(
         :ensure      => 'present',
         :description => 'OpenStack Image Service'
       ) }
@@ -163,7 +138,7 @@ describe 'glance::keystone::auth' do
         }
       end
 
-      it { is_expected.to contain_keystone_endpoint('RegionOne/Image Service::image').with_notify(["Service[glance-api]"]) }
+      it { is_expected.to contain_keystone_endpoint('RegionOne/glance::image').that_notifies(["Anchor[glance::service::begin]"]) }
       end
 
     describe 'when overriding service name' do

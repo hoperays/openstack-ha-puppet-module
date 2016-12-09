@@ -7,7 +7,6 @@ package { 'curl': ensure => present }
 # with all of the default admin roles
 node 'keystone_sqlite' {
   class { '::keystone':
-    verbose      => true,
     debug        => true,
     catalog_type => 'sql',
     admin_token  => 'admin_token',
@@ -22,13 +21,12 @@ node 'keystone_sqlite' {
   }
 }
 
-node keystone_mysql {
+node 'keystone_mysql' {
   class { '::mysql::server': }
   class { '::keystone::db::mysql':
     password => 'keystone',
   }
   class { '::keystone':
-    verbose             => true,
     debug               => true,
     database_connection => 'mysql://keystone:keystone@127.0.0.1/keystone',
     catalog_type        => 'sql',
@@ -42,9 +40,8 @@ node keystone_mysql {
 
 
 # keystone with mysql on another node
-node keystone {
+node 'keystone' {
   class { '::keystone':
-    verbose             => true,
     debug               => true,
     database_connection => 'mysql://keystone:password@127.0.0.1/keystone',
     catalog_type        => 'sql',

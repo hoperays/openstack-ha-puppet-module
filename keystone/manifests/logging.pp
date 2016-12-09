@@ -4,10 +4,6 @@
 #
 # == parameters
 #
-#  [*verbose*]
-#    (Optional) Should the daemons log verbose messages
-#    Defaults to $::os_service_default
-#
 #  [*debug*]
 #    (Optional) Should the daemons log debug messages
 #    Defaults to $::os_service_default
@@ -55,6 +51,11 @@
 #    Defaults to $::os_service_default
 #    Example: '%(asctime)s.%(msecs)03d %(process)d TRACE %(name)s %(instance)s'
 #
+# [*logging_user_identity_format*]
+#   (Optional) Defines the format string for %(user_identity)s that is used in logging_context_format_string.
+#   Defaults to $::os_service_default
+#   Example: '%(user)s %(tenant)s %(domain)s %(user_domain)s %(project_domain)s'
+#
 #  [*log_config_append*]
 #    The name of an additional logging configuration file.
 #    Defaults to $::os_service_default
@@ -65,7 +66,7 @@
 #    Defaults to $::os_service_default
 #    Example:
 #      { 'amqp'  => 'WARN', 'amqplib' => 'WARN', 'boto' => 'WARN',
-#           'qpid' => 'WARN', 'sqlalchemy' => 'WARN', 'suds' => 'INFO',
+#           'sqlalchemy' => 'WARN', 'suds' => 'INFO',
 #           'oslo.messaging' => 'INFO', 'iso8601' => 'WARN',
 #           'requests.packages.urllib3.connectionpool' => 'WARN',
 #           'urllib3.connectionpool' => 'WARN',
@@ -96,6 +97,17 @@
 #    (optional) Format string for %%(asctime)s in log records.
 #    Defaults to $::os_service_default
 #    Example: 'Y-%m-%d %H:%M:%S'
+#
+# [*watch_log_file*]
+#   (Optional) Uses logging handler designed to watch file system (boolean value).
+#   Defaults to $::os_service_default
+#
+# DEPRECATED
+#
+# [*verbose*]
+#   (Optional) Deprecated. Should the daemons log verbose messages
+#   Defaults to undef.
+#
 
 class keystone::logging(
   $use_syslog                    = $::os_service_default,
@@ -103,12 +115,12 @@ class keystone::logging(
   $log_facility                  = $::os_service_default,
   $log_dir                       = '/var/log/keystone',
   $log_file                      = $::os_service_default,
-  $verbose                       = $::os_service_default,
   $debug                         = $::os_service_default,
   $logging_context_format_string = $::os_service_default,
   $logging_default_format_string = $::os_service_default,
   $logging_debug_format_suffix   = $::os_service_default,
   $logging_exception_prefix      = $::os_service_default,
+  $logging_user_identity_format  = $::os_service_default,
   $log_config_append             = $::os_service_default,
   $default_log_levels            = $::os_service_default,
   $publish_errors                = $::os_service_default,
@@ -116,9 +128,16 @@ class keystone::logging(
   $instance_format               = $::os_service_default,
   $instance_uuid_format          = $::os_service_default,
   $log_date_format               = $::os_service_default,
+  $watch_log_file                = $::os_service_default,
+  # DEPRECATED
+  $verbose                       = undef,
 ) {
 
   include ::keystone::deps
+
+  if $verbose {
+    warning('verbose is deprecated, has no effect and will be removed after Newton cycle.')
+  }
 
   # NOTE(spredzy): In order to keep backward compatibility we rely on the pick function
   # to use keystone::<myparam> first then keystone::logging::<myparam>.
@@ -127,34 +146,28 @@ class keystone::logging(
   $log_facility_real = pick($::keystone::log_facility,$log_facility)
   $log_dir_real = pick($::keystone::log_dir,$log_dir)
   $log_file_real = pick($::keystone::log_file,$log_file)
-  $verbose_real  = pick($::keystone::verbose,$verbose)
   $debug_real = pick($::keystone::debug,$debug)
 
-  if is_service_default($default_log_levels) {
-    $default_log_levels_real = $default_log_levels
-  } else {
-    $default_log_levels_real = join(sort(join_keys_to_values($default_log_levels, '=')), ',')
-  }
-
-  keystone_config {
-    'DEFAULT/use_syslog' :                    value => $use_syslog_real;
-    'DEFAULT/use_stderr' :                    value => $use_stderr_real;
-    'DEFAULT/syslog_log_facility' :           value => $log_facility_real;
-    'DEFAULT/log_dir' :                       value => $log_dir_real;
-    'DEFAULT/log_file':                       value => $log_file_real;
-    'DEFAULT/verbose' :                       value => $verbose_real;
-    'DEFAULT/debug' :                         value => $debug_real;
-    'DEFAULT/default_log_levels' :            value => $default_log_levels_real;
-    'DEFAULT/logging_context_format_string' : value => $logging_context_format_string;
-    'DEFAULT/logging_default_format_string' : value => $logging_default_format_string;
-    'DEFAULT/logging_debug_format_suffix' :   value => $logging_debug_format_suffix;
-    'DEFAULT/logging_exception_prefix' :      value => $logging_exception_prefix;
-    'DEFAULT/log_config_append' :             value => $log_config_append;
-    'DEFAULT/publish_errors' :                value => $publish_errors;
-    'DEFAULT/fatal_deprecations' :            value => $fatal_deprecations;
-    'DEFAULT/instance_format' :               value => $instance_format;
-    'DEFAULT/instance_uuid_format' :          value => $instance_uuid_format;
-    'DEFAULT/log_date_format' :               value => $log_date_format;
+  oslo::log { 'keystone_config':
+    debug                         => $debug_real,
+    log_config_append             => $log_config_append,
+    log_date_format               => $log_date_format,
+    log_file                      => $log_file_real,
+    log_dir                       => $log_dir_real,
+    watch_log_file                => $watch_log_file,
+    use_syslog                    => $use_syslog_real,
+    syslog_log_facility           => $log_facility_real,
+    use_stderr                    => $use_stderr_real,
+    logging_context_format_string => $logging_context_format_string,
+    logging_default_format_string => $logging_default_format_string,
+    logging_debug_format_suffix   => $logging_debug_format_suffix,
+    logging_exception_prefix      => $logging_exception_prefix,
+    logging_user_identity_format  => $logging_user_identity_format,
+    default_log_levels            => $default_log_levels,
+    publish_errors                => $publish_errors,
+    instance_format               => $instance_format,
+    instance_uuid_format          => $instance_uuid_format,
+    fatal_deprecations            => $fatal_deprecations,
   }
 
 }

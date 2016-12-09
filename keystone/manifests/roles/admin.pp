@@ -15,7 +15,8 @@
 #   The email address for the admin. Required.
 #
 # [*password*]
-#   The admin password. Required.
+#   The admin password. Required. In a later release
+#   this will default to $keystone::admin_password.
 #
 # [*admin_roles*]
 #   The list of the roles with admin privileges. Optional.
@@ -53,6 +54,11 @@
 #   Optional.  Domain of the admin user
 #   Defaults to undef (undef will resolve to class keystone $default_domain)
 #
+# [*target_admin_domain*]
+#   Optional.  Domain where the admin user will have the $admin_role
+#   Defaults to undef (undef will not associate the $admin_role to any
+#   domain, only project)
+#
 # [*admin_project_domain*]
 #   Optional.  Domain of the admin tenant
 #   Defaults to undef (undef will resolve to class keystone $default_domain)
@@ -85,11 +91,20 @@ class keystone::roles::admin(
   $admin_user_domain      = undef,
   $admin_project_domain   = undef,
   $service_project_domain = undef,
+  $target_admin_domain    = undef,
 ) {
 
   include ::keystone::deps
 
-  $domains = unique(delete_undef_values([ $admin_user_domain, $admin_project_domain, $service_project_domain]))
+  if $password != $keystone::admin_password_real {
+    warning('the main class is setting the admin password differently from this\
+      class when calling bootstrap. This will lead to the password\
+      flip-flopping and cause authentication issues for the admin user.\
+      Please ensure that keystone::roles::admin::password and\
+      keystone::admin_password are set the same.')
+  }
+
+  $domains = unique(delete_undef_values([ $admin_user_domain, $admin_project_domain, $service_project_domain, $target_admin_domain]))
   keystone_domain { $domains:
     ensure  => present,
     enabled => true,
@@ -130,7 +145,18 @@ class keystone::roles::admin(
       project_domain => $admin_project_domain,
       roles          => $admin_roles,
     }
+    Keystone_tenant[$admin_tenant] -> Keystone_user_role["${admin}@${admin_tenant}"]
+    Keystone_user<| title == $admin |> -> Keystone_user_role["${admin}@${admin_tenant}"]
     Keystone_user_role["${admin}@${admin_tenant}"] -> File<| tag == 'openrc' |>
+
+    if $target_admin_domain {
+      keystone_user_role { "${admin}@::${target_admin_domain}":
+        ensure      => present,
+        user_domain => $admin_user_domain,
+        roles       => $admin_roles,
+      }
+      Keystone_user_role["${admin}@::${target_admin_domain}"] -> File<| tag == 'openrc' |>
+    }
   }
 
 }

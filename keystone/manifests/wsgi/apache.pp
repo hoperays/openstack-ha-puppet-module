@@ -17,6 +17,10 @@
 #     The servername for the virtualhost.
 #     Optional. Defaults to $::fqdn
 #
+#   [*servername_admin*]
+#     The servername for the admin virtualhost.
+#     Optional. Defaults to $servername
+#
 #   [*public_port*]
 #     The public port.
 #     Optional. Defaults to 5000
@@ -55,6 +59,14 @@
 #
 #   [*ssl_key*]
 #     (optional) Path to SSL key
+#     Default to apache::vhost 'ssl_*' defaults.
+#
+#   [*ssl_cert_admin*]
+#     (optional) Path to SSL certificate for the admin endpoint.
+#     Default to apache::vhost 'ssl_*' defaults.
+#
+#   [*ssl_key_admin*]
+#     (optional) Path to SSL key for the admin endpoint.
 #     Default to apache::vhost 'ssl_*' defaults.
 #
 #   [*ssl_chain*]
@@ -158,6 +170,7 @@
 #
 class keystone::wsgi::apache (
   $servername                = $::fqdn,
+  $servername_admin          = undef,
   $public_port               = 5000,
   $admin_port                = 35357,
   $bind_host                 = undef,
@@ -168,6 +181,8 @@ class keystone::wsgi::apache (
   $workers                   = 1,
   $ssl_cert                  = undef,
   $ssl_key                   = undef,
+  $ssl_cert_admin            = undef,
+  $ssl_key_admin             = undef,
   $ssl_chain                 = undef,
   $ssl_ca                    = undef,
   $ssl_crl_path              = undef,
@@ -178,22 +193,37 @@ class keystone::wsgi::apache (
   $wsgi_application_group    = '%{GLOBAL}',
   $wsgi_pass_authorization   = 'On',
   $wsgi_chunked_request      = undef,
-  $wsgi_admin_script_source  = undef,
-  $wsgi_public_script_source = undef,
+  $wsgi_admin_script_source  = $::keystone::params::keystone_wsgi_admin_script_path,
+  $wsgi_public_script_source = $::keystone::params::keystone_wsgi_public_script_path,
   $wsgi_script_ensure        = undef,
   $access_log_format         = false,
   $headers                   = undef,
   $vhost_custom_fragment     = undef,
   #DEPRECATED
   $wsgi_script_source        = undef,
-) {
+) inherits ::keystone::params {
 
   include ::keystone::deps
-  include ::keystone::params
   include ::apache
   include ::apache::mod::wsgi
+
+  $servername_admin_real = pick_default($servername_admin, $servername)
+
   if $ssl {
     include ::apache::mod::ssl
+    # This is probably a bug in Class[apache::mod::ssl] or in the mod_ssl EL
+    # package but for now I want this to pass p-o-i CI.  The issue is that the
+    # mod_ssl package is placing a ssl.conf file after the confd_dir is purged
+    # on Puppet 4.
+    Class['::apache::mod::ssl'] -> File[$::apache::confd_dir]
+    # Attempt to use the admin cert/key, else default to the public one.
+    # Since it's possible that no cert/key were given, we allow this to be
+    # empty with pick_default
+    $ssl_cert_admin_real = pick_default($ssl_cert_admin, $ssl_cert)
+    $ssl_key_admin_real = pick_default($ssl_key_admin, $ssl_key)
+  } else {
+    $ssl_cert_admin_real = undef
+    $ssl_key_admin_real = undef
   }
 
   # The httpd package is untagged, but needs to have ordering enforced,
@@ -249,12 +279,15 @@ class keystone::wsgi::apache (
   }
 
   if $wsgi_script_source {
-    warning('The single wsgi script source has been deprecated as part of the Mitaka cycle, please switch to $wsgi_admin_script_source and $wsgi_public_script_source')
+
+    warning("The single wsgi script source has been deprecated as part of the Mitaka cycle, please switch to \
+\$wsgi_admin_script_source and \$wsgi_public_script_source")
+
     $wsgi_admin_source = $wsgi_script_source
     $wsgi_public_source = $wsgi_script_source
   } else {
-    $wsgi_admin_source = $::keystone::params::keystone_wsgi_admin_script_path
-    $wsgi_public_source = $::keystone::params::keystone_wsgi_public_script_path
+    $wsgi_admin_source = $wsgi_admin_script_source
+    $wsgi_public_source = $wsgi_public_script_source
   }
 
   $wsgi_files = {
@@ -335,7 +368,7 @@ class keystone::wsgi::apache (
   if $public_port != $admin_port {
     ::apache::vhost { 'keystone_wsgi_admin':
       ensure                      => 'present',
-      servername                  => $servername,
+      servername                  => $servername_admin_real,
       ip                          => $real_admin_bind_host,
       port                        => $admin_port,
       docroot                     => $::keystone::params::keystone_wsgi_script_path,
@@ -343,8 +376,8 @@ class keystone::wsgi::apache (
       docroot_group               => 'keystone',
       priority                    => $priority,
       ssl                         => $ssl,
-      ssl_cert                    => $ssl_cert,
-      ssl_key                     => $ssl_key,
+      ssl_cert                    => $ssl_cert_admin_real,
+      ssl_key                     => $ssl_key_admin_real,
       ssl_chain                   => $ssl_chain,
       ssl_ca                      => $ssl_ca,
       ssl_crl_path                => $ssl_crl_path,

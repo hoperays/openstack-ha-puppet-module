@@ -4,6 +4,11 @@
 #
 # === Parameters
 #
+# [*database_db_max_retries*]
+#   (optional) Maximum retries in case of connection error or deadlock error
+#   before error is raised. Set to -1 to specify an infinite retry count.
+#   Defaults to $::os_service_default.
+#
 # [*database_connection*]
 #   Url used to connect to database.
 #   (Optional) Defaults to 'sqlite:///var/lib/glance/glance.sqlite'.
@@ -34,6 +39,7 @@
 #   (Optional) Defaults to $::os_service_default.
 #
 class glance::registry::db (
+  $database_db_max_retries = $::os_service_default,
   $database_connection     = 'sqlite:///var/lib/glance/glance.sqlite',
   $database_idle_timeout   = $::os_service_default,
   $database_min_pool_size  = $::os_service_default,
@@ -43,7 +49,7 @@ class glance::registry::db (
   $database_max_overflow   = $::os_service_default,
 ) {
 
-  include ::glance::params
+  include ::glance::deps
 
   # NOTE(degorenko): In order to keep backward compatibility we rely on the pick function
   # to use glance::registry::<myparam> if glance::registry::db::<myparam> isn't specified.
@@ -58,44 +64,14 @@ class glance::registry::db (
   validate_re($database_connection_real,
     '^(sqlite|mysql(\+pymysql)?|postgresql):\/\/(\S+:\S+@\S+\/\S+)?')
 
-  case $database_connection_real {
-    /^mysql(\+pymysql)?:\/\//: {
-      require 'mysql::bindings'
-      require 'mysql::bindings::python'
-      if $database_connection_real =~ /^mysql\+pymysql/ {
-        $backend_package = $::glance::params::pymysql_package_name
-      } else {
-        $backend_package = false
-      }
-    }
-    /^postgresql:\/\//: {
-      $backend_package = false
-      require 'postgresql::lib::python'
-    }
-    /^sqlite:\/\//: {
-      $backend_package = $::glance::params::sqlite_package_name
-    }
-    default: {
-      fail('Unsupported backend configured')
-    }
+  oslo::db { 'glance_registry_config':
+    db_max_retries => $database_db_max_retries,
+    connection     => $database_connection_real,
+    idle_timeout   => $database_idle_timeout_real,
+    min_pool_size  => $database_min_pool_size_real,
+    max_retries    => $database_max_retries_real,
+    retry_interval => $database_retry_interval_real,
+    max_pool_size  => $database_max_pool_size_real,
+    max_overflow   => $database_max_overflow_real,
   }
-
-  if $backend_package and !defined(Package[$backend_package]) {
-    package {'glance-backend-package':
-      ensure => present,
-      name   => $backend_package,
-      tag    => 'openstack',
-    }
-  }
-
-  glance_registry_config {
-    'database/connection':     value => $database_connection_real, secret => true;
-    'database/idle_timeout':   value => $database_idle_timeout_real;
-    'database/min_pool_size':  value => $database_min_pool_size_real;
-    'database/max_retries':    value => $database_max_retries_real;
-    'database/retry_interval': value => $database_retry_interval_real;
-    'database/max_pool_size':  value => $database_max_pool_size_real;
-    'database/max_overflow':   value => $database_max_overflow_real;
-  }
-
 }

@@ -4,17 +4,10 @@
 #
 # == Parameters
 #
-# [*keystone_password*]
-#   (required) Password used to authentication.
-#
 # [*package_ensure*]
 #   (optional) Ensure state for package. On RedHat platforms this
 #   setting is ignored and the setting from the glance class is used
 #   because there is only one glance package. Defaults to 'present'.
-#
-# [*verbose*]
-#   (optional) Rather to log the glance api service at verbose level.
-#   Default: undef
 #
 # [*debug*]
 #   (optional) Rather to log the glance api service at debug level.
@@ -22,7 +15,7 @@
 #
 # [*bind_host*]
 #   (optional) The address of the host to bind to.
-#   Default: 0.0.0.0
+#   Default: $::os_service_default.
 #
 # [*bind_port*]
 #   (optional) The port the server should bind to.
@@ -30,7 +23,7 @@
 #
 # [*backlog*]
 #   (optional) Backlog requests when creating socket
-#   Default: 4096
+#   Default: $::os_service_default.
 #
 # [*workers*]
 #   (optional) Number of Glance API worker processes to start
@@ -38,7 +31,7 @@
 #
 # [*log_file*]
 #   (optional) The path of file used for logging
-#   If set to boolean false, it will not log to any file.
+#   If set to $::os_service_default, it will not log to any file.
 #   Default: undef
 #
 #  [*log_dir*]
@@ -52,11 +45,11 @@
 #
 # [*registry_port*]
 #   (optional) The port of the Glance registry service.
-#   Default: 9191
+#   Default: $::os_service_default.
 #
 # [*registry_client_protocol*]
 #   (optional) The protocol of the Glance registry service.
-#   Default: http
+#   Default: $::os_service_default.
 #
 # [*scrub_time*]
 #   (optional) The amount of time in seconds to delay before performing a delete.
@@ -66,36 +59,14 @@
 #   (optional) Turn on/off delayed delete.
 #   Defaults to $::os_service_default.
 #
-# [*auth_type*]
+# [*auth_strategy*]
 #   (optional) Type is authorization being used.
 #   Defaults to 'keystone'
-#
-# [*auth_region*]
-#   (optional) The region for the authentication service.
-#   If "use_user_token" is not in effect and using keystone auth,
-#   then region name can be specified.
-#   Defaults to $::os_service_default.
-#
-# [*auth_uri*]
-#   (optional) Complete public Identity API endpoint.
-#   Defaults to 'http://127.0.0.1:5000/'.
-#
-# [*identity_uri*]
-#   (optional) Complete admin Identity API endpoint.
-#   Defaults to 'http://127.0.0.1:35357/'.
 #
 # [*pipeline*]
 #   (optional) Partial name of a pipeline in your paste configuration file with the
 #   service name removed.
 #   Defaults to 'keystone'.
-#
-# [*keystone_tenant*]
-#   (optional) Tenant to authenticate to.
-#   Defaults to services.
-#
-# [*keystone_user*]
-#   (optional) User to authenticate as with keystone.
-#   Defaults to 'glance'.
 #
 # [*manage_service*]
 #   (optional) If Puppet should manage service startup / shutdown.
@@ -106,7 +77,7 @@
 #   Defaults to true.
 #
 # [*database_connection*]
-#   (optional) Connection url to connect to nova database.
+#   (optional) Connection url to connect to glance database.
 #   Defaults to undef
 #
 # [*database_idle_timeout*]
@@ -157,7 +128,7 @@
 #
 # [*show_image_direct_url*]
 #   (optional) Expose image location to trusted clients.
-#   Defaults to false.
+#   Defaults to $::os_service_default.
 #
 # [*show_multiple_locations*]
 #   (optional) Whether to include the backend image locations in image
@@ -219,23 +190,41 @@
 #   (optional) Base directory that the Image Cache uses.
 #    Defaults to '/var/lib/glance/image-cache'.
 #
+# [*task_time_to_live*]
+#   (optional) Time in hours for which a task lives after.
+#   Defaults to $::os_service_default
+#
+# [*task_executor*]
+#   (optional) Task executor to be used t orun task scripts.
+#   Defaults to $::os_service_default
+#
+# [*task_work_dir*]
+#   (optional) Absolute path to the work directory to use for asynchronous
+#   task operations.
+#   Defaults to $::os_service_default
+#
+# [*taskflow_engine_mode*]
+#   (optional) Set the taskflow engine mode.
+#   Allowed values: 'parallel', 'serial'.
+#   Defaults to $::os_service_default
+#
+# [*taskflow_max_workers*]
+#   (optional) Integer value to limit the number of taskflow workers. Only
+#   relevant if taskflow_engine_mode is 'parallel'.
+#   Defaults to $::os_service_default
+#
+# [*conversion_format*]
+#   (optional) Allow automatic image conversion.
+#   Allowed values: 'qcow2', 'raw', 'vmdk', false.
+#   Defaults to $::os_service_default (disabled)
+#
 # [*os_region_name*]
 #   (optional) Sets the keystone region to use.
 #   Defaults to 'RegionOne'.
 #
-# [*signing_dir*]
-#   (optional) Directory used to cache files related to PKI tokens.
-#   Defaults to $::os_service_default.
-#
-# [*memcached_servers*]
-#   (optinal) a list of memcached server(s) to use for caching. If left undefined,
-#   tokens will instead be cached in-process.
-#   Defaults to $::os_service_default.
-#
-# [*token_cache_time*]
-#   (optional) In order to prevent excessive effort spent validating tokens,
-#   the middleware caches previously-seen tokens for a configurable duration (in seconds).
-#   Set to -1 to disable caching completely.
+# [*enable_proxy_headers_parsing*]
+#   (Optional) Enable paste middleware to handle SSL requests through
+#   HTTPProxyToWSGI middleware.
 #   Defaults to $::os_service_default.
 #
 # [*validate*]
@@ -267,71 +256,185 @@
 #   Defaults to false.
 #   Example: ['file','http']
 #
+# [*verbose*]
+#   (optional) Deprecated. Rather to log the glance api service at verbose level.
+#   Default: undef
+#
+# [*auth_region*]
+#   (optional) The region for the authentication service.
+#   If "use_user_token" is not in effect and using keystone auth,
+#   then region name can be specified.
+#   Defaults to undef
+#
+# [*keystone_password*]
+#   (Optional) Password used to authentication.
+#   Deprecated and will be replaced by ::glance::api::authtoken::password
+#   Defaults to undef.
+#
+# [*auth_type*]
+#   (optional) Type is authorization being used.
+#   Deprecated and replaced by ::glance::api::auth_strategy
+#   Defaults to undef.
+#
+# [*auth_uri*]
+#   (optional) Complete public Identity API endpoint.
+#   Deprecated and will be replaced by ::glance::api::authtoken::auth_uri
+#   Defaults to undef.
+#
+# [*identity_uri*]
+#   (optional) Complete admin Identity API endpoint.
+#   Deprecated and will be replaced by ::glance::api::authtoken::auth_url
+#   Defaults to undef.
+#
+# [*keystone_tenant*]
+#   (optional) Tenant to authenticate to.
+#   Deprecated and will be replaced by ::glance::api::authtoken::project_name
+#   Defaults to undef.
+#
+# [*keystone_user*]
+#   (optional) User to authenticate as with keystone.
+#   Deprecated and will be replaced by ::glance::api::authtoken::username
+#   Defaults to undef.
+#
+# [*signing_dir*]
+#   (optional) Directory used to cache files related to PKI tokens.
+#   Deprecated and will be replaced by ::glance::api::authtoken::signing_dir
+#   Defaults to undef.
+#
+# [*memcached_servers*]
+#   (optinal) a list of memcached server(s) to use for caching. If left undefined,
+#   tokens will instead be cached in-process.
+#   Deprecated and will be replaced by ::glance::api::authtoken::memcached_servers
+#   Defaults to undef.
+#
+# [*token_cache_time*]
+#   (optional) In order to prevent excessive effort spent validating tokens,
+#   the middleware caches previously-seen tokens for a configurable duration (in seconds).
+#   Set to -1 to disable caching completely.
+#   Deprecated and will be replaced by ::glance::api::authtoken::token_cache_time
+#   Defaults to undef.
+#
 class glance::api(
-  $keystone_password,
-  $package_ensure            = 'present',
-  $verbose                   = undef,
-  $debug                     = undef,
-  $bind_host                 = '0.0.0.0',
-  $bind_port                 = '9292',
-  $backlog                   = '4096',
-  $workers                   = $::processorcount,
-  $log_file                  = undef,
-  $log_dir                   = undef,
-  $registry_host             = '0.0.0.0',
-  $registry_port             = '9191',
-  $registry_client_protocol  = 'http',
-  $scrub_time                = $::os_service_default,
-  $delayed_delete            = $::os_service_default,
-  $auth_type                 = 'keystone',
-  $auth_region               = $::os_service_default,
-  $auth_uri                  = 'http://127.0.0.1:5000/',
-  $identity_uri              = 'http://127.0.0.1:35357/',
-  $memcached_servers         = $::os_service_default,
-  $pipeline                  = 'keystone',
-  $keystone_tenant           = 'services',
-  $keystone_user             = 'glance',
-  $manage_service            = true,
-  $enabled                   = true,
-  $use_syslog                = undef,
-  $use_stderr                = undef,
-  $log_facility              = undef,
-  $show_image_direct_url     = false,
-  $show_multiple_locations   = $::os_service_default,
-  $location_strategy         = $::os_service_default,
-  $purge_config              = false,
-  $cert_file                 = $::os_service_default,
-  $key_file                  = $::os_service_default,
-  $ca_file                   = $::os_service_default,
-  $registry_client_cert_file = $::os_service_default,
-  $registry_client_key_file  = $::os_service_default,
-  $registry_client_ca_file   = $::os_service_default,
-  $stores                    = false,
-  $default_store             = undef,
-  $multi_store               = false,
-  $database_connection       = undef,
-  $database_idle_timeout     = undef,
-  $database_min_pool_size    = undef,
-  $database_max_pool_size    = undef,
-  $database_max_retries      = undef,
-  $database_retry_interval   = undef,
-  $database_max_overflow     = undef,
-  $image_cache_max_size      = $::os_service_default,
-  $image_cache_stall_time    = $::os_service_default,
-  $image_cache_dir           = '/var/lib/glance/image-cache',
-  $os_region_name            = 'RegionOne',
-  $signing_dir               = $::os_service_default,
-  $token_cache_time          = $::os_service_default,
-  $validate                  = false,
-  $validation_options        = {},
+  $package_ensure                       = 'present',
+  $debug                                = undef,
+  $bind_host                            = $::os_service_default,
+  $bind_port                            = '9292',
+  $backlog                              = $::os_service_default,
+  $workers                              = $::processorcount,
+  $log_file                             = undef,
+  $log_dir                              = undef,
+  $registry_host                        = '0.0.0.0',
+  $registry_port                        = $::os_service_default,
+  $registry_client_protocol             = $::os_service_default,
+  $scrub_time                           = $::os_service_default,
+  $delayed_delete                       = $::os_service_default,
+  $auth_strategy                        = 'keystone',
+  $pipeline                             = 'keystone',
+  $manage_service                       = true,
+  $enabled                              = true,
+  $use_syslog                           = undef,
+  $use_stderr                           = undef,
+  $log_facility                         = undef,
+  $show_image_direct_url                = $::os_service_default,
+  $show_multiple_locations              = $::os_service_default,
+  $location_strategy                    = $::os_service_default,
+  $purge_config                         = false,
+  $cert_file                            = $::os_service_default,
+  $key_file                             = $::os_service_default,
+  $ca_file                              = $::os_service_default,
+  $registry_client_cert_file            = $::os_service_default,
+  $registry_client_key_file             = $::os_service_default,
+  $registry_client_ca_file              = $::os_service_default,
+  $stores                               = false,
+  $default_store                        = undef,
+  $multi_store                          = false,
+  $database_connection                  = undef,
+  $database_idle_timeout                = undef,
+  $database_min_pool_size               = undef,
+  $database_max_pool_size               = undef,
+  $database_max_retries                 = undef,
+  $database_retry_interval              = undef,
+  $database_max_overflow                = undef,
+  $image_cache_max_size                 = $::os_service_default,
+  $image_cache_stall_time               = $::os_service_default,
+  $image_cache_dir                      = '/var/lib/glance/image-cache',
+  $task_time_to_live                    = $::os_service_default,
+  $task_executor                        = $::os_service_default,
+  $task_work_dir                        = $::os_service_default,
+  $taskflow_engine_mode                 = $::os_service_default,
+  $taskflow_max_workers                 = $::os_service_default,
+  $conversion_format                    = $::os_service_default,
+  $os_region_name                       = 'RegionOne',
+  $enable_proxy_headers_parsing         = $::os_service_default,
+  $validate                             = false,
+  $validation_options                   = {},
   # DEPRECATED PARAMETERS
-  $known_stores              = false,
+  $known_stores                         = false,
+  $verbose                              = undef,
+  $auth_region                          = undef,
+  $keystone_password                    = undef,
+  $auth_type                            = undef,
+  $auth_uri                             = undef,
+  $identity_uri                         = undef,
+  $keystone_tenant                      = undef,
+  $keystone_user                        = undef,
+  $memcached_servers                    = undef,
+  $signing_dir                          = undef,
+  $token_cache_time                     = undef,
 ) inherits glance {
 
+  include ::glance::deps
   include ::glance::policy
   include ::glance::api::db
   include ::glance::api::logging
   include ::glance::cache::logging
+
+  if $verbose {
+    warning('verbose is deprecated, has no effect and will be removed after Newton cycle.')
+  }
+
+  if $auth_region {
+    warning('auth_region is deprecated, has no effect and and will be removed in the O release.')
+  }
+
+  if $keystone_password {
+    warning('glance::api::keystone_password is deprecated, please use glance::api::authtoken::password')
+  }
+
+  if $auth_type {
+    warning('glance::api::auth_type is deprecated, please use glance::api::auth_strategy')
+    $auth_strategy_real = $auth_type
+  } else {
+    $auth_strategy_real = $auth_strategy
+  }
+
+  if $auth_uri {
+    warning('glance::api::auth_uri is deprecated, please use glance::api::authtoken::auth_uri')
+  }
+
+  if $identity_uri {
+    warning('glance::api::identity_uri is deprecated, please use glance::api::authtoken::auth_url')
+  }
+
+  if $keystone_tenant {
+    warning('glance::api::keystone_tenant is deprecated, please use glance::api::authtoken::project_name')
+  }
+
+  if $keystone_user {
+    warning('glance::api::keystone_user is deprecated, please use glance::api::authtoken::username')
+  }
+
+  if $memcached_servers {
+    warning('glance::api::memcached_servers is deprecated, please use glance::api::authtoken::memcached_servers')
+  }
+
+  if $signing_dir {
+    warning('glance::api::signing_dir is deprecated, please use glance::api::authtoken::signing_dir')
+  }
+
+  if $token_cache_time {
+    warning('glance::api::token_cache_time is deprecated, please use glance::api::authtoken::token_cache_time')
+  }
 
   if ( $glance::params::api_package_name != $glance::params::registry_package_name ) {
     ensure_packages('glance-api',
@@ -341,15 +444,6 @@ class glance::api(
       }
     )
   }
-
-  Package[$glance::params::api_package_name] -> Class['glance::policy']
-
-  # adding all of this stuff b/c it devstack says glance-api uses the
-  # db now
-  Glance_api_config<||>   ~> Service['glance-api']
-  Glance_cache_config<||> ~> Service['glance-api']
-  Class['glance::policy'] ~> Service['glance-api']
-  Service['glance-api']   ~> Glance_image<||>
 
   # basic service config
   glance_api_config {
@@ -363,8 +457,17 @@ class glance::api(
     'DEFAULT/scrub_time':              value => $scrub_time;
     'DEFAULT/delayed_delete':          value => $delayed_delete;
     'DEFAULT/image_cache_dir':         value => $image_cache_dir;
-    'DEFAULT/auth_region':             value => $auth_region;
     'glance_store/os_region_name':     value => $os_region_name;
+  }
+
+  # task/taskflow_executor config.
+  glance_api_config {
+    'task/task_time_to_live':              value => $task_time_to_live;
+    'task/task_executor':                  value => $task_executor;
+    'task/work_dir':                       value => $task_work_dir;
+    'taskflow_executor/engine_mode':       value => $taskflow_engine_mode;
+    'taskflow_executor/max_workers':       value => $taskflow_max_workers;
+    'taskflow_executor/conversion_format': value => $conversion_format,
   }
 
   # stores config
@@ -418,6 +521,10 @@ class glance::api(
     }
   }
 
+  resources { 'glance_api_config':
+    purge => $purge_config,
+  }
+
   glance_cache_config {
     'DEFAULT/image_cache_stall_time': value => $image_cache_stall_time;
     'DEFAULT/image_cache_max_size':   value => $image_cache_max_size;
@@ -450,23 +557,12 @@ class glance::api(
   }
 
   # keystone config
-  if $auth_type == 'keystone' {
-    glance_api_config {
-      'keystone_authtoken/admin_tenant_name': value => $keystone_tenant;
-      'keystone_authtoken/admin_user':        value => $keystone_user;
-      'keystone_authtoken/admin_password':    value => $keystone_password, secret => true;
-      'keystone_authtoken/token_cache_time':  value => $token_cache_time;
-      'keystone_authtoken/signing_dir':       value => $signing_dir;
-      'keystone_authtoken/auth_uri':          value => $auth_uri;
-      'keystone_authtoken/identity_uri':      value => $identity_uri;
-      'keystone_authtoken/memcached_servers': value => join(any2array($memcached_servers), ',');
-    }
-    glance_cache_config {
-      'DEFAULT/auth_url'         : value => $auth_uri;
-      'DEFAULT/admin_tenant_name': value => $keystone_tenant;
-      'DEFAULT/admin_user'       : value => $keystone_user;
-      'DEFAULT/admin_password'   : value => $keystone_password, secret => true;
-    }
+  if $auth_strategy_real == 'keystone' {
+    include ::glance::api::authtoken
+  }
+
+  oslo::middleware { 'glance_api_config':
+    enable_proxy_headers_parsing => $enable_proxy_headers_parsing,
   }
 
   # SSL Options
@@ -497,9 +593,15 @@ class glance::api(
   }
 
   if $validate {
+    $keystone_tenant_real   = pick($keystone_tenant, $::glance::api::authtoken::project_name)
+    $keystone_username_real = pick($keystone_user, $::glance::api::authtoken::username)
+    $keystone_password_real = pick($keystone_password, $::glance::api::authtoken::password)
+    $auth_uri_real          = pick($auth_uri, $::glance::api::authtoken::auth_uri)
     $defaults = {
       'glance-api' => {
-        'command'  => "glance --os-auth-url ${auth_uri} --os-tenant-name ${keystone_tenant} --os-username ${keystone_user} --os-password ${keystone_password} image-list",
+        # lint:ignore:140chars
+        'command'  => "glance --os-auth-url ${auth_uri_real} --os-project-name ${keystone_tenant_real} --os-username ${keystone_username_real} --os-password ${keystone_password_real} image-list",
+        # lint:endignore
       }
     }
     $validation_options_hash = merge ($defaults, $validation_options)

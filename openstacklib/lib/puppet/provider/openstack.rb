@@ -30,7 +30,7 @@ class Puppet::Provider::Openstack < Puppet::Provider
     end
   end
 
-  # timeout the entire request with error
+  # timeout the openstack command
   # after this number of seconds
   # retry the command until the request_timeout,
   # unless it's a no_retry_actions call

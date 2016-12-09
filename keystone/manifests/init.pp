@@ -23,11 +23,15 @@
 #
 # [*admin_token*]
 #   Admin token that can be used to authenticate as a keystone
-#   admin. Required.
+#   admin. This is not the password for the admin user
+#   in the Keystone database. This is a token that bypasses authentication.
+#   The admin_token has been deprecated by the Keystone service and this
+#   will be deprecated in a future changeset. Required.
 #
-# [*verbose*]
-#   (optional) Rather keystone should log at verbose level.
-#   Defaults to undef.
+# [*admin_password*]
+#   Keystone password for the admin user. This is not the admin_token.
+#   This is the password that the admin user signs into keystone with.
+#   Required.
 #
 # [*debug*]
 #   (optional) Rather keystone should log at debug level.
@@ -61,7 +65,7 @@
 # [*token_provider*]
 #   (optional) Format keystone uses for tokens.
 #   Defaults to 'uuid'
-#   Supports PKI, PKIZ, Fernet, and UUID.
+#   Supports pki, pkiz, fernet, and uuid.
 #
 # [*token_driver*]
 #   (optional) Driver to use for managing tokens.
@@ -130,6 +134,26 @@
 #   This has no effects unless 'memcache_servers' is set.
 #   Default to $::os_service_default
 #
+# [*cache_config_prefix*]
+#   (Optional) Prefix for building the configuration dictionary for
+#   the cache region. This should not need to be changed unless there
+#   is another dogpile.cache region with the same configuration name.
+#   (string value)
+#   Defaults to $::os_service_default
+#
+# [*cache_expiration_time*]
+#   (Optional) Default TTL, in seconds, for any cached item in the
+#   dogpile.cache region. This applies to any cached method that
+#   doesn't have an explicit cache expiration time defined for it.
+#   (integer value)
+#   Defaults to $::os_service_default
+#
+# [*cache_proxies*]
+#   (Optional) Proxy classes to import that will affect the way the
+#   dogpile.cache backend functions. See the dogpile.cache documentation on
+#   changing-backend-behavior. (list value)
+#   Defaults to $::os_service_default
+#
 # [*token_caching*]
 #   (optional) Toggle for token system caching. This has no effects unless 'memcache_servers' is set.
 #   Default to $::os_service_default
@@ -171,43 +195,6 @@
 #   (optional) If set, use this value for max_overflow with sqlalchemy.
 #   Defaults to: undef
 #
-# [*enable_pki_setup*]
-#   (optional) Enable call to pki_setup to generate the cert for signing pki tokens and
-#   revocation lists if it doesn't already exist. This generates a cert and key stored in file
-#   locations based on the signing_certfile and signing_keyfile paramters below. If you are
-#   providing your own signing cert, make this false.
-#   Default to false.
-#
-# [*signing_certfile*]
-#   (optional) Location of the cert file for signing pki tokens and revocation lists.
-#   Note that if this file already exists (i.e. you are providing your own signing cert),
-#   the file will not be overwritten, even if enable_pki_setup is set to true.
-#   Default: /etc/keystone/ssl/certs/signing_cert.pem
-#
-# [*signing_keyfile*]
-#   (optional) Location of the key file for signing pki tokens and revocation lists.
-#   Note that if this file already exists (i.e. you are providing your own signing cert), the file
-#   will not be overwritten, even if enable_pki_setup is set to true.
-#   Default: /etc/keystone/ssl/private/signing_key.pem
-#
-# [*signing_ca_certs*]
-#   (optional) Use this CA certs file along with signing_certfile/signing_keyfile for
-#   signing pki tokens and revocation lists.
-#   Default: /etc/keystone/ssl/certs/ca.pem
-#
-# [*signing_ca_key*]
-#   (optional) Use this CA key file along with signing_certfile/signing_keyfile for signing
-#   pki tokens and revocation lists.
-#   Default: /etc/keystone/ssl/private/cakey.pem
-#
-# [*signing_cert_subject*]
-#   (optional) Certificate subject (auto generated certificate) for token signing.
-#   Defaults to '/C=US/ST=Unset/L=Unset/O=Unset/CN=www.example.com'
-#
-# [*signing_key_size*]
-#   (optional) Key size (in bits) for token signing cert (auto generated certificate)
-#   Defaults to 2048
-#
 # [*rabbit_host*]
 #   (optional) Location of rabbitmq installation.
 #    Defaults to $::os_service_default
@@ -222,7 +209,7 @@
 #
 # [*rabbit_ha_queues*]
 #   (Optional) Use HA queues in RabbitMQ.
-#   Defaults to undef.
+#   Defaults to $::os_service_default
 #
 # [*rabbit_password*]
 #   (optional) Password used to connect to rabbitmq.
@@ -273,12 +260,30 @@
 #   available on some distributions.
 #   Defaults to $::os_service_default
 #
+# [*kombu_reconnect_delay*]
+#   (Optional) How long to wait before reconnecting in response
+#   to an AMQP consumer cancel notification. (floating point value)
+#   Defaults to $::os_service_default
+#
+# [*kombu_failover_strategy*]
+#   (Optional) Determines how the next RabbitMQ node is chosen in case the one
+#   we are currently connected to becomes unavailable. Takes effect only if
+#   more than one RabbitMQ node is provided in config. (string value)
+#   Defaults to $::os_service_default
+#
+# [*kombu_compression*]
+#   (optional) Possible values are: gzip, bz2. If not set compression will not
+#   be used. This option may notbe available in future versions. EXPERIMENTAL.
+#   (string value)
+#   Defaults to $::os_service_default
+#
 # [*notification_driver*]
-#   RPC driver. Not enabled by default
+#   RPC driver. Not enabled by default (list value)
 #   Defaults to $::os_service_default
 #
 # [*notification_topics*]
 #   (optional) AMQP topics to publish to when using the RPC notification driver.
+#   (list value)
 #   Default to $::os_service_default
 #
 # [*notification_format*]
@@ -286,7 +291,8 @@
 #   Default to undef
 #
 # [*control_exchange*]
-#   (optional) AMQP exchange to connect to if using RabbitMQ or Qpid
+#   (optional) AMQP exchange to connect to if using RabbitMQ
+#   (string value)
 #   Default to $::os_service_default
 #
 # [*public_bind_host*]
@@ -368,13 +374,6 @@
 #   (optional) The url to validate keystone against
 #   Defaults to undef
 #
-# [*service_provider*]
-#   (optional) Provider, that can be used for keystone service.
-#   Default value defined in keystone::params for given operation system.
-#   If you use Pacemaker or another Cluster Resource Manager, you can make
-#   custom service provider for changing start/stop/status behavior of service,
-#   and set it here.
-#
 # [*service_name*]
 #   (optional) Name of the service that will be providing the
 #   server functionality of keystone.  For example, the default
@@ -433,6 +432,36 @@
 #   (Optional) Number of maximum active Fernet keys. Integer > 0.
 #   Defaults to $::os_service_default
 #
+# [*enable_credential_setup*]
+#   (Optional) Setup keystone for credentials.
+#   In a cluster environment where multiple Keystone nodes are running, you might
+#   need the same keys everywhere; so you'll have to set credential_keys parameter in
+#   order to let Puppet manage Keystone keys in a consistent way, otherwise
+#   keystone-manage will generate different set of keys on keystone nodes and the
+#   service won't work.
+#   This feature was added at the end of Newton. The default value is now False
+#   by default but will switch to True once UCA will have latest Keystone version.
+#   Defaults to False
+#
+# [*credential_key_repository*]
+#   (Optional) Location for the Credential key repository. This value must
+#   be set if enable_credential_setup is set to true.
+#   Defaults to '/etc/keystone/credential-keys'
+#
+# [*credential_keys*]
+#   (Optional) Hash of Keystone credential keys
+#   If you enable this parameter, make sure enable_credential_setup is set to True.
+#   Example of valid value:
+#   credential_keys:
+#     /etc/keystone/credential-keys/0:
+#       content: t-WdduhORSqoyAykuqWAQSYjg2rSRuJYySgI2xh48CI=
+#     /etc/keystone/credential-keys/1:
+#       content: GLlnyygEVJP4-H2OMwClXn3sdSQUZsM5F194139Unv8=
+#   Puppet will create a file per key in $credential_key_repository.
+#   Note: defaults to false so keystone-manage credential_setup will be executed.
+#   Otherwise Puppet will manage keys with File resource.
+#   Defaults to false
+#
 # [*enable_bootstrap*]
 #   (Optional) Enable keystone bootstrapping.
 #   Per upstream Keystone Mitaka commit 7b7fea7a3fe7677981fbf9bac5121bc15601163
@@ -451,6 +480,18 @@
 #   to add it to every user/tenant/user_role you create, as without a domain
 #   qualification those resources goes into "Default" domain.  See README.
 #   Defaults to undef (will use built-in Keystone default)
+#
+# [*member_role_id*]
+#   (optional) # Similar to the member_role_name option, this represents the
+#   default role ID used to associate users with their default projects in the
+#   v2 API. This will be used as the explicit role where one is not specified
+#   by the v2 API.
+#   Defaults to $::os_service_default
+#
+# [*member_role_name*]
+#   (optional) # This is the role name used in combination with the
+#   member_role_id option; see that option for more detail.
+#   Defaults to $::os_service_default
 #
 # [*memcache_dead_retry*]
 #   (optional) Number of seconds memcached server is considered dead before it
@@ -471,6 +512,11 @@
 #   the pool before it is closed.
 #   Defaults to $::os_service_default
 #
+# [*memcache_pool_connection_get_timeout*]
+#   (Optional) Number of seconds that an operation will wait to get a memcache
+#   client connection. (integer value)
+#   Defaults to $::os_service_default
+#
 # [*policy_driver*]
 #   Policy backend driver. (string value)
 #   Defaults to $::os_service_default.
@@ -489,16 +535,72 @@
 #
 # [*keystone_user*]
 #   (optional) Specify the keystone system user to be used with keystone-manage.
-#   Defaults to 'keystone'
+#   Defaults to $::keystone::params::keystone_user
 #
 # [*keystone_group*]
 #   (optional) Specify the keystone system group to be used with keystone-manage.
-#   Defaults to 'keystone'
+#   Defaults to $::keystone::params::keystone_group
 #
 # [*manage_policyrcd*]
 #   (optional) Whether to manage the policy-rc.d on debian based systems to
-#   prevent keystone eventlet from auto-starting on package install.
+#   prevent keystone eventlet and apache from auto-starting on package install.
 #   Defaults to false
+#
+# [*enable_proxy_headers_parsing*]
+#   (Optional) Enable paste middleware to handle SSL requests through
+#   HTTPProxyToWSGI middleware.
+#   Defaults to $::os_service_default.
+#
+# [*purge_config*]
+#   (optional) Whether to set only the specified config options
+#   in the keystone config.
+#   Defaults to false.
+#
+# DEPRECATED PARAMETERS
+#
+# [*service_provider*]
+#   (optional) Deprecated. Provider, that can be used for keystone service.
+#
+# [*verbose*]
+#   (optional) Deprecated. Rather keystone should log at verbose level.
+#   Defaults to undef.
+#
+# [*enable_pki_setup*]
+#   (optional) Deprecated. Enable call to pki_setup to generate the cert for signing pki tokens and
+#   revocation lists if it doesn't already exist. This generates a cert and key stored in file
+#   locations based on the signing_certfile and signing_keyfile paramters below. If you are
+#   providing your own signing cert, make this false.
+#   Default to undef.
+#
+# [*signing_certfile*]
+#   (optional) Deprecated. Location of the cert file for signing pki tokens and revocation lists.
+#   Note that if this file already exists (i.e. you are providing your own signing cert),
+#   the file will not be overwritten, even if enable_pki_setup is set to true.
+#   Defaults to $::os_service_default
+#
+# [*signing_keyfile*]
+#   (optional) Deprecated. Location of the key file for signing pki tokens and revocation lists.
+#   Note that if this file already exists (i.e. you are providing your own signing cert), the file
+#   will not be overwritten, even if enable_pki_setup is set to true.
+#   Defaults to $::os_service_default
+#
+# [*signing_ca_certs*]
+#   (optional) Deprecated. Use this CA certs file along with signing_certfile/signing_keyfile for
+#   signing pki tokens and revocation lists.
+#   Defaults to $::os_service_default
+#
+# [*signing_ca_key*]
+#   (optional) Deprecated. Use this CA key file along with signing_certfile/signing_keyfile for signing
+#   pki tokens and revocation lists.
+#   Defaults to $::os_service_default
+#
+# [*signing_cert_subject*]
+#   (optional) Deprecated. Certificate subject (auto generated certificate) for token signing.
+#   Defaults to $::os_service_default
+#
+# [*signing_key_size*]
+#   (optional) Deprecated. Key size (in bits) for token signing cert (auto generated certificate)
+#   Defaults to $::os_service_default
 #
 # == Dependencies
 #  None
@@ -506,7 +608,6 @@
 # == Examples
 #
 #   class { 'keystone':
-#     log_verbose => 'True',
 #     admin_token => 'my_special_token',
 #   }
 #
@@ -531,108 +632,136 @@
 #
 class keystone(
   $admin_token,
-  $package_ensure                     = 'present',
-  $client_package_ensure              = 'present',
-  $public_bind_host                   = '0.0.0.0',
-  $admin_bind_host                    = '0.0.0.0',
-  $public_port                        = '5000',
-  $admin_port                         = '35357',
-  $verbose                            = undef,
-  $debug                              = undef,
-  $log_dir                            = undef,
-  $log_file                           = undef,
-  $use_syslog                         = undef,
-  $use_stderr                         = undef,
-  $log_facility                       = undef,
-  $catalog_type                       = 'sql',
-  $catalog_driver                     = false,
-  $catalog_template_file              = '/etc/keystone/default_catalog.templates',
-  $token_provider                     = 'uuid',
-  $token_driver                       = 'sql',
-  $token_expiration                   = 3600,
-  $revoke_driver                      = $::os_service_default,
-  $revoke_by_id                       = true,
-  $public_endpoint                    = $::os_service_default,
-  $admin_endpoint                     = $::os_service_default,
-  $enable_ssl                         = false,
-  $ssl_certfile                       = '/etc/keystone/ssl/certs/keystone.pem',
-  $ssl_keyfile                        = '/etc/keystone/ssl/private/keystonekey.pem',
-  $ssl_ca_certs                       = '/etc/keystone/ssl/certs/ca.pem',
-  $ssl_ca_key                         = '/etc/keystone/ssl/private/cakey.pem',
-  $ssl_cert_subject                   = '/C=US/ST=Unset/L=Unset/O=Unset/CN=localhost',
-  $cache_dir                          = '/var/cache/keystone',
-  $memcache_servers                   = $::os_service_default,
-  $manage_service                     = true,
-  $cache_backend                      = $::os_service_default,
-  $cache_backend_argument             = $::os_service_default,
-  $cache_enabled                      = $::os_service_default,
-  $cache_memcache_servers             = $::os_service_default,
-  $debug_cache_backend                = $::os_service_default,
-  $token_caching                      = $::os_service_default,
-  $enabled                            = true,
-  $database_connection                = undef,
-  $database_idle_timeout              = undef,
-  $database_max_retries               = undef,
-  $database_retry_interval            = undef,
-  $database_min_pool_size             = undef,
-  $database_max_pool_size             = undef,
-  $database_max_overflow              = undef,
-  $enable_pki_setup                   = false,
-  $signing_certfile                   = '/etc/keystone/ssl/certs/signing_cert.pem',
-  $signing_keyfile                    = '/etc/keystone/ssl/private/signing_key.pem',
-  $signing_ca_certs                   = '/etc/keystone/ssl/certs/ca.pem',
-  $signing_ca_key                     = '/etc/keystone/ssl/private/cakey.pem',
-  $signing_cert_subject               = '/C=US/ST=Unset/L=Unset/O=Unset/CN=www.example.com',
-  $signing_key_size                   = 2048,
-  $rabbit_host                        = $::os_service_default,
-  $rabbit_hosts                       = $::os_service_default,
-  $rabbit_password                    = $::os_service_default,
-  $rabbit_port                        = $::os_service_default,
-  $rabbit_userid                      = $::os_service_default,
-  $rabbit_virtual_host                = $::os_service_default,
-  $rabbit_heartbeat_timeout_threshold = $::os_service_default,
-  $rabbit_heartbeat_rate              = $::os_service_default,
-  $rabbit_use_ssl                     = $::os_service_default,
-  $rabbit_ha_queues                   = undef,
-  $kombu_ssl_ca_certs                 = $::os_service_default,
-  $kombu_ssl_certfile                 = $::os_service_default,
-  $kombu_ssl_keyfile                  = $::os_service_default,
-  $kombu_ssl_version                  = $::os_service_default,
-  $notification_driver                = $::os_service_default,
-  $notification_topics                = $::os_service_default,
-  $notification_format                = $::os_service_default,
-  $control_exchange                   = $::os_service_default,
-  $validate_service                   = false,
-  $validate_insecure                  = false,
-  $validate_auth_url                  = false,
-  $validate_cacert                    = undef,
-  $paste_config                       = $::os_service_default,
-  $service_provider                   = $::keystone::params::service_provider,
-  $service_name                       = $::keystone::params::service_name,
-  $max_token_size                     = $::os_service_default,
-  $sync_db                            = true,
-  $enable_fernet_setup                = false,
-  $fernet_key_repository              = '/etc/keystone/fernet-keys',
-  $fernet_max_active_keys             = $::os_service_default,
-  $default_domain                     = undef,
-  $enable_bootstrap                   = true,
-  $memcache_dead_retry                = $::os_service_default,
-  $memcache_socket_timeout            = $::os_service_default,
-  $memcache_pool_maxsize              = $::os_service_default,
-  $memcache_pool_unused_timeout       = $::os_service_default,
-  $policy_driver                      = $::os_service_default,
-  $using_domain_config                = false,
-  $domain_config_directory            = '/etc/keystone/domains',
-  $keystone_user                      = $::keystone::params::keystone_user,
-  $keystone_group                     = $::keystone::params::keystone_group,
-  $manage_policyrcd                   = false,
+  $admin_password                       = undef,
+  $package_ensure                       = 'present',
+  $client_package_ensure                = 'present',
+  $public_bind_host                     = '0.0.0.0',
+  $admin_bind_host                      = '0.0.0.0',
+  $public_port                          = '5000',
+  $admin_port                           = '35357',
+  $debug                                = undef,
+  $log_dir                              = undef,
+  $log_file                             = undef,
+  $use_syslog                           = undef,
+  $use_stderr                           = undef,
+  $log_facility                         = undef,
+  $catalog_type                         = 'sql',
+  $catalog_driver                       = false,
+  $catalog_template_file                = '/etc/keystone/default_catalog.templates',
+  $token_provider                       = 'uuid',
+  $token_driver                         = 'sql',
+  $token_expiration                     = 3600,
+  $revoke_driver                        = $::os_service_default,
+  $revoke_by_id                         = true,
+  $public_endpoint                      = $::os_service_default,
+  $admin_endpoint                       = $::os_service_default,
+  $enable_ssl                           = false,
+  $ssl_certfile                         = '/etc/keystone/ssl/certs/keystone.pem',
+  $ssl_keyfile                          = '/etc/keystone/ssl/private/keystonekey.pem',
+  $ssl_ca_certs                         = '/etc/keystone/ssl/certs/ca.pem',
+  $ssl_ca_key                           = '/etc/keystone/ssl/private/cakey.pem',
+  $ssl_cert_subject                     = '/C=US/ST=Unset/L=Unset/O=Unset/CN=localhost',
+  $cache_dir                            = '/var/cache/keystone',
+  $memcache_servers                     = $::os_service_default,
+  $manage_service                       = true,
+  $cache_backend                        = $::os_service_default,
+  $cache_backend_argument               = $::os_service_default,
+  $cache_enabled                        = $::os_service_default,
+  $cache_memcache_servers               = $::os_service_default,
+  $debug_cache_backend                  = $::os_service_default,
+  $cache_config_prefix                  = $::os_service_default,
+  $cache_expiration_time                = $::os_service_default,
+  $cache_proxies                        = $::os_service_default,
+  $token_caching                        = $::os_service_default,
+  $enabled                              = true,
+  $database_connection                  = undef,
+  $database_idle_timeout                = undef,
+  $database_max_retries                 = undef,
+  $database_retry_interval              = undef,
+  $database_min_pool_size               = undef,
+  $database_max_pool_size               = undef,
+  $database_max_overflow                = undef,
+  $rabbit_host                          = $::os_service_default,
+  $rabbit_hosts                         = $::os_service_default,
+  $rabbit_password                      = $::os_service_default,
+  $rabbit_port                          = $::os_service_default,
+  $rabbit_userid                        = $::os_service_default,
+  $rabbit_virtual_host                  = $::os_service_default,
+  $rabbit_heartbeat_timeout_threshold   = $::os_service_default,
+  $rabbit_heartbeat_rate                = $::os_service_default,
+  $rabbit_use_ssl                       = $::os_service_default,
+  $rabbit_ha_queues                     = $::os_service_default,
+  $kombu_ssl_ca_certs                   = $::os_service_default,
+  $kombu_ssl_certfile                   = $::os_service_default,
+  $kombu_ssl_keyfile                    = $::os_service_default,
+  $kombu_ssl_version                    = $::os_service_default,
+  $kombu_reconnect_delay                = $::os_service_default,
+  $kombu_failover_strategy              = $::os_service_default,
+  $kombu_compression                    = $::os_service_default,
+  $notification_driver                  = $::os_service_default,
+  $notification_topics                  = $::os_service_default,
+  $notification_format                  = $::os_service_default,
+  $control_exchange                     = $::os_service_default,
+  $validate_service                     = false,
+  $validate_insecure                    = false,
+  $validate_auth_url                    = false,
+  $validate_cacert                      = undef,
+  $paste_config                         = $::os_service_default,
+  $service_name                         = $::keystone::params::service_name,
+  $max_token_size                       = $::os_service_default,
+  $sync_db                              = true,
+  $enable_fernet_setup                  = false,
+  $fernet_key_repository                = '/etc/keystone/fernet-keys',
+  $fernet_max_active_keys               = $::os_service_default,
+  $enable_credential_setup              = false,
+  $credential_key_repository            = '/etc/keystone/credential-keys',
+  $credential_keys                      = false,
+  $default_domain                       = undef,
+  $member_role_id                       = $::os_service_default,
+  $member_role_name                     = $::os_service_default,
+  $enable_bootstrap                     = true,
+  $memcache_dead_retry                  = $::os_service_default,
+  $memcache_socket_timeout              = $::os_service_default,
+  $memcache_pool_maxsize                = $::os_service_default,
+  $memcache_pool_unused_timeout         = $::os_service_default,
+  $memcache_pool_connection_get_timeout = $::os_service_default,
+  $policy_driver                        = $::os_service_default,
+  $using_domain_config                  = false,
+  $domain_config_directory              = '/etc/keystone/domains',
+  $keystone_user                        = $::keystone::params::keystone_user,
+  $keystone_group                       = $::keystone::params::keystone_group,
+  $manage_policyrcd                     = false,
+  $enable_proxy_headers_parsing         = $::os_service_default,
+  $purge_config                         = false,
   # DEPRECATED PARAMETERS
-  $admin_workers                      = max($::processorcount, 2),
-  $public_workers                     = max($::processorcount, 2),
+  $admin_workers                        = max($::processorcount, 2),
+  $public_workers                       = max($::processorcount, 2),
+  $service_provider                     = undef,
+  $verbose                              = undef,
+  $enable_pki_setup                     = undef,
+  $signing_certfile                     = $::os_service_default,
+  $signing_keyfile                      = $::os_service_default,
+  $signing_ca_certs                     = $::os_service_default,
+  $signing_ca_key                       = $::os_service_default,
+  $signing_cert_subject                 = $::os_service_default,
+  $signing_key_size                     = $::os_service_default,
 ) inherits keystone::params {
 
   include ::keystone::deps
   include ::keystone::logging
+
+  if $token_provider == 'uuid' {
+    warning("Fernet token is recommended in Mitaka release. The default for token_provider will be changed to 'fernet' in O release.")
+  }
+
+  if $service_provider {
+    warning("service_provider is deprecated, does nothing and will be removed in a future release, \
+use a Puppet resource collector if you want to modify the service provider.")
+  }
+
+  if $verbose {
+    warning('verbose is deprecated, has no effect and will be removed after Newton cycle.')
+  }
 
   if ! $catalog_driver {
     validate_re($catalog_type, 'template|sql')
@@ -646,23 +775,24 @@ class keystone(
     warning('Version string /v2.0/ should not be included in keystone::public_endpoint')
   }
 
-  if ! is_service_default($rabbit_use_ssl) and !$rabbit_use_ssl {
-    if ! is_service_default($kombu_ssl_ca_certs) and ($kombu_ssl_ca_certs) {
-      fail('The kombu_ssl_ca_certs parameter requires rabbit_use_ssl to be set to true')
-    }
-    if ! is_service_default($kombu_ssl_certfile) and ($kombu_ssl_certfile) {
-      fail('The kombu_ssl_certfile parameter requires rabbit_use_ssl to be set to true')
-    }
-    if ! is_service_default($kombu_ssl_keyfile) and ($kombu_ssl_keyfile) {
-      fail('The kombu_ssl_keyfile parameter requires rabbit_use_ssl to be set to true')
-    }
+  if $admin_password == undef {
+    warning("admin_password is required, please set admin_password to a value != admin_token. \
+admin_token will be removed in a later release")
+    $admin_password_real = $admin_token
+  } else {
+    $admin_password_real = $admin_password
   }
 
   if $manage_policyrcd {
     # openstacklib policy_rcd only affects debian based systems.
     Policy_rcd <| title == 'keystone' |> -> Package['keystone']
     Policy_rcd['apache2'] -> Package['httpd']
-    $policy_services = ['keystone', 'apache2']
+    # we don't have keystone service anymore starting from Newton
+    if ($::operatingsystem == 'Ubuntu') and (versioncmp($::operatingsystemmajrelease, '16') >= 0) {
+      $policy_services = 'apache2'
+    } else {
+      $policy_services = ['keystone', 'apache2']
+    }
     ensure_resource('policy_rcd', $policy_services, { ensure => present, 'set_code' => '101' })
   }
 
@@ -682,12 +812,18 @@ class keystone(
     }
   }
 
+  resources { 'keystone_config':
+    purge  => $purge_config,
+  }
+
   keystone_config {
     'DEFAULT/admin_token':      value => $admin_token, secret => true;
     'DEFAULT/public_bind_host': value => $public_bind_host;
     'DEFAULT/admin_bind_host':  value => $admin_bind_host;
     'DEFAULT/public_port':      value => $public_port;
     'DEFAULT/admin_port':       value => $admin_port;
+    'DEFAULT/member_role_id':   value => $member_role_id;
+    'DEFAULT/member_role_name': value => $member_role_name;
     'paste_deploy/config_file': value => $paste_config;
   }
 
@@ -741,36 +877,57 @@ class keystone(
 
   # TODO(aschultz): remove in N cycle
   if is_service_default($cache_memcache_servers) and !is_service_default($memcache_servers) {
-    warning('The keystone module now provides a $cache_memcache_servers to be used with caching. Please specify it separately to configure cache/memcache_servers for keystone. This backwards compatibility will be removed in the N cycle.')
+
+    warning("The keystone module now provides a \$cache_memcache_servers to be used with caching. \
+Please specify it separately to configure cache/memcache_servers for keystone. \
+This backwards compatibility will be removed in the N cycle.")
+
     $cache_memcache_servers_real = $memcache_servers
   } else {
     $cache_memcache_servers_real = $cache_memcache_servers
   }
 
   # TODO(aschultz): remove in N cycle
-  if is_service_default($cache_enabled) and (!is_service_default($memcache_servers) or !is_service_default($cache_memcache_servers_real)) and !is_service_default($cache_backend) {
-    warning('cache_enabled has been added to control weither or not to enable caching. Please specify it separately to configure caching. We have enabled caching as a backwards compatibility that will be removed in the N cycle')
+  if is_service_default($cache_enabled)
+      and (!is_service_default($memcache_servers) or !is_service_default($cache_memcache_servers_real))
+      and !is_service_default($cache_backend) {
+
+    warning("cache_enabled has been added to control weither or not to enable caching. \
+Please specify it separately to configure caching.
+We have enabled caching as a backwards compatibility that will be removed in the N cycle")
+
     $cache_enabled_real = true
   } else {
     $cache_enabled_real = $cache_enabled
   }
 
   keystone_config {
-    'cache/backend':                      value => $cache_backend;
-    'cache/backend_argument':             value => join(any2array($cache_backend_argument), ',');
-    'cache/debug_cache_backend':          value => $debug_cache_backend;
-    'cache/enabled':                      value => $cache_enabled_real;
-    'cache/memcache_dead_retry':          value => $memcache_dead_retry;
-    'cache/memcache_pool_maxsize':        value => $memcache_pool_maxsize;
-    'cache/memcache_pool_unused_timeout': value => $memcache_pool_unused_timeout;
-    'cache/memcache_servers':             value => join(any2array($cache_memcache_servers_real), ',');
-    'cache/memcache_socket_timeout':      value => $memcache_socket_timeout;
     'memcache/dead_retry':                value => $memcache_dead_retry;
     'memcache/pool_maxsize':              value => $memcache_pool_maxsize;
     'memcache/pool_unused_timeout':       value => $memcache_pool_unused_timeout;
     'memcache/servers':                   value => join(any2array($memcache_servers), ',');
     'memcache/socket_timeout':            value => $memcache_socket_timeout;
     'token/caching':                      value => $token_caching;
+  }
+
+  oslo::cache { 'keystone_config':
+    config_prefix                        => $cache_config_prefix,
+    expiration_time                      => $cache_expiration_time,
+    backend                              => $cache_backend,
+    backend_argument                     => $cache_backend_argument,
+    proxies                              => $cache_proxies,
+    enabled                              => $cache_enabled_real,
+    debug_cache_backend                  => $debug_cache_backend,
+    memcache_servers                     => $cache_memcache_servers_real,
+    memcache_dead_retry                  => $memcache_dead_retry,
+    memcache_socket_timeout              => $memcache_socket_timeout,
+    memcache_pool_maxsize                => $memcache_pool_maxsize,
+    memcache_pool_unused_timeout         => $memcache_pool_unused_timeout,
+    memcache_pool_connection_get_timeout => $memcache_pool_connection_get_timeout,
+  }
+
+  oslo::middleware { 'keystone_config':
+    enable_proxy_headers_parsing => $enable_proxy_headers_parsing,
   }
 
   # configure based on the catalog backend
@@ -790,6 +947,36 @@ class keystone(
   }
 
   # Set the signing key/cert configuration values.
+  if (!is_service_default($signing_certfile)) {
+    warning("PKI token support has been deprecated in the M release and will be removed in the O release. \
+Fernet or UUID tokens are recommended.")
+  }
+
+  if (!is_service_default($signing_keyfile)) {
+    warning("PKI token support has been deprecated in the M release and will be removed in the O release. \
+Fernet or UUID tokens are recommended.")
+  }
+
+  if (!is_service_default($signing_ca_certs)) {
+    warning("PKI token support has been deprecated in the M release and will be removed in the O release. \
+Fernet or UUID tokens are recommended.")
+  }
+
+  if (!is_service_default($signing_ca_key)) {
+    warning("PKI token support has been deprecated in the M release and will be removed in the O release. \
+Fernet or UUID tokens are recommended.")
+  }
+
+  if (!is_service_default($signing_cert_subject)) {
+    warning("PKI token support has been deprecated in the M release and will be removed in the O release. \
+Fernet or UUID tokens are recommended.")
+  }
+
+  if (!is_service_default($signing_key_size)) {
+    warning("PKI token support has been deprecated in the M release and will be removed in the O release. \
+Fernet or UUID tokens are recommended.")
+  }
+
   keystone_config {
     'signing/certfile':     value => $signing_certfile;
     'signing/keyfile':      value => $signing_keyfile;
@@ -802,65 +989,62 @@ class keystone(
   # Only do pki_setup if we were asked to do so.  This is needed
   # regardless of the token provider since token revocation lists
   # are always signed.
-  if $enable_pki_setup {
-    # Create cache directory used for signing.
-    file { $cache_dir:
-      ensure => directory,
-    }
+  if $enable_pki_setup == true {
 
-    exec { 'keystone-manage pki_setup':
-      command     => "keystone-manage pki_setup --keystone-user ${keystone_user} --keystone-group ${keystone_group}",
-      path        => '/usr/bin',
-      refreshonly => true,
-      creates     => $signing_keyfile,
-      notify      => Anchor['keystone::service::begin'],
-      subscribe   => [Anchor['keystone::install::end'], Anchor['keystone::config::end']],
-      tag         => 'keystone-exec',
+    if is_service_default($signing_keyfile) {
+      fail('Please specify path to key file')
+    } else {
+    # Create cache directory used for signing.
+      file { $cache_dir:
+        ensure => directory,
+      }
+
+      exec { 'keystone-manage pki_setup':
+        command     => "keystone-manage pki_setup --keystone-user ${keystone_user} --keystone-group ${keystone_group}",
+        path        => '/usr/bin',
+        user        => $keystone_user,
+        refreshonly => true,
+        creates     => $signing_keyfile,
+        notify      => Anchor['keystone::service::begin'],
+        subscribe   => [Anchor['keystone::install::end'], Anchor['keystone::config::end']],
+        tag         => 'keystone-exec',
+      }
     }
   }
 
   keystone_config {
     'token/provider':              value => $token_provider;
     'DEFAULT/max_token_size':      value => $max_token_size;
-    'DEFAULT/notification_driver': value => $notification_driver;
-    'DEFAULT/notification_topics': value => $notification_topics;
     'DEFAULT/notification_format': value => $notification_format;
-    'DEFAULT/control_exchange':    value => $control_exchange;
   }
 
-  if ! is_service_default($rabbit_hosts) and $rabbit_hosts {
-    keystone_config {
-      'oslo_messaging_rabbit/rabbit_hosts':     value => join($rabbit_hosts, ',');
-    }
-  } else {
-    keystone_config {
-      'oslo_messaging_rabbit/rabbit_host':      value => $rabbit_host;
-      'oslo_messaging_rabbit/rabbit_port':      value => $rabbit_port;
-      'oslo_messaging_rabbit/rabbit_hosts':     ensure => absent;
-    }
+  oslo::messaging::default { 'keystone_config':
+    control_exchange => $control_exchange,
   }
 
-  if $rabbit_ha_queues != undef {
-    keystone_config { 'oslo_messaging_rabbit/rabbit_ha_queues': value => $rabbit_ha_queues }
-  } else {
-    if ! is_service_default($rabbit_hosts) and $rabbit_hosts {
-      keystone_config { 'oslo_messaging_rabbit/rabbit_ha_queues': value => true }
-    } else {
-      keystone_config { 'oslo_messaging_rabbit/rabbit_ha_queues': value => false }
-    }
+  oslo::messaging::notifications { 'keystone_config':
+    driver => $notification_driver,
+    topics => $notification_topics,
   }
 
-  keystone_config {
-    'oslo_messaging_rabbit/rabbit_use_ssl':               value => $rabbit_use_ssl;
-    'oslo_messaging_rabbit/rabbit_password':              value => $rabbit_password, secret => true;
-    'oslo_messaging_rabbit/rabbit_userid':                value => $rabbit_userid;
-    'oslo_messaging_rabbit/rabbit_virtual_host':          value => $rabbit_virtual_host;
-    'oslo_messaging_rabbit/heartbeat_timeout_threshold':  value => $rabbit_heartbeat_timeout_threshold;
-    'oslo_messaging_rabbit/heartbeat_rate':               value => $rabbit_heartbeat_rate;
-    'oslo_messaging_rabbit/kombu_ssl_ca_certs':           value => $kombu_ssl_ca_certs;
-    'oslo_messaging_rabbit/kombu_ssl_certfile':           value => $kombu_ssl_certfile;
-    'oslo_messaging_rabbit/kombu_ssl_keyfile':            value => $kombu_ssl_keyfile;
-    'oslo_messaging_rabbit/kombu_ssl_version':            value => $kombu_ssl_version;
+  oslo::messaging::rabbit { 'keystone_config':
+    kombu_ssl_version           => $kombu_ssl_version,
+    kombu_ssl_keyfile           => $kombu_ssl_keyfile,
+    kombu_ssl_certfile          => $kombu_ssl_certfile,
+    kombu_ssl_ca_certs          => $kombu_ssl_ca_certs,
+    kombu_reconnect_delay       => $kombu_reconnect_delay,
+    kombu_failover_strategy     => $kombu_failover_strategy,
+    kombu_compression           => $kombu_compression,
+    rabbit_host                 => $rabbit_host,
+    rabbit_port                 => $rabbit_port,
+    rabbit_hosts                => $rabbit_hosts,
+    rabbit_use_ssl              => $rabbit_use_ssl,
+    rabbit_userid               => $rabbit_userid,
+    rabbit_password             => $rabbit_password,
+    rabbit_virtual_host         => $rabbit_virtual_host,
+    rabbit_ha_queues            => $rabbit_ha_queues,
+    heartbeat_timeout_threshold => $rabbit_heartbeat_timeout_threshold,
+    heartbeat_rate              => $rabbit_heartbeat_rate,
   }
 
   keystone_config {
@@ -893,7 +1077,6 @@ class keystone(
         enable         => $enabled,
         hasstatus      => true,
         hasrestart     => true,
-        provider       => $service_provider,
         validate       => true,
         admin_endpoint => $v_auth_url,
         admin_token    => $admin_token,
@@ -907,26 +1090,17 @@ class keystone(
         enable       => $enabled,
         hasstatus    => true,
         hasrestart   => true,
-        provider     => $service_provider,
         validate     => false,
       }
     }
-    warning('Keystone under Eventlet has been deprecated during the Kilo cycle. Support for deploying under eventlet will be dropped as of the M-release of OpenStack.')
+    warning("Keystone under Eventlet has been deprecated during the Kilo cycle. \
+Support for deploying under eventlet will be dropped as of the M-release of OpenStack.")
   } elsif $service_name == 'httpd' {
     include ::apache::params
-    class { '::keystone::service':
-      ensure       => 'stopped',
-      service_name => $::keystone::params::service_name,
-      enable       => false,
-      provider     => $service_provider,
-      validate     => false,
-    }
     $service_name_real = $::apache::params::service_name
-    # leave this here because Ubuntu packages will start Keystone and we need it stopped
-    # before apache can run
-    Service['keystone'] -> Service[$service_name_real]
   } else {
-    fail('Invalid service_name. Either keystone/openstack-keystone for running as a standalone service, or httpd for being run by a httpd server')
+    fail("Invalid service_name. Either keystone/openstack-keystone for \
+running as a standalone service, or httpd for being run by a httpd server")
   }
 
   if $sync_db {
@@ -936,14 +1110,56 @@ class keystone(
   # Fernet tokens support
   if $enable_fernet_setup {
     validate_string($fernet_key_repository)
+    ensure_resource('file', $fernet_key_repository, {
+      ensure    => 'directory',
+      owner     => $keystone_user,
+      group     => $keystone_group,
+      subscribe => Anchor['keystone::install::end'],
+    })
+
     exec { 'keystone-manage fernet_setup':
       command     => "keystone-manage fernet_setup --keystone-user ${keystone_user} --keystone-group ${keystone_group}",
       path        => '/usr/bin',
+      user        => $keystone_user,
       refreshonly => true,
       creates     => "${fernet_key_repository}/0",
       notify      => Anchor['keystone::service::begin'],
       subscribe   => [Anchor['keystone::install::end'], Anchor['keystone::config::end']],
+      require     => File[$fernet_key_repository],
       tag         => 'keystone-exec',
+    }
+  }
+
+  # Credential support
+  if $enable_credential_setup {
+    validate_string($credential_key_repository)
+    ensure_resource('file', $credential_key_repository, {
+      ensure    => 'directory',
+      owner     => $keystone_user,
+      group     => $keystone_group,
+      subscribe => Anchor['keystone::install::end'],
+    })
+
+    if $credential_keys {
+      validate_hash($credential_keys)
+      create_resources('file', $credential_keys, {
+          'owner'     => $keystone_user,
+          'group'     => $keystone_group,
+          'subscribe' => 'Anchor[keystone::install::end]',
+        }
+      )
+    } else {
+      exec { 'keystone-manage credential_setup':
+        command     => "keystone-manage credential_setup --keystone-user ${keystone_user} --keystone-group ${keystone_group}",
+        path        => '/usr/bin',
+        user        => $keystone_user,
+        refreshonly => true,
+        creates     => "${credential_key_repository}/0",
+        notify      => Anchor['keystone::service::begin'],
+        subscribe   => [Anchor['keystone::install::end'], Anchor['keystone::config::end']],
+        require     => File[$credential_key_repository],
+        tag         => 'keystone-exec',
+      }
     }
   }
 
@@ -960,6 +1176,7 @@ class keystone(
   keystone_config {
     'token/revoke_by_id':            value => $revoke_by_id;
     'fernet_tokens/max_active_keys': value => $fernet_max_active_keys;
+    'credential/key_repository':     value => $credential_key_repository;
   }
 
   # Update this code when https://bugs.launchpad.net/keystone/+bug/1472285 is addressed.
@@ -997,7 +1214,8 @@ class keystone(
     # this requires the database to be up and running and configured
     # and is only run once, so we don't need to notify the service
     exec { 'keystone-manage bootstrap':
-      command     => "keystone-manage bootstrap --bootstrap-password ${admin_token}",
+      command     => "keystone-manage bootstrap --bootstrap-password ${admin_password_real}",
+      user        => $keystone_user,
       path        => '/usr/bin',
       refreshonly => true,
       notify      => Anchor['keystone::service::begin'],
@@ -1016,8 +1234,8 @@ class keystone(
     if (!defined(File[$domain_config_directory])) {
       file { $domain_config_directory:
         ensure  => directory,
-        owner   => 'keystone',
-        group   => 'keystone',
+        owner   => $keystone_user,
+        group   => $keystone_group,
         mode    => '0750',
         notify  => Service[$service_name],
         require => Anchor['keystone::install::end'],

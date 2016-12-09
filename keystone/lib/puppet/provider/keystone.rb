@@ -2,7 +2,7 @@ require 'puppet/util/inifile'
 require 'puppet/provider/openstack'
 require 'puppet/provider/openstack/auth'
 require 'puppet/provider/openstack/credentials'
-require 'puppet/provider/keystone/util'
+require File.join(File.dirname(__FILE__), '..','..', 'puppet/provider/keystone/util')
 
 class Puppet::Provider::Keystone < Puppet::Provider::Openstack
 
@@ -103,17 +103,6 @@ class Puppet::Provider::Keystone < Puppet::Provider::Openstack
     resource_to_name(*name_to_resource(name), false)
   end
 
-#  def self.roles_assignement_for_userid(user_id)
-#    unless @role_assignement_table
-#      @role_assignement_table = request('role assignment', 'list')
-#    end
-#    roles_id = []
-#    @role_assignement_table.each do |row|
-#      roles_id << row[:role] if row[:user] == user_id
-#    end
-#    roles_id
-#  end
-
   def self.user_id_from_name_and_domain_name(name, domain_name)
     @users_name ||= {}
     id_str = "#{name}_#{domain_name}"
@@ -164,14 +153,18 @@ class Puppet::Provider::Keystone < Puppet::Provider::Openstack
 
   def self.fetch_project(name, domain)
     domain ||= default_domain
-    request('project', 'show', [name, '--domain', domain])
+    request('project', 'show',
+            [name, '--domain', domain],
+            {:no_retry_exception_msgs => /No project with a name or ID/})
   rescue Puppet::ExecutionFailure => e
     raise e unless e.message =~ /No project with a name or ID/
   end
 
   def self.fetch_user(name, domain)
     domain ||= default_domain
-    request('user', 'show', [name, '--domain', domain])
+    request('user', 'show',
+            [name, '--domain', domain],
+            {:no_retry_exception_msgs => /No user with a name or ID/})
   rescue Puppet::ExecutionFailure => e
     raise e unless e.message =~ /No user with a name or ID/
   end
@@ -237,18 +230,18 @@ class Puppet::Provider::Keystone < Puppet::Provider::Openstack
     end
   end
 
-  def self.request(service, action, properties=nil)
+  def self.request(service, action, properties=nil, options={})
     super
   rescue Puppet::Error::OpenstackAuthInputError, Puppet::Error::OpenstackUnauthorizedError => error
-    request_by_service_token(service, action, error, properties)
+    request_by_service_token(service, action, error, properties, options=options)
   end
 
-  def self.request_by_service_token(service, action, error, properties=nil)
+  def self.request_by_service_token(service, action, error, properties=nil, options={})
     properties ||= []
     @credentials.token = admin_token
     @credentials.url   = service_url
     raise error unless @credentials.service_token_set?
-    Puppet::Provider::Openstack.request(service, action, properties, @credentials)
+    Puppet::Provider::Openstack.request(service, action, properties, @credentials, options)
   end
 
   def self.service_url

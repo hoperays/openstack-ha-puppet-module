@@ -13,14 +13,8 @@ class glance::db::sync(
   $extra_params = '--config-file /etc/glance/glance-registry.conf',
 ) {
 
+  include ::glance::deps
   include ::glance::params
-
-  Package<| tag == 'glance-package' |> ~> Exec['glance-manage db_sync']
-  Exec['glance-manage db_sync'] ~> Service<| tag == 'glance-service' |>
-
-  Glance_registry_config<||> ~> Exec['glance-manage db_sync']
-  Glance_api_config<||> ~> Exec['glance-manage db_sync']
-  Glance_cache_config<||> ~> Exec['glance-manage db_sync']
 
   exec { 'glance-manage db_sync':
     command     => "glance-manage ${extra_params} db_sync",
@@ -30,6 +24,12 @@ class glance::db::sync(
     try_sleep   => 5,
     tries       => 10,
     logoutput   => on_failure,
+    subscribe   => [
+      Anchor['glance::install::end'],
+      Anchor['glance::config::end'],
+      Anchor['glance::dbsync::begin']
+    ],
+    notify      => Anchor['glance::dbsync::end'],
   }
 
 }

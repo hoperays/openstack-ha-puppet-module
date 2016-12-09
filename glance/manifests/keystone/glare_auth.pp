@@ -76,19 +76,20 @@ class glance::keystone::glare_auth(
   $internal_url        = 'http://127.0.0.1:9494',
 ) {
 
-  $real_service_name = pick($service_name, $auth_name)
+  include ::glance::deps
 
   if $configure_endpoint {
-    Keystone_endpoint["${region}/${real_service_name}::${service_type}"]  ~> Service<| title == 'glance-glare' |>
+    Keystone_endpoint["${region}/${service_name}::${service_type}"]  ~> Anchor['glance::service::begin']
   }
 
-  keystone::resource::service_identity { $auth_name:
+  keystone::resource::service_identity { 'glare':
     configure_user      => $configure_user,
     configure_user_role => $configure_user_role,
     configure_endpoint  => $configure_endpoint,
     service_type        => $service_type,
     service_description => $service_description,
-    service_name        => $real_service_name,
+    service_name        => $service_name,
+    auth_name           => $auth_name,
     region              => $region,
     password            => $password,
     email               => $email,
@@ -99,6 +100,6 @@ class glance::keystone::glare_auth(
   }
 
   if $configure_user_role {
-    Keystone_user_role["${auth_name}@${tenant}"] ~> Service<| title == 'glance-glare' |>
+    Keystone_user_role["${auth_name}@${tenant}"] ~> Anchor['glance::service::begin']
   }
 }

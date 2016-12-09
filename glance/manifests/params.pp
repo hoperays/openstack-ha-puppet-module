@@ -1,6 +1,7 @@
 # these parameters need to be accessed from several locations and
 # should be considered to be constant
 class glance::params {
+  include ::openstacklib::defaults
 
   $client_package_name = 'python-glanceclient'
 
@@ -20,8 +21,6 @@ class glance::params {
       } else {
         $pyceph_package_name = 'python-rbd'
       }
-      $sqlite_package_name   = undef
-      $pymysql_package_name  = undef
     }
     'Debian': {
       $api_package_name      = 'glance-api'
@@ -31,11 +30,10 @@ class glance::params {
       $glare_service_name    = 'glance-glare'
       $registry_service_name = 'glance-registry'
       $pyceph_package_name   = 'python-ceph'
-      $sqlite_package_name   = 'python-pysqlite2'
-      $pymysql_package_name  = 'python-pymysql'
     }
     default: {
-      fail("Unsupported osfamily: ${::osfamily} operatingsystem: ${::operatingsystem}, module ${module_name} only support osfamily RedHat and Debian")
+      fail("Unsupported osfamily: ${::osfamily} operatingsystem: ${::operatingsystem}, \
+module ${module_name} only support osfamily RedHat and Debian")
     }
   }
 

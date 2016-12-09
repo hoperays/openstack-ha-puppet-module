@@ -4,10 +4,6 @@
 #
 # === Parameters
 #
-#  [*verbose*]
-#    (Optional) Should the daemons log verbose messages.
-#    Defaults to $::os_service_default.
-#
 #  [*debug*]
 #    (Optional) Should the daemons log debug messages.
 #    Defaults to $::os_service_default.
@@ -65,8 +61,7 @@
 #   Defaults to $::os_service_default.
 #   Example:
 #     {'amqp' => 'WARN', 'amqplib' => 'WARN', 'boto' => 'WARN',
-#     'qpid' => 'WARN', 'sqlalchemy' => 'WARN', 'suds' => 'INFO',
-#     'iso8601' => 'WARN',
+#      'sqlalchemy' => 'WARN', 'suds' => 'INFO', 'iso8601' => 'WARN',
 #     'requests.packages.urllib3.connectionpool' => 'WARN' }
 #
 # [*publish_errors*]
@@ -94,13 +89,18 @@
 #   Defaults to $::os_service_default.
 #   Example: 'Y-%m-%d %H:%M:%S'
 #
+#  DEPRECATED PARAMETERS
+#
+#  [*verbose*]
+#    (Optional) Deprecated. Should the daemons log verbose messages.
+#    Defaults to undef
+#
 class glance::glare::logging(
   $use_syslog                    = $::os_service_default,
   $use_stderr                    = $::os_service_default,
   $log_facility                  = $::os_service_default,
   $log_dir                       = '/var/log/glance',
   $log_file                      = '/var/log/glance/glare.log',
-  $verbose                       = $::os_service_default,
   $debug                         = $::os_service_default,
   $logging_context_format_string = $::os_service_default,
   $logging_default_format_string = $::os_service_default,
@@ -113,33 +113,34 @@ class glance::glare::logging(
   $instance_format               = $::os_service_default,
   $instance_uuid_format          = $::os_service_default,
   $log_date_format               = $::os_service_default,
+  # Deprecated
+  $verbose                       = undef,
 ) {
 
-  if is_service_default($default_log_levels) {
-    $default_log_levels_real = $default_log_levels
-  } else {
-    $default_log_levels_real = join(sort(join_keys_to_values($default_log_levels, '=')), ',')
+  include ::glance::deps
+
+  if $verbose {
+    warning('verbose is deprecated, has no effect and will be removed after Newton cycle.')
   }
 
-  glance_glare_config {
-    'DEFAULT/debug':                         value => $debug;
-    'DEFAULT/verbose':                       value => $verbose;
-    'DEFAULT/use_stderr':                    value => $use_stderr;
-    'DEFAULT/use_syslog':                    value => $use_syslog;
-    'DEFAULT/log_dir':                       value => $log_dir;
-    'DEFAULT/log_file':                      value => $log_file;
-    'DEFAULT/syslog_log_facility':           value => $log_facility;
-    'DEFAULT/default_log_levels':            value => $default_log_levels_real;
-    'DEFAULT/logging_context_format_string': value => $logging_context_format_string;
-    'DEFAULT/logging_default_format_string': value => $logging_default_format_string;
-    'DEFAULT/logging_debug_format_suffix':   value => $logging_debug_format_suffix;
-    'DEFAULT/logging_exception_prefix':      value => $logging_exception_prefix;
-    'DEFAULT/log_config_append':             value => $log_config_append;
-    'DEFAULT/publish_errors':                value => $publish_errors;
-    'DEFAULT/fatal_deprecations':            value => $fatal_deprecations;
-    'DEFAULT/instance_format':               value => $instance_format;
-    'DEFAULT/instance_uuid_format':          value => $instance_uuid_format;
-    'DEFAULT/log_date_format':               value => $log_date_format;
+  oslo::log { 'glance_glare_config':
+    debug                         => $debug,
+    use_stderr                    => $use_stderr,
+    use_syslog                    => $use_syslog,
+    log_dir                       => $log_dir,
+    log_file                      => $log_file,
+    syslog_log_facility           => $log_facility,
+    logging_context_format_string => $logging_context_format_string,
+    logging_default_format_string => $logging_default_format_string,
+    logging_debug_format_suffix   => $logging_debug_format_suffix,
+    logging_exception_prefix      => $logging_exception_prefix,
+    log_config_append             => $log_config_append,
+    default_log_levels            => $default_log_levels,
+    publish_errors                => $publish_errors,
+    fatal_deprecations            => $fatal_deprecations,
+    instance_format               => $instance_format,
+    instance_uuid_format          => $instance_uuid_format,
+    log_date_format               => $log_date_format,
   }
 
 }

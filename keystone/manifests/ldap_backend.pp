@@ -294,6 +294,10 @@
 #   API attribute. (list value)
 #   Defaults to 'undef'
 #
+# [*chase_referrals*]
+#   Whether or not to chase returned referrals. (boolean value)
+#   Defaults to 'undef'
+#
 # [*use_tls*]
 #   Enable TLS for communicating with LDAP servers. (boolean value)
 #   Defaults to 'undef'
@@ -438,6 +442,7 @@ define keystone::ldap_backend(
   $group_allow_update                  = undef,
   $group_allow_delete                  = undef,
   $group_additional_attribute_mapping  = undef,
+  $chase_referrals                     = undef,
   $use_tls                             = undef,
   $tls_cacertdir                       = undef,
   $tls_cacertfile                      = undef,
@@ -462,7 +467,9 @@ define keystone::ldap_backend(
 
   $domain_enabled = getparam(Keystone_config['identity/domain_specific_drivers_enabled'], 'value')
   $domain_dir_enabled = getparam(Keystone_config['identity/domain_config_dir'], 'value')
-  $err_msg = "You should add \"using_domain_config => true\" parameter to your Keystone class, got \"${domain_enabled}\" for identity/domain_specific_drivers_enabled and \"${domain_dir_enabled}\" for identity/domain_config_dir"
+  $err_msg = "You should add \"using_domain_config => true\" parameter to your Keystone class, \
+got \"${domain_enabled}\" for identity/domain_specific_drivers_enabled \
+and \"${domain_dir_enabled}\" for identity/domain_config_dir"
 
   if(bool2num($domain_enabled) == 0) {
     fail($err_msg)
@@ -557,6 +564,7 @@ define keystone::ldap_backend(
     "${domain}::ldap/group_allow_update":                   value => $group_allow_update;
     "${domain}::ldap/group_allow_delete":                   value => $group_allow_delete;
     "${domain}::ldap/group_additional_attribute_mapping":   value => $group_additional_attribute_mapping;
+    "${domain}::ldap/chase_referrals":                      value => $chase_referrals;
     "${domain}::ldap/use_tls":                              value => $use_tls;
     "${domain}::ldap/tls_cacertdir":                        value => $tls_cacertdir;
     "${domain}::ldap/tls_cacertfile":                       value => $tls_cacertfile;

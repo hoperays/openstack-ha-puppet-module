@@ -4,28 +4,22 @@ describe 'glance::api' do
 
   let :default_params do
     {
-      :verbose                  => false,
       :debug                    => false,
-      :use_stderr               => true,
-      :bind_host                => '0.0.0.0',
+      :use_stderr               => '<SERVICE DEFAULT>',
+      :bind_host                => '<SERVICE DEFAULT>',
       :bind_port                => '9292',
       :registry_host            => '0.0.0.0',
-      :registry_port            => '9191',
-      :registry_client_protocol => 'http',
+      :registry_port            => '<SERVICE DEFAULT>',
+      :registry_client_protocol => '<SERVICE DEFAULT>',
       :log_file                 => '/var/log/glance/api.log',
       :log_dir                  => '/var/log/glance',
-      :auth_type                => 'keystone',
-      :auth_region              => '<SERVICE DEFAULT>',
+      :auth_strategy            => 'keystone',
       :enabled                  => true,
       :manage_service           => true,
-      :backlog                  => '4096',
+      :backlog                  => '<SERVICE DEFAULT>',
       :workers                  => '7',
-      :keystone_tenant          => 'services',
-      :keystone_user            => 'glance',
       :keystone_password        => 'ChangeMe',
-      :token_cache_time         => '<SERVICE DEFAULT>',
-      :memcached_servers        => '<SERVICE DEFAULT>',
-      :show_image_direct_url    => false,
+      :show_image_direct_url    => '<SERVICE DEFAULT>',
       :show_multiple_locations  => '<SERVICE DEFAULT>',
       :location_strategy        => '<SERVICE DEFAULT>',
       :purge_config             => false,
@@ -37,32 +31,31 @@ describe 'glance::api' do
       :image_cache_stall_time   => '<SERVICE DEFAULT>',
       :image_cache_max_size     => '<SERVICE DEFAULT>',
       :os_region_name           => 'RegionOne',
-      :signing_dir              => '<SERVICE DEFAULT>',
       :pipeline                 => 'keystone',
-      :auth_uri                 => 'http://127.0.0.1:5000/',
-      :identity_uri             => 'http://127.0.0.1:35357/',
+      :task_time_to_live        => '<SERVICE DEFAULT>',
+      :task_executor            => '<SERVICE DEFAULT>',
+      :task_work_dir            => '<SERVICE DEFAULT>',
+      :taskflow_engine_mode     => '<SERVICE DEFAULT>',
+      :taskflow_max_workers     => '<SERVICE DEFAULT>',
+      :conversion_format        => '<SERVICE DEFAULT>',
     }
   end
 
   shared_examples_for 'glance::api' do
+
     [{:keystone_password => 'ChangeMe'},
      {
-        :verbose                  => true,
         :debug                    => true,
         :bind_host                => '127.0.0.1',
         :bind_port                => '9222',
         :registry_host            => '127.0.0.1',
         :registry_port            => '9111',
         :registry_client_protocol => 'https',
-        :auth_type                => 'not_keystone',
-        :auth_region              => 'RegionOne2',
+        :auth_strategy            => 'not_keystone',
         :enabled                  => false,
         :backlog                  => '4095',
         :workers                  => '5',
-        :keystone_tenant          => 'admin2',
-        :keystone_user            => 'admin2',
-        :keystone_password        => 'ChangeMe2',
-        :token_cache_time         => '300',
+        :keystone_password        => 'ChangeMe',
         :show_image_direct_url    => true,
         :show_multiple_locations  => true,
         :location_strategy        => 'store_type',
@@ -72,14 +65,11 @@ describe 'glance::api' do
         :image_cache_stall_time   => '10',
         :image_cache_max_size     => '10737418240',
         :os_region_name           => 'RegionOne2',
-        :signing_dir              => '/path/to/dir',
         :pipeline                 => 'keystone2',
-        :auth_uri                 => 'http://127.0.0.1:5000/v2.0',
-        :identity_uri             => 'http://127.0.0.1:35357/v2.0',
       }
     ].each do |param_set|
 
-      describe "when #{param_set == {:keystone_password => 'ChangeMe'} ? "using default" : "specifying"} class parameters" do
+      describe "when #{param_set.empty? ? "using default" : "specifying"} class parameters" do
 
         let :param_hash do
           default_params.merge(param_set)
@@ -119,7 +109,6 @@ describe 'glance::api' do
             'delayed_delete',
             'scrub_time',
             'image_cache_dir',
-            'auth_region'
           ].each do |config|
             is_expected.to contain_glance_api_config("DEFAULT/#{config}").with_value(param_hash[config.intern])
           end
@@ -145,6 +134,15 @@ describe 'glance::api' do
           end
         end
 
+        it 'is_expected.to lay down default task & taskflow_executor config' do
+          is_expected.to contain_glance_api_config('task/task_time_to_live').with_value(param_hash[:task_time_to_live])
+          is_expected.to contain_glance_api_config('task/task_executor').with_value(param_hash[:task_executor])
+          is_expected.to contain_glance_api_config('task/work_dir').with_value(param_hash[:task_work_dir])
+          is_expected.to contain_glance_api_config('taskflow_executor/engine_mode').with_value(param_hash[:taskflow_engine_mode])
+          is_expected.to contain_glance_api_config('taskflow_executor/max_workers').with_value(param_hash[:taskflow_max_workers])
+          is_expected.to contain_glance_api_config('taskflow_executor/conversion_format').with_value(param_hash[:conversion_format])
+        end
+
         it 'is_expected.to have no ssl options' do
           is_expected.to contain_glance_api_config('DEFAULT/ca_file').with_value('<SERVICE DEFAULT>')
           is_expected.to contain_glance_api_config('DEFAULT/cert_file').with_value('<SERVICE DEFAULT>')
@@ -154,20 +152,10 @@ describe 'glance::api' do
           is_expected.to contain_glance_api_config('DEFAULT/registry_client_key_file').with_value('<SERVICE DEFAULT>')
         end
 
-        it 'is_expected.to configure itself for keystone if that is the auth_type' do
-          if params[:auth_type] == 'keystone'
-            is_expected.to contain('paste_deploy/flavor').with_value('keystone+cachemanagement')
-            is_expected.to contain_glance_api_config('keystone_authtoken/memcached_servers').with_value(param_hash[:memcached_servers])
-            ['admin_tenant_name', 'admin_user', 'admin_password', 'token_cache_time', 'signing_dir', 'auth_uri', 'identity_uri'].each do |config|
-              is_expected.to contain_glance_api_config("keystone_authtoken/#{config}").with_value(param_hash[config.intern])
-            end
-            is_expected.to contain_glance_api_config('keystone_authtoken/admin_password').with_value(param_hash[:keystone_password]).with_secret(true)
-
-            ['admin_tenant_name', 'admin_user', 'admin_password'].each do |config|
-              is_expected.to contain_glance_cache_config("keystone_authtoken/#{config}").with_value(param_hash[config.intern])
-            end
-            is_expected.to contain_glance_cache_config('keystone_authtoken/admin_password').with_value(param_hash[:keystone_password]).with_secret(true)
-          end
+        it 'passes purge to resource' do
+          is_expected.to contain_resources('glance_api_config').with({
+            :purge => false
+          })
         end
       end
 
@@ -177,8 +165,8 @@ describe 'glance::api' do
       let :params do
         {
           :keystone_password => 'ChangeMe',
-          :manage_service => false,
-          :enabled        => false,
+          :manage_service    => false,
+          :enabled           => false,
         }
       end
 
@@ -223,7 +211,6 @@ describe 'glance::api' do
       describe "with pipeline incorrect value #{pipeline}" do
         let :params do
           {
-            :keystone_password => 'ChangeMe',
             :pipeline          => pipeline
           }
         end
@@ -231,6 +218,14 @@ describe 'glance::api' do
         it { expect { is_expected.to contain_glance_api_config('filter:paste_deploy/flavor') }.to\
           raise_error(Puppet::Error, /validate_re\(\): .* does not match/) }
       end
+    end
+
+    describe 'setting enable_proxy_headers_parsing' do
+      let :params do
+        default_params.merge({:enable_proxy_headers_parsing => true })
+      end
+
+      it { is_expected.to contain_glance_api_config('oslo_middleware/enable_proxy_headers_parsing').with_value(true) }
     end
 
     describe 'with ssl options' do
@@ -254,6 +249,7 @@ describe 'glance::api' do
         it { is_expected.to contain_glance_api_config('DEFAULT/registry_client_cert_file').with_value('/tmp/registry_cert_file') }
       end
     end
+
     describe 'with stores by default' do
       let :params do
         default_params
@@ -322,6 +318,28 @@ describe 'glance::api' do
       it { is_expected.to contain_glance_api_config('glance_store/stores').with_value('file') }
     end
 
+    describe 'with task & taskflow configuration' do
+      let :params do
+        default_params.merge({
+          :task_time_to_live    => 72,
+          :task_executor        => 'taskflow-next-gen',
+          :task_work_dir        => '/tmp/large',
+          :taskflow_engine_mode => 'serial',
+          :taskflow_max_workers => 1,
+          :conversion_format    => 'raw',
+        })
+      end
+
+      it 'is_expected.to lay down default task & taskflow_executor config' do
+        is_expected.to contain_glance_api_config('task/task_time_to_live').with_value(72)
+        is_expected.to contain_glance_api_config('task/task_executor').with_value('taskflow-next-gen')
+        is_expected.to contain_glance_api_config('task/work_dir').with_value('/tmp/large')
+        is_expected.to contain_glance_api_config('taskflow_executor/engine_mode').with_value('serial')
+        is_expected.to contain_glance_api_config('taskflow_executor/max_workers').with_value(1)
+        is_expected.to contain_glance_api_config('taskflow_executor/conversion_format').with_value('raw')
+      end
+    end
+
     describe 'while validating the service with default command' do
       let :params do
         default_params.merge({
@@ -333,7 +351,7 @@ describe 'glance::api' do
         :provider    => 'shell',
         :tries       => '10',
         :try_sleep   => '2',
-        :command     => 'glance --os-auth-url http://127.0.0.1:5000/ --os-tenant-name services --os-username glance --os-password ChangeMe image-list',
+        :command     => 'glance --os-auth-url http://127.0.0.1:5000 --os-project-name services --os-username glance --os-password ChangeMe image-list',
       )}
 
       it { is_expected.to contain_anchor('create glance-api anchor').with(
@@ -370,6 +388,32 @@ describe 'glance::api' do
       it { is_expected.to contain_anchor('create glance-api anchor').with(
         :require => 'Exec[execute glance-api validation]',
       )}
+    end
+
+    describe 'with deprecated auth parameters' do
+      let :params do
+        default_params.merge({
+          :auth_type         => 'keystone',
+          :keystone_tenant   => 'services',
+          :keystone_user     => 'glance',
+          :keystone_password => 'password',
+          :token_cache_time  => '1000',
+          :memcached_servers => 'localhost:11211',
+          :signing_dir       => '/tmp/keystone',
+          :auth_uri          => 'http://127.0.0.1:5000',
+          :identity_uri      => 'http://127.0.0.1:35357',
+        })
+      end
+      it 'deprecated auth parameters' do
+        is_expected.to contain_glance_api_config('keystone_authtoken/memcached_servers').with_value(params[:memcached_servers])
+        is_expected.to contain_glance_api_config('keystone_authtoken/username').with_value(params[:keystone_user])
+        is_expected.to contain_glance_api_config('keystone_authtoken/project_name').with_value(params[:keystone_tenant])
+        is_expected.to contain_glance_api_config('keystone_authtoken/password').with_value(params[:keystone_password])
+        is_expected.to contain_glance_api_config('keystone_authtoken/token_cache_time').with_value(params[:token_cache_time])
+        is_expected.to contain_glance_api_config('keystone_authtoken/signing_dir').with_value(params[:signing_dir])
+        is_expected.to contain_glance_api_config('keystone_authtoken/auth_uri').with_value(params[:auth_uri])
+        is_expected.to contain_glance_api_config('keystone_authtoken/auth_url').with_value(params[:identity_uri])
+      end
     end
   end
 
@@ -412,7 +456,7 @@ describe 'glance::api' do
 
   describe 'on unknown platforms' do
     let :facts do
-      { :osfamily => 'unknown' }
+      OSDefaults.get_facts({ :osfamily => 'unknown' })
     end
     let(:params) { default_params }
 

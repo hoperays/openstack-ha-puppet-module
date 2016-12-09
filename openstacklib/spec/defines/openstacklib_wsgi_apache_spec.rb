@@ -82,9 +82,10 @@ describe 'openstacklib::wsgi::apache' do
           'threads'   => global_facts[:processorcount],
         },
         'wsgi_application_group'      => '%{GLOBAL}',
-        'require'                     => 'File[keystone_wsgi]'
+        'require'                     => 'File[keystone_wsgi]',
+        'setenvif'                    => ['X-Forwarded-Proto https HTTPS=1']
       )}
-      it { is_expected.to contain_file("#{platform_parameters[:httpd_ports_file]}") }
+      it { is_expected.to contain_concat("#{platform_parameters[:httpd_ports_file]}") }
     end
 
     describe 'when overriding parameters' do
