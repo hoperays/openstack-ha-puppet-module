@@ -23,9 +23,9 @@ class openstack::x004_ceph (
   $bootstrap_mds_key           = 'AQAyGSxY9+bgNRAAdMFl/EjA6KM5hP1wBcDZog==',
   $bootstrap_osd_key           = 'AQBMdOxXzLkwHxAA8TeFuJyvG6/NHziVyb06bg==',
   $bootstrap_rgw_key           = 'AQClPkpYRsB1CxAAZ9hhExzByrXKbPiV1kDu5Q==',
-  $cinder_key = 'AQClPkpYRsB1CxAAZ9hhExzByrXKbPiV1kDu5Q==',
-  $cinder_backup_key           = 'AQClPkpYRsB1CxAAZ9hhExzByrXKbPiV1kDu5Q==',
-  $glance_key = 'AQClPkpYRsB1CxAAZ9hhExzByrXKbPiV1kDu5Q==',) {
+  $cinder_key = 'AQB+RUpYfv+aIRAA4AbRb+XICXx+x+shF5AeZQ==',
+  $cinder_backup_key           = 'AQB/RUpYDbwvGBAAcJ/1PemnYHV/qzI70t3cDA==',
+  $glance_key = 'AQCARUpYaPujERAAUmBPrYcMICw13OLYNQce0Q==',) {
   class { 'ceph':
     fsid                   => $fsid,
     mon_initial_members    => $mon_initial_members,
