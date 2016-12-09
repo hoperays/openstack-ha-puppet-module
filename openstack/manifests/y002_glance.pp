@@ -2,7 +2,6 @@ class openstack::y002_glance (
   $bootstrap_node  = 'controller-1',
   $glance_password = 'glance1234',
   $allowed_hosts   = ['%'],
-  $admin_token     = 'e38f3dd7116ee3bc3dba',
   $cluster_nodes   = ['controller-1', 'controller-2', 'controller-3'],
   $host            = 'controller-vip',) {
   if $::hostname == $bootstrap_node {
