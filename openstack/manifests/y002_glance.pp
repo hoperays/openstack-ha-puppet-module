@@ -23,6 +23,7 @@ class openstack::y002_glance (
     registry_host           => $host,
     #
     pipeline                => 'keystone',
+    auth_strategy           => '::glance::api::authtoken',
     #
     show_image_direct_url   => true,
     show_multiple_locations => true,
@@ -43,7 +44,7 @@ class openstack::y002_glance (
     user_domain_name    => 'default',
     project_name        => 'service',
     username            => 'glance',
-    password            => 'glance1234',
+    password            => $glance_password,
   }
 
   class { '::glance::notify::rabbitmq':
@@ -69,6 +70,7 @@ class openstack::y002_glance (
     bind_host            => $::hostname,
     #
     pipeline             => 'keystone',
+    auth_strategy        => '::glance::registry::authtoken',
     #
     sync_db              => $sync_db,
     #
@@ -85,7 +87,7 @@ class openstack::y002_glance (
     user_domain_name    => 'default',
     project_name        => 'service',
     username            => 'glance',
-    password            => 'glance1234',
+    password            => $glance_password,
   }
 
   if $::hostname == $bootstrap_node {
@@ -103,7 +105,7 @@ class openstack::y002_glance (
     } ->
     keystone_user { 'glance':
       ensure   => 'present',
-      password => 'glance1234',
+      password => $glance_password,
       # email    => 'glance@example.org',
       domain   => 'default',
     } ->
