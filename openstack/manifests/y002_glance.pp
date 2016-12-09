@@ -17,26 +17,27 @@ class openstack::y002_glance (
   }
 
   class { '::glance::api':
-    database_connection   => "mysql+pymysql://glance:${glance_password}@${host}/glance",
-    database_max_retries  => '-1',
-    bind_host             => $::hostname,
-    registry_host         => $host,
-    auth_uri              => "http://${host}:5000/",
-    identity_uri          => "http://${host}:35357/",
-    memcached_servers     => $cluster_nodes,
-    auth_type             => 'keystone',
-    keystone_tenant       => 'service',
-    keystone_user         => 'glance',
-    keystone_password     => $glance_password,
-    pipeline              => 'keystone',
+    database_connection     => "mysql+pymysql://glance:${glance_password}@${host}/glance",
+    database_max_retries    => '-1',
+    bind_host               => $::hostname,
+    registry_host           => $host,
+    auth_uri                => "http://${host}:5000/",
+    identity_uri            => "http://${host}:35357/",
+    # memcached_servers       => $cluster_nodes,
+    auth_type               => 'keystone',
+    keystone_tenant         => 'service',
+    keystone_user           => 'glance',
+    keystone_password       => $glance_password,
+    pipeline                => 'keystone',
     #
-    show_image_direct_url => true,
-    stores                => ['rbd', 'http'],
-    default_store         => 'rbd',
-    multi_store           => true,
+    show_image_direct_url   => true,
+    show_multiple_locations => true,
+    stores                  => ['rbd', 'http'],
+    default_store           => 'rbd',
+    multi_store             => true,
     #
-    manage_service        => false,
-    enabled               => false,
+    manage_service          => false,
+    enabled                 => false,
   }
 
   class { '::glance::notify::rabbitmq':
@@ -48,10 +49,10 @@ class openstack::y002_glance (
   }
 
   class { '::glance::backend::rbd':
-    rbd_store_chunk_size => '8',
     rbd_store_pool       => 'images',
     rbd_store_user       => 'glance',
     rbd_store_ceph_conf  => '/etc/ceph/ceph.conf',
+    rbd_store_chunk_size => '8',
     multi_store          => true,
     glare_enabled        => false,
   }
@@ -60,15 +61,18 @@ class openstack::y002_glance (
     database_connection  => "mysql+pymysql://glance:${glance_password}@${host}/glance",
     database_max_retries => '-1',
     bind_host            => $::hostname,
+    #
     auth_uri             => "http://${host}:5000/",
     identity_uri         => "http://${host}:35357/",
-    memcached_servers    => $cluster_nodes,
+    # memcached_servers    => $cluster_nodes,
     auth_type            => 'keystone',
     keystone_tenant      => 'service',
     keystone_user        => 'glance',
     keystone_password    => $glance_password,
     pipeline             => 'keystone',
+    #
     sync_db              => $sync_db,
+    #
     manage_service       => false,
     enabled              => false,
   }
