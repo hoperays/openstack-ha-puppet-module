@@ -1,8 +1,9 @@
 class openstack::x004_ceph (
+  $bootstrap_node              = 'controller-1',
   # uuidgen
-  $fsid      = '9dfaa171-db9e-48c5-af8c-c618cc3bfec4',
+  $fsid       = '9dfaa171-db9e-48c5-af8c-c618cc3bfec4',
   $mon_initial_members         = 'controller-1,controller-2,controller-3',
-  $mon_host  = '192.168.104.131,192.168.104.132,192.168.104.133',
+  $mon_host   = '192.168.104.131,192.168.104.132,192.168.104.133',
   $authentication_type         = 'cephx',
   $public_network              = '192.168.104.0/24',
   $cluster_network             = '192.168.105.0/24',
@@ -17,10 +18,14 @@ class openstack::x004_ceph (
   $osd_mount_options_xfs       = 'rw,noatime,inode64,logbsize=256k,delaylog',
   $osd_crush_chooseleaf_type   = '1',
   # ceph-authtool --gen-print-key
-  $admin_key = 'AQDtZ+xX3678NxAAnWIyLVy2dVQ0wZePqWG09Q==',
-  $mon_key   = 'AQDuZ+xXWjN8JhAAEBD7j3EaFVhXQBJzjLdf2Q==',
+  $admin_key  = 'AQDtZ+xX3678NxAAnWIyLVy2dVQ0wZePqWG09Q==',
+  $mon_key    = 'AQDuZ+xXWjN8JhAAEBD7j3EaFVhXQBJzjLdf2Q==',
+  $bootstrap_mds_key           = 'AQAyGSxY9+bgNRAAdMFl/EjA6KM5hP1wBcDZog==',
   $bootstrap_osd_key           = 'AQBMdOxXzLkwHxAA8TeFuJyvG6/NHziVyb06bg==',
-  $bootstrap_mds_key           = 'AQAyGSxY9+bgNRAAdMFl/EjA6KM5hP1wBcDZog==',) {
+  $bootstrap_rgw_key           = 'AQClPkpYRsB1CxAAZ9hhExzByrXKbPiV1kDu5Q==',
+  $cinder_key = 'AQClPkpYRsB1CxAAZ9hhExzByrXKbPiV1kDu5Q==',
+  $cinder_backup_key           = 'AQClPkpYRsB1CxAAZ9hhExzByrXKbPiV1kDu5Q==',
+  $glance_key = 'AQClPkpYRsB1CxAAZ9hhExzByrXKbPiV1kDu5Q==',) {
   class { 'ceph':
     fsid                   => $fsid,
     mon_initial_members    => $mon_initial_members,
@@ -70,16 +75,77 @@ class openstack::x004_ceph (
       cap_mds => 'allow *',
     }
 
+    ceph::key { 'client.bootstrap-mds':
+      keyring_path => '/var/lib/ceph/bootstrap-mds/ceph.keyring',
+      secret       => $bootstrap_mds_key,
+      cap_mon      => 'allow profile bootstrap-mds',
+    }
+
     ceph::key { 'client.bootstrap-osd':
       keyring_path => '/var/lib/ceph/bootstrap-osd/ceph.keyring',
       secret       => $bootstrap_osd_key,
       cap_mon      => 'allow profile bootstrap-osd',
     }
 
+    ceph::key { 'client.bootstrap-rgw':
+      keyring_path => '/var/lib/ceph/bootstrap-rgw/ceph.keyring',
+      secret       => $bootstrap_rgw_key,
+      cap_mon      => 'allow profile bootstrap-rgw',
+    }
+
+    ceph::key { 'client.cinder':
+      secret  => $cinder_key,
+      cap_mon => 'allow r',
+      cap_osd => 'allow class-read object_prefix rbd_children, allow rwx pool=volumes, allow rwx pool=vms, allow rx pool=images',
+    }
+
+    ceph::key { 'client.cinder-backup':
+      secret  => $cinder_backup_key,
+      cap_mon => 'allow r',
+      cap_osd => 'allow class-read object_prefix rbd_children, allow rwx pool=backups',
+    }
+
+    ceph::key { 'client.glance':
+      secret  => $glance_key,
+      cap_mon => 'allow r',
+      cap_osd => 'allow class-read object_prefix rbd_children, allow rwx pool=images',
+    }
+
+    if $::hostname == $bootstrap_node {
+      ceph::pool {
+        'rbd':
+          ensure => 'absent';
+
+        'volumes':
+          pg_num => '64';
+
+        'images':
+          pg_num => '64';
+
+        'backups':
+          pg_num => '64';
+
+        'vms':
+          pg_num => '64';
+      }
+    }
+  } elsif $::hostname =~ /^storage-\d+$/ {
     ceph::key { 'client.bootstrap-mds':
       keyring_path => '/var/lib/ceph/bootstrap-mds/ceph.keyring',
       secret       => $bootstrap_mds_key,
       cap_mon      => 'allow profile bootstrap-mds',
+    }
+
+    ceph::key { 'client.bootstrap-osd':
+      keyring_path => '/var/lib/ceph/bootstrap-osd/ceph.keyring',
+      secret       => $bootstrap_osd_key,
+      cap_mon      => 'allow profile bootstrap-osd',
+    }
+
+    ceph::key { 'client.bootstrap-rgw':
+      keyring_path => '/var/lib/ceph/bootstrap-rgw/ceph.keyring',
+      secret       => $bootstrap_rgw_key,
+      cap_mon      => 'allow profile bootstrap-rgw',
     }
 
     #    ceph::osd {
@@ -89,24 +155,11 @@ class openstack::x004_ceph (
     #      '/dev/sdd':
     #        journal => '/dev/sdb';
     #    }
-
-    ceph::pool {
-      'rbd':
-        ensure => 'absent';
-
-      'volumes':
-        pg_num => '64';
-
-      'images':
-        pg_num => '64';
-
-      'backups':
-        pg_num => '64';
-
-      'vms':
-        pg_num => '64';
+  } elsif $::hostname =~ /^compute-\d+$/ {
+    ceph::key { 'client.cinder':
+      secret  => $cinder_key,
+      cap_mon => 'allow r',
+      cap_osd => 'allow class-read object_prefix rbd_children, allow rwx pool=volumes, allow rwx pool=vms, allow rx pool=images',
     }
-  } else {
-    ceph::key { 'client.admin': secret => $admin_key }
   }
 }
