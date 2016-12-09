@@ -64,6 +64,12 @@ class openstack::y002_glance (
     glare_enabled        => false,
   }
 
+  file { '/etc/ceph/ceph.client.glance.keyring':
+    mode  => '0600',
+    owner => 'glance',
+    group => 'glance',
+  }
+
   class { '::glance::registry':
     database_connection  => "mysql+pymysql://glance:${glance_password}@${host}/glance",
     database_max_retries => '-1',
