@@ -1,5 +1,0 @@
-pkg/
-*.swp
-.forge-releng/
-Gemfile.lock
-vendor/
