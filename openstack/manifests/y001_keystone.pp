@@ -81,7 +81,7 @@ class openstack::y001_keystone (
     keystone_service { 'keystone':
       ensure      => 'present',
       type        => 'identity',
-      description => 'OpenStack Identity Service',
+      description => 'OpenStack Identity',
     } ->
     keystone_endpoint { 'keystone':
       ensure       => 'present',
