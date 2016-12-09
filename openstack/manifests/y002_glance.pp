@@ -99,7 +99,7 @@ class openstack::y002_glance (
     keystone_service { 'glance':
       ensure      => 'present',
       type        => 'image',
-      description => 'OpenStack Image Service',
+      description => 'OpenStack Image',
     } ->
     keystone_endpoint { 'glance':
       ensure       => 'present',
@@ -124,7 +124,7 @@ class openstack::y002_glance (
     } ->
     pacemaker::resource::service { 'openstack-glance-registry': clone_params => 'interleave=true', } ->
     pacemaker::resource::service { 'openstack-glance-api': clone_params => 'interleave=true', } ->
-    pacemaker::constraint::base { 'order-openstack-glance-registry-clone-openstack-glance-api-clone-Optional':
+    pacemaker::constraint::base { 'order-openstack-glance-registry-clone-openstack-glance-api-clone-Mandatory':
       constraint_type   => 'order',
       first_action      => 'start',
       first_resource    => 'openstack-glance-registry-clone',
