@@ -1,5 +1,8 @@
 class openstack::x007_memcached ($bootstrap_node = 'controller-1') {
-  class { 'memcached': service_manage => false }
+  class { 'memcached':
+    service_manage => false,
+    listen_ip      => $::ipaddress_eth0,
+  }
 
   if $::hostname == $bootstrap_node {
     pacemaker::resource::service { 'memcached':
