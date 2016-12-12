@@ -170,7 +170,7 @@ class pacemaker::new::setup::pcsd (
     password => $cluster_password,
     whole    => true,
     local    => false,
-    force    => false,
+    force    => true,
   }
 
   if $cluster_setup {

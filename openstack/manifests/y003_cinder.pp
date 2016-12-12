@@ -103,18 +103,6 @@ class openstack::y003_cinder (
       value => 'rbd';
   }
 
-  file { '/etc/ceph/ceph.client.cinder.keyring':
-    mode  => '0644',
-    owner => 'cinder',
-    group => 'cinder',
-  }
-
-  file { '/etc/ceph/ceph.client.cinder-backup.keyring':
-    mode  => '0644',
-    owner => 'cinder',
-    group => 'cinder',
-  }
-
   if $::hostname == $bootstrap_node {
     keystone_service { 'cinderv1':
       ensure      => 'present',

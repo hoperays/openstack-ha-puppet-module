@@ -24,73 +24,30 @@ class openstack::x005_pacemaker (
     require   => Class['pacemaker::new'],
   }
 
-  pacemaker_property { 'stonith-enabled':
-    ensure => 'present',
-    value  => false,
-  } ->
-  pacemaker_property { 'no-quorum-policy':
-    ensure => 'present',
-    value  => false,
-  } ->
-  pacemaker_property { 'pe-warn-series-max':
-    ensure => 'present',
-    value  => '1000',
-  } ->
-  pacemaker_property { 'pe-input-series-max':
-    ensure => 'present',
-    value  => '1000',
-  } ->
-  pacemaker_property { 'pe-error-series-max':
-    ensure => 'present',
-    value  => '1000',
-  } ->
-  pacemaker_property { 'cluster-recheck-interval':
-    ensure => 'present',
-    value  => '3min',
+  if $::hostname == $bootstrap_node {
+    pacemaker_property { 'stonith-enabled':
+      ensure => 'present',
+      value  => false,
+    } ->
+    #    pacemaker_property { 'no-quorum-policy':
+    #      ensure => 'present',
+    #      value  => 'ignore',
+    #    } ->
+    pacemaker_property { 'pe-warn-series-max':
+      ensure => 'present',
+      value  => '1000',
+    } ->
+    pacemaker_property { 'pe-input-series-max':
+      ensure => 'present',
+      value  => '1000',
+    } ->
+    pacemaker_property { 'pe-error-series-max':
+      ensure => 'present',
+      value  => '1000',
+    } ->
+    pacemaker_property { 'cluster-recheck-interval':
+      ensure => 'present',
+      value  => '1min',
+    }
   }
-
-  #  if $::hostname == $bootstrap_node {
-  #    $setup_cluster = true
-  #  } else {
-  #    $setup_cluster = false
-  #  }
-  #
-  #  class { '::pacemaker':
-  #    hacluster_pwd => $hacluster_pwd,
-  #  } ->
-  #  class { '::pacemaker::corosync':
-  #    cluster_members => $cluster_members,
-  #    cluster_name    => $cluster_name,
-  #    # cluster_setup_extras => $cluster_setup_extras,
-  #    manage_fw       => $manage_fw,
-  #    remote_authkey  => $remote_authkey,
-  #    setup_cluster   => $setup_cluster,
-  #  }
-
-  #  if $::hostname == $bootstrap_node {
-  #    pacemaker::property { 'stonith-enabled':
-  #      property => 'stonith-enabled',
-  #      value    => false,
-  #    } ->
-  #    #    pacemaker::property { 'no-quorum-policy':
-  #    #      property => 'no-quorum-policy',
-  #    #      value    => 'ignore',
-  #    #    } ->
-  #    pacemaker::property { 'pe-warn-series-max':
-  #      property => 'pe-warn-series-max',
-  #      value    => '1000',
-  #    } ->
-  #    pacemaker::property { 'pe-input-series-max':
-  #      property => 'pe-input-series-max',
-  #      value    => '1000',
-  #    } ->
-  #    pacemaker::property { 'pe-error-series-max':
-  #      property => 'pe-error-series-max',
-  #      value    => '1000',
-  #    } ->
-  #    pacemaker::property { 'cluster-recheck-interval':
-  #      property => 'cluster-recheck-interval',
-  #      value    => '3min',
-  #    }
-  #  }
 }
