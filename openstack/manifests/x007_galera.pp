@@ -1,4 +1,4 @@
-class openstack::x009_galera (
+class openstack::x007_galera (
   $galera_servers        = 'controller-1,controller-2,controller-3',
   $bootstrap_node        = 'controller-1',
   $clustercheck_password = 'clustercheck1234',
@@ -52,6 +52,24 @@ class openstack::x009_galera (
     require => Class['::mysql::server'],
   }
 
+  xinetd::service { 'galera-monitor':
+    port           => '9200',
+    disable        => 'no',
+    socket_type    => 'stream',
+    protocol       => 'tcp',
+    wait           => 'no',
+    user           => 'root',
+    group          => 'root',
+    groups         => 'yes',
+    server         => '/usr/bin/clustercheck',
+    service_type   => 'UNLISTED',
+    per_source     => 'UNLIMITED',
+    log_on_success => '',
+    log_on_failure => 'HOST',
+    flags          => 'REUSE',
+    require        => File['/etc/sysconfig/clustercheck'],
+  }
+
   exec { 'galera-ready':
     timeout   => '3600',
     tries     => '360',
@@ -59,6 +77,15 @@ class openstack::x009_galera (
     command   => '/usr/bin/clustercheck >/dev/null 2>&1',
     unless    => '/usr/bin/clustercheck >/dev/null 2>&1',
     require   => Exec['create-root-sysconfig-clustercheck'],
+  }
+
+  file { '/etc/sysconfig/clustercheck':
+    ensure  => file,
+    mode    => '0600',
+    owner   => 'root',
+    group   => 'root',
+    content => "MYSQL_USERNAME=clustercheck\nMYSQL_PASSWORD=${clustercheck_password}\nMYSQL_HOST=localhost\n",
+    require => Exec['galera-ready'],
   }
 
   if $::hostname == $bootstrap_node {
@@ -103,36 +130,5 @@ class openstack::x009_galera (
       ensure  => 'absent',
       require => Exec['galera-ready'],
     }
-  }
-
-  #  class { 'mysql::server::account_security':
-  #    require => Exec['galera-ready'],
-  #  }
-
-  file { '/etc/sysconfig/clustercheck':
-    ensure  => file,
-    mode    => '0600',
-    owner   => 'root',
-    group   => 'root',
-    content => "MYSQL_USERNAME=clustercheck\nMYSQL_PASSWORD=${clustercheck_password}\nMYSQL_HOST=localhost\n",
-    require => Exec['galera-ready'],
-  }
-
-  xinetd::service { 'galera-monitor':
-    port           => '9200',
-    disable        => 'no',
-    socket_type    => 'stream',
-    protocol       => 'tcp',
-    wait           => 'no',
-    user           => 'root',
-    group          => 'root',
-    groups         => 'yes',
-    server         => '/usr/bin/clustercheck',
-    service_type   => 'UNLISTED',
-    per_source     => 'UNLIMITED',
-    log_on_success => '',
-    log_on_failure => 'HOST',
-    flags          => 'REUSE',
-    require        => File['/etc/sysconfig/clustercheck'],
   }
 }
