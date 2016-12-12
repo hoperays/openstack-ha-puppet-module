@@ -67,7 +67,7 @@ class openstack::x007_galera (
     log_on_success => '',
     log_on_failure => 'HOST',
     flags          => 'REUSE',
-    require        => File['/etc/sysconfig/clustercheck'],
+    require        => Exec['create-root-sysconfig-clustercheck'],
   }
 
   exec { 'galera-ready':
@@ -79,13 +79,28 @@ class openstack::x007_galera (
     require   => Exec['create-root-sysconfig-clustercheck'],
   }
 
+  mysql_user { 'clustercheck@localhost':
+    ensure        => 'present',
+    password_hash => mysql_password($clustercheck_password),
+    require       => Exec['galera-ready'],
+  }
+
+  mysql_grant { 'clustercheck@localhost/*.*':
+    ensure     => 'present',
+    options    => ['GRANT'],
+    privileges => ['PROCESS'],
+    table      => '*.*',
+    user       => 'clustercheck@localhost',
+    require    => Mysql_user['clustercheck@localhost'],
+  }
+
   file { '/etc/sysconfig/clustercheck':
     ensure  => file,
     mode    => '0600',
     owner   => 'root',
     group   => 'root',
     content => "MYSQL_USERNAME=clustercheck\nMYSQL_PASSWORD=${clustercheck_password}\nMYSQL_HOST=localhost\n",
-    require => Exec['galera-ready'],
+    require => Mysql_grant['clustercheck@localhost/*.*'],
   }
 
   if $::hostname == $bootstrap_node {
@@ -98,21 +113,6 @@ class openstack::x007_galera (
       master_params   => true,
       require         => Exec['create-root-sysconfig-clustercheck'],
       before          => Exec['galera-ready'],
-    }
-
-    mysql_user { 'clustercheck@localhost':
-      ensure        => 'present',
-      password_hash => mysql_password($clustercheck_password),
-      require       => Exec['galera-ready'],
-    }
-
-    mysql_grant { 'clustercheck@localhost/*.*':
-      ensure     => 'present',
-      options    => ['GRANT'],
-      privileges => ['PROCESS'],
-      table      => '*.*',
-      user       => 'clustercheck@localhost',
-      require    => Mysql_user['clustercheck@localhost'],
     }
 
     mysql_user { ['root@127.0.0.1', 'root@::1', '@localhost', '@%']:
