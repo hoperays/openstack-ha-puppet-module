@@ -1,11 +1,12 @@
 class openstack::x008_rabbitmq (
-  $cluster_nodes  = ['controller-1', 'controller-2', 'controller-3'],
-  $bootstrap_node = 'controller-1') {
+  $bootstrap_node   = 'controller-1',
+  $cluster_nodes    = ['controller-1', 'controller-2', 'controller-3'],
+  $manage_resources = false,) {
   class { 'rabbitmq':
-    repos_ensure             => false,
-    admin_enable             => false,
-    service_manage           => true,
-    service_ensure           => 'stopped',
+    repos_ensure             => $manage_resources,
+    admin_enable             => $manage_resources,
+    # service_ensure           => 'stopped',
+    service_manage           => $manage_resources,
     config_cluster           => false,
     cluster_nodes            => $cluster_nodes,
     node_ip_address          => $ipaddress_eth0,

@@ -1,6 +1,6 @@
-class openstack::x009_memcached ($bootstrap_node = 'controller-1') {
+class openstack::x009_memcached ($bootstrap_node = 'controller-1', $manage_resources = false,) {
   class { 'memcached':
-    service_manage => false,
+    service_manage => $manage_resources,
     listen_ip      => $::ipaddress_eth0,
   }
 

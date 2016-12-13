@@ -30,11 +30,15 @@ class openstack::y003_cinder (
   }
 
   class { '::cinder::api':
-    bind_host      => $::hostname,
-    auth_strategy  => undef,
+    bind_host           => $::hostname,
+    default_volume_type => 'rbd',
+    keystone_enabled    => false,
+    auth_strategy       => false,
     #
-    manage_service => false,
-    enabled        => false,
+    sync_db             => $sync_db,
+    #
+    manage_service      => false,
+    enabled             => false,
   }
 
   class { '::cinder::keystone::authtoken':
@@ -74,7 +78,7 @@ class openstack::y003_cinder (
     rbd_store_chunk_size  => '4',
     rados_connect_timeout => '-1',
     volume_backend_name   => $name,
-    manage_volume_type    => true,
+  # manage_volume_type    => true,
   }
 
   class { '::cinder::backup':
@@ -99,10 +103,7 @@ class openstack::y003_cinder (
     'DEFAULT/restore_discard_excess_bytes':
       value => true;
 
-    'DEFAULT/enabled_backends ':
-      value => 'rbd';
-
-    'DEFAULT/default_volume_type':
+    'DEFAULT/enabled_backends':
       value => 'rbd';
   }
 
@@ -115,9 +116,9 @@ class openstack::y003_cinder (
     keystone_endpoint { 'cinderv1':
       ensure       => 'present',
       region       => 'RegionOne',
-      admin_url    => "http://${host}:8776/v1/%\(tenant_id\)s",
-      public_url   => "http://${host}:8776/v1/%\(tenant_id\)s",
-      internal_url => "http://${host}:8776/v1/%\(tenant_id\)s",
+      admin_url    => "http://${host}:8776/v1/%(tenant_id)s",
+      public_url   => "http://${host}:8776/v1/%(tenant_id)s",
+      internal_url => "http://${host}:8776/v1/%(tenant_id)s",
     } ->
     keystone_service { 'cinderv2':
       ensure      => 'present',
@@ -127,9 +128,9 @@ class openstack::y003_cinder (
     keystone_endpoint { 'cinderv2':
       ensure       => 'present',
       region       => 'RegionOne',
-      admin_url    => "http://${host}:8776/v2/%\(tenant_id\)s",
-      public_url   => "http://${host}:8776/v2/%\(tenant_id\)s",
-      internal_url => "http://${host}:8776/v2/%\(tenant_id\)s",
+      admin_url    => "http://${host}:8776/v2/%(tenant_id)s",
+      public_url   => "http://${host}:8776/v2/%(tenant_id)s",
+      internal_url => "http://${host}:8776/v2/%(tenant_id)s",
     } ->
     keystone_service { 'cinderv3':
       ensure      => 'present',
@@ -139,9 +140,9 @@ class openstack::y003_cinder (
     keystone_endpoint { 'cinderv3':
       ensure       => 'present',
       region       => 'RegionOne',
-      admin_url    => "http://${host}:8776/v3/%\(tenant_id\)s",
-      public_url   => "http://${host}:8776/v3/%\(tenant_id\)s",
-      internal_url => "http://${host}:8776/v3/%\(tenant_id\)s",
+      admin_url    => "http://${host}:8776/v3/%(tenant_id)s",
+      public_url   => "http://${host}:8776/v3/%(tenant_id)s",
+      internal_url => "http://${host}:8776/v3/%(tenant_id)s",
     } ->
     keystone_user { 'cinder':
       ensure   => 'present',
@@ -173,7 +174,7 @@ class openstack::y003_cinder (
       source => 'openstack-cinder-scheduler-clone',
       target => 'openstack-cinder-api-clone',
       score  => 'INFINITY',
-    }
+    } ->
     pacemaker::constraint::base { 'order-openstack-cinder-scheduler-clone-openstack-cinder-volume-Mandatory':
       constraint_type   => 'order',
       first_action      => 'start',
@@ -186,7 +187,7 @@ class openstack::y003_cinder (
       source => 'openstack-cinder-volume',
       target => 'openstack-cinder-scheduler-clone',
       score  => 'INFINITY',
-    }
+    } ->
     pacemaker::constraint::base { 'order-openstack-cinder-scheduler-clone-openstack-cinder-backup-clone-Mandatory':
       constraint_type   => 'order',
       first_action      => 'start',

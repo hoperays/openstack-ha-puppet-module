@@ -8,6 +8,7 @@ class openstack::x006_haproxy (
   $manage_resources = false,) {
   class { 'haproxy':
     service_ensure   => $manage_resources,
+    service_manage   => $manage_resources,
     global_options   => {
       log     => "$bind_address local0",
       chroot  => '/var/lib/haproxy',
