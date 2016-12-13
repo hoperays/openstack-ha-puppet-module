@@ -93,6 +93,9 @@ class openstack::y003_cinder (
   }
 
   cinder_config {
+    'DEFAULT/auth_strategy':
+      value => keystone;
+
     'DEFAULT/restore_discard_excess_bytes':
       value => true;
 
@@ -158,7 +161,7 @@ class openstack::y003_cinder (
     pacemaker::resource::service { 'openstack-cinder-scheduler': clone_params => 'interleave=true', } ->
     pacemaker::resource::service { 'openstack-cinder-volume': } ->
     pacemaker::resource::service { 'openstack-cinder-backup': clone_params => 'interleave=true', } ->
-    pacemaker::constraint::base { 'order-openstack-cinder-api-clone-openstack-cinder-scheduler-clone-Optional':
+    pacemaker::constraint::base { 'order-openstack-cinder-api-clone-openstack-cinder-scheduler-clone-Mandatory':
       constraint_type   => 'order',
       first_action      => 'start',
       first_resource    => 'openstack-cinder-api-clone',
