@@ -12,8 +12,10 @@ class openstack::y001_keystone (
       allowed_hosts => $allowed_hosts,
     }
     $sync_db = true
+    $enable_bootstrap = true
   } else {
     $sync_db = false
+    $enable_bootstrap = false
   }
 
   class { '::keystone':
@@ -28,6 +30,7 @@ class openstack::y001_keystone (
     admin_bind_host      => $::hostname,
     token_provider       => 'fernet',
     sync_db              => $sync_db,
+    enable_bootstrap     => $enable_bootstrap,
     manage_service       => false,
     enabled              => false,
   }

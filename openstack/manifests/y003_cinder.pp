@@ -108,12 +108,12 @@ class openstack::y003_cinder (
   }
 
   if $::hostname == $bootstrap_node {
-    keystone_service { 'cinderv1':
+    keystone_service { 'cinder':
       ensure      => 'present',
-      type        => 'volumev1',
-      description => 'OpenStack Block Storage v1',
+      type        => 'volume',
+      description => 'OpenStack Block Storage',
     } ->
-    keystone_endpoint { 'cinderv1':
+    keystone_endpoint { 'cinder':
       ensure       => 'present',
       region       => 'RegionOne',
       admin_url    => "http://${host}:8776/v1/%(tenant_id)s",
@@ -123,7 +123,7 @@ class openstack::y003_cinder (
     keystone_service { 'cinderv2':
       ensure      => 'present',
       type        => 'volumev2',
-      description => 'OpenStack Block Storage v2',
+      description => 'OpenStack Block Storage',
     } ->
     keystone_endpoint { 'cinderv2':
       ensure       => 'present',
@@ -135,7 +135,7 @@ class openstack::y003_cinder (
     keystone_service { 'cinderv3':
       ensure      => 'present',
       type        => 'volumev3',
-      description => 'OpenStack Block Storage v3',
+      description => 'OpenStack Block Storage',
     } ->
     keystone_endpoint { 'cinderv3':
       ensure       => 'present',
@@ -200,6 +200,21 @@ class openstack::y003_cinder (
       source => 'openstack-cinder-backup-clone',
       target => 'openstack-cinder-scheduler-clone',
       score  => 'INFINITY',
+    } ->
+    exec { 'cinder-ready':
+      timeout   => '3600',
+      tries     => '360',
+      try_sleep => '10',
+      command   => "/usr/bin/openstack --os-project-name=admin --os-username=admin --os-password=admin1234 --os-auth-url=http://${host}:35357/v3 volume list > /dev/null 2>&1 && \
+                    /usr/bin/openstack --os-project-name=admin --os-username=admin --os-password=admin1234 --os-auth-url=http://${host}:35357/v3 volume list > /dev/null 2>&1 && \
+                    /usr/bin/openstack --os-project-name=admin --os-username=admin --os-password=admin1234 --os-auth-url=http://${host}:35357/v3 volume list > /dev/null 2>&1",
+      unless    => "/usr/bin/openstack --os-project-name=admin --os-username=admin --os-password=admin1234 --os-auth-url=http://${host}:35357/v3 volume list > /dev/null 2>&1 && \
+                    /usr/bin/openstack --os-project-name=admin --os-username=admin --os-password=admin1234 --os-auth-url=http://${host}:35357/v3 volume list > /dev/null 2>&1 && \
+                    /usr/bin/openstack --os-project-name=admin --os-username=admin --os-password=admin1234 --os-auth-url=http://${host}:35357/v3 volume list > /dev/null 2>&1",
+    } ->
+    cinder_type { 'rbd':
+      ensure     => present,
+      properties => ['volume_backend_name=rbd'],
     }
   }
 }
