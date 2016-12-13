@@ -31,7 +31,7 @@ class openstack::y003_cinder (
 
   class { '::cinder::api':
     bind_host      => $::hostname,
-    auth_strategy  => '::cinder::keystone::authtoken',
+    auth_strategy  => undef,
     #
     manage_service => false,
     enabled        => false,
@@ -94,7 +94,7 @@ class openstack::y003_cinder (
 
   cinder_config {
     'DEFAULT/auth_strategy':
-      value => keystone;
+      value => 'keystone';
 
     'DEFAULT/restore_discard_excess_bytes':
       value => true;
