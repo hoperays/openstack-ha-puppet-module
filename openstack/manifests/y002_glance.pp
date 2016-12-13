@@ -5,11 +5,6 @@ class openstack::y002_glance (
   $cluster_nodes   = ['controller-1', 'controller-2', 'controller-3'],
   $host            = 'controller-vip',) {
   if $::hostname == $bootstrap_node {
-    class { '::glance::db::mysql':
-      password      => $glance_password,
-      host          => 'localhost',
-      allowed_hosts => $allowed_hosts,
-    }
     $sync_db = true
   } else {
     $sync_db = false
@@ -63,12 +58,6 @@ class openstack::y002_glance (
     glare_enabled        => false,
   }
 
-  #  file { '/etc/ceph/ceph.client.glance.keyring':
-  #    mode  => '0644',
-  #    owner => 'glance',
-  #    group => 'glance',
-  #  }
-
   class { '::glance::registry':
     database_connection  => "mysql+pymysql://glance:${glance_password}@${host}/glance",
     database_max_retries => '-1',
@@ -96,6 +85,11 @@ class openstack::y002_glance (
   }
 
   if $::hostname == $bootstrap_node {
+    class { '::glance::db::mysql':
+      password      => $glance_password,
+      host          => 'localhost',
+      allowed_hosts => $allowed_hosts,
+    } ->
     keystone_service { 'glance':
       ensure      => 'present',
       type        => 'image',

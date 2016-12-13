@@ -6,11 +6,6 @@ class openstack::y001_keystone (
   $cluster_nodes     = ['controller-1', 'controller-2', 'controller-3'],
   $host              = 'controller-vip',) {
   if $::hostname == $bootstrap_node {
-    class { '::keystone::db::mysql':
-      password      => $keystone_password,
-      host          => 'localhost',
-      allowed_hosts => $allowed_hosts,
-    }
     $sync_db = true
     $enable_bootstrap = true
   } else {
@@ -48,6 +43,11 @@ class openstack::y001_keystone (
   }
 
   if $::hostname == $bootstrap_node {
+    class { '::keystone::db::mysql':
+      password      => $keystone_password,
+      host          => 'localhost',
+      allowed_hosts => $allowed_hosts,
+    } ->
     exec { 'keystone-manage fernet_setup':
       timeout   => '3600',
       tries     => '360',
