@@ -1,6 +1,7 @@
 class openstack::y004_neutron (
   $bootstrap_node   = 'controller-1',
   $neutron_password = 'neutron1234',
+  $nova_password    = 'nova1234',
   $allowed_hosts    = ['%'],
   $cluster_nodes    = ['controller-1', 'controller-2', 'controller-3'],
   $host             = 'controller-vip',
@@ -12,17 +13,15 @@ class openstack::y004_neutron (
   }
 
   class { '::neutron':
-    host                  => $::hostname,
-    bind_host             => $::hostname,
-    auth_strategy         => 'keystone',
-    allow_overlapping_ips => true,
-    service_plugins       => ['dhcp', 'l3'],
-    #
-    require               => Class['::neutron::db::mysql'],
+    host             => $::hostname,
+    bind_host        => $::hostname,
+    auth_strategy    => 'keystone',
+    rabbit_hosts     => $cluster_nodes,
+    rabbit_ha_queues => true,
   }
 
   class { '::neutron::server':
-    database_connection  => "mysql+pymysql://neutron:${$neutron_password}@${host}/neutron",
+    database_connection  => "mysql+pymysql://neutron:${neutron_password}@${host}/neutron",
     database_max_retries => '-1',
     auth_strategy        => false,
     #
@@ -39,9 +38,21 @@ class openstack::y004_neutron (
     auth_type           => 'password',
     project_domain_name => 'default',
     user_domain_name    => 'default',
+    region_name         => 'RegionOne',
     project_name        => 'service',
     username            => 'neutron',
     password            => $neutron_password,
+  }
+
+  class { 'neutron::server::notifications':
+    auth_url          => "http://${host}:35357/",
+    auth_type         => 'password',
+    project_domain_id => 'default',
+    user_domain_id    => 'default',
+    region_name       => 'RegionOne',
+    project_name      => 'service',
+    username          => 'nova',
+    password          => $nova_password,
   }
 
   class { '::neutron::agents::dhcp':
