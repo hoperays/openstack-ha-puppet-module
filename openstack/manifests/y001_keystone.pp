@@ -134,7 +134,7 @@ class openstack::y001_keystone (
     } ->
     keystone_user { 'admin':
       ensure   => 'present',
-      password => 'admin1234',
+      password => $admin_password,
       # email    => 'admin@example.org',
       domain   => 'default',
     } ->
