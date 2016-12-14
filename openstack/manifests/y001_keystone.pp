@@ -3,18 +3,21 @@ class openstack::y001_keystone (
   $keystone_password = 'keystone1234',
   $allowed_hosts     = ['%'],
   $admin_token       = 'e38f3dd7116ee3bc3dba',
-  $cluster_nodes     = ['controller-1', 'controller-2', 'controller-3'],
+  $admin_password    = 'admin1234',
+  $cluster_nodes     = [
+    'controller-1',
+    'controller-2',
+    'controller-3'],
   $host              = 'controller-vip',) {
   if $::hostname == $bootstrap_node {
     $sync_db = true
-    $enable_bootstrap = true
   } else {
     $sync_db = false
-    $enable_bootstrap = false
   }
 
   class { '::keystone':
     admin_token          => $admin_token,
+    admin_password       => $admin_password,
     rabbit_hosts         => $cluster_nodes,
     rabbit_ha_queues     => true,
     admin_endpoint       => "http://${host}:35357/",
@@ -25,7 +28,7 @@ class openstack::y001_keystone (
     admin_bind_host      => $::hostname,
     token_provider       => 'fernet',
     sync_db              => $sync_db,
-    enable_bootstrap     => $enable_bootstrap,
+    enable_bootstrap     => false,
     manage_service       => false,
     enabled              => false,
   }
@@ -64,6 +67,27 @@ class openstack::y001_keystone (
                     /usr/bin/rsync -avzP /etc/keystone/fernet-keys/ controller-3:/etc/keystone/fernet-keys/ > /dev/null 2>&1",
       unless    => "/usr/bin/rsync -avzP /etc/keystone/fernet-keys/ controller-2:/etc/keystone/fernet-keys/ > /dev/null 2>&1 &&\
                     /usr/bin/rsync -avzP /etc/keystone/fernet-keys/ controller-3:/etc/keystone/fernet-keys/ > /dev/null 2>&1",
+    } ->
+    exec { 'keystone-manage credential_setup':
+      timeout   => '3600',
+      tries     => '360',
+      try_sleep => '10',
+      command   => "/usr/bin/keystone-manage credential_setup --keystone-user keystone --keystone-group keystone > /dev/null 2>&1",
+      unless    => "/usr/bin/keystone-manage credential_setup --keystone-user keystone --keystone-group keystone > /dev/null 2>&1",
+    } ->
+    exec { 'rsync credential-keys':
+      timeout   => '3600',
+      tries     => '360',
+      try_sleep => '10',
+      command   => "/usr/bin/rsync -avzP /etc/keystone/credential-keys/ controller-2:/etc/keystone/credential-keys/ > /dev/null 2>&1 &&\
+                    /usr/bin/rsync -avzP /etc/keystone/credential-keys/ controller-3:/etc/keystone/credential-keys/ > /dev/null 2>&1",
+      unless    => "/usr/bin/rsync -avzP /etc/keystone/credential-keys/ controller-2:/etc/keystone/credential-keys/ > /dev/null 2>&1 &&\
+                    /usr/bin/rsync -avzP /etc/keystone/credential-keys/ controller-3:/etc/keystone/credential-keys/ > /dev/null 2>&1",
+    } ->
+    exec { 'keystone-manage bootstrap':
+      command     => "/usr/bin/keystone-manage bootstrap --bootstrap-password ${admin_password}",
+      subscribe   => Anchor['keystone::dbsync::end'],
+      refreshonly => true,
     } ->
     pacemaker::resource::ocf { 'apache':
       ensure         => 'present',
