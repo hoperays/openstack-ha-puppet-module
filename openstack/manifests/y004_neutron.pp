@@ -13,22 +13,36 @@ class openstack::y004_neutron (
   }
 
   class { '::neutron':
-    host             => $::hostname,
-    bind_host        => $::hostname,
-    auth_strategy    => 'keystone',
-    rabbit_hosts     => $cluster_nodes,
-    rabbit_ha_queues => true,
+    host                    => $::hostname,
+    bind_host               => $::hostname,
+    auth_strategy           => 'keystone',
+    notification_driver     => 'neutron.openstack.common.notifier.rpc_notifier',
+    rabbit_hosts            => $cluster_nodes,
+    rabbit_ha_queues        => true,
+    #
+    core_plugin             => 'neutron.plugins.ml2.plugin.Ml2Plugin',
+    service_plugins         => 'router',
+    #
+    dhcp_agents_per_network => '2',
   }
 
   class { '::neutron::server':
-    database_connection  => "mysql+pymysql://neutron:${neutron_password}@${host}/neutron",
-    database_max_retries => '-1',
-    auth_strategy        => false,
+    database_connection      => "mysql+pymysql://neutron:${neutron_password}@${host}/neutron",
+    database_max_retries     => '-1',
+    auth_strategy            => false,
     #
-    sync_db              => $sync_db,
+    router_scheduler_driver  => 'neutron.scheduler.l3_agent_scheduler.ChanceScheduler',
     #
-    manage_service       => false,
-    enabled              => false,
+    api_workers              => '2',
+    rpc_workers              => '2',
+    l3_ha                    => true,
+    min_l3_agents_per_router => '2',
+    max_l3_agents_per_router => '2',
+    #
+    sync_db                  => $sync_db,
+    #
+    manage_service           => false,
+    enabled                  => false,
   }
 
   class { '::neutron::keystone::authtoken':
@@ -44,7 +58,9 @@ class openstack::y004_neutron (
     password            => $neutron_password,
   }
 
-  class { 'neutron::server::notifications':
+  class { '::neutron::server::notifications':
+    notify_nova_on_port_status_changes => true,
+    notify_nova_on_port_data_changes   => true,
     auth_url          => "http://${host}:35357/",
     auth_type         => 'password',
     project_domain_id => 'default',
