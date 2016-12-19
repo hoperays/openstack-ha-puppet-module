@@ -107,7 +107,7 @@ class openstack::y004_neutron (
     local_ip           => $::ipaddress_eth3,
     integration_bridge => 'br-int',
     tunnel_bridge      => 'br-tun',
-    bridge_mappings    => 'physnet1:br-eth2,extnet:br-ex',
+    bridge_mappings    => ['physnet1:br-eth2', 'extnet:br-ex'],
     firewall_driver    => 'neutron.agent.linux.iptables_firewall.OVSHybridIptablesFirewallDriver',
     l2_population      => false,
     #
