@@ -291,17 +291,17 @@ class openstack::y004_neutron (
       target => 'neutron-metadata-agent-clone',
       score  => 'INFINITY',
     } ->
-    pacemaker::resource::service { 'neutron-vpnaas-agent': clone_params => 'interleave=true', } ->
-    pacemaker::constraint::base { 'order-neutron-l3-agent-clone-neutron-vpnaas-agent-clone-Mandatory':
+    pacemaker::resource::service { 'neutron-vpn-agent': clone_params => 'interleave=true', } ->
+    pacemaker::constraint::base { 'order-neutron-l3-agent-clone-neutron-vpn-agent-clone-Mandatory':
       constraint_type   => 'order',
       first_action      => 'start',
       first_resource    => 'neutron-l3-agent-clone',
       second_action     => 'start',
-      second_resource   => 'neutron-vpnaas-agent-clone',
+      second_resource   => 'neutron-vpn-agent-clone',
       constraint_params => 'kind=Mandatory',
     } ->
-    pacemaker::constraint::colocation { 'colocation-neutron-vpnaas-agent-clone-neutron-l3-agent-clone-INFINITY':
-      source => 'neutron-vpnaas-agent-clone',
+    pacemaker::constraint::colocation { 'colocation-neutron-vpn-agent-clone-neutron-l3-agent-clone-INFINITY':
+      source => 'neutron-vpn-agent-clone',
       target => 'neutron-l3-agent-clone',
       score  => 'INFINITY',
     } ->
