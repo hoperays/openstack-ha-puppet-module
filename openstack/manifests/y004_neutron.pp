@@ -18,6 +18,8 @@ class openstack::y004_neutron (
     auth_strategy           => 'keystone',
     #
     notification_driver     => 'neutron.openstack.common.notifier.rpc_notifier',
+    rabbit_user             => 'guest',
+    rabbit_password         => 'guest',
     rabbit_hosts            => $cluster_nodes,
     rabbit_ha_queues        => true,
     #
