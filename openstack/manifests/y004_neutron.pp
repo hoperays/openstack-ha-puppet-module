@@ -160,6 +160,101 @@ class openstack::y004_neutron (
     enabled                     => false,
   }
 
+  file { '/etc/neutron/dnsmasq-neutron.conf':
+    ensure  => file,
+    mode    => '0644',
+    owner   => 'root',
+    group   => 'neutron',
+    content => "dhcp-option-force=26,1400",
+    require => Class['::neutron::agents::dhcp'],
+  }
+
+  file { '/etc/sysconfig/network-scripts/ifcfg-eth1':
+    ensure  => file,
+    mode    => '0644',
+    owner   => 'root',
+    group   => 'root',
+    content => "NAME=eth1
+DEVICE=eth1
+TYPE=OVSPort
+DEVICETYPE=ovs
+OVS_BRIDGE=br-ex
+BOOTPROTO=none
+ONBOOT=yes
+",
+    require => Class['::neutron::agents::ml2::ovs'],
+  } ->
+  file { '/etc/sysconfig/network-scripts/ifcfg-br-ex':
+    ensure  => file,
+    mode    => '0644',
+    owner   => 'root',
+    group   => 'root',
+    content => "NAME=br-ex
+DEVICE=br-ex
+DEVICETYPE=ovs
+OVSBOOTPROTO=none
+TYPE=OVSBridge
+BOOTPROTO=none
+ONBOOT=yes
+",
+  } ->
+  file { '/etc/sysconfig/network-scripts/ifcfg-eth2':
+    ensure  => file,
+    mode    => '0644',
+    owner   => 'root',
+    group   => 'root',
+    content => "NAME=eth2
+DEVICE=eth2
+TYPE=OVSPort
+DEVICETYPE=ovs
+OVS_BRIDGE=br-eth2
+BOOTPROTO=none
+ONBOOT=yes
+",
+  } ->
+  file { '/etc/sysconfig/network-scripts/ifcfg-br-eth2':
+    ensure  => file,
+    mode    => '0644',
+    owner   => 'root',
+    group   => 'root',
+    content => "NAME=br-eth2
+DEVICE=br-eth2
+DEVICETYPE=ovs
+OVSBOOTPROTO=none
+TYPE=OVSBridge
+BOOTPROTO=none
+ONBOOT=yes
+",
+  } ->
+  exec { 'ovs-vsctl add-br br-ex':
+    timeout   => '3600',
+    tries     => '360',
+    try_sleep => '10',
+    command   => "/usr/bin/ovs-vsctl add-br br-ex",
+    unless    => "/usr/bin/ovs-vsctl list-ports br-ex",
+  } ->
+  exec { 'ovs-vsctl add-port br-ex eth1':
+    timeout   => '3600',
+    tries     => '360',
+    try_sleep => '10',
+    command   => "/usr/bin/ovs-vsctl add-port br-ex eth1",
+    unless    => "/usr/bin/ovs-vsctl list-ports br-ex | /usr/bin/grep eth1",
+  } ->
+  exec { 'ovs-vsctl add-br br-eth2':
+    timeout   => '3600',
+    tries     => '360',
+    try_sleep => '10',
+    command   => "/usr/bin/ovs-vsctl add-br br-eth2",
+    unless    => "/usr/bin/ovs-vsctl list-ports br-eth2",
+  } ->
+  exec { 'ovs-vsctl add-port br-eth2 eth2':
+    timeout   => '3600',
+    tries     => '360',
+    try_sleep => '10',
+    command   => "/usr/bin/ovs-vsctl add-port br-eth2 eth2",
+    unless    => "/usr/bin/ovs-vsctl list-ports br-eth2 | /usr/bin/grep eth2",
+  }
+
   if $::hostname == $bootstrap_node {
     class { '::neutron::db::mysql':
       password      => $neutron_password,
@@ -191,78 +286,6 @@ class openstack::y004_neutron (
       project        => 'service',
       project_domain => 'default',
       roles          => ['admin'],
-    } ->
-    file { '/etc/neutron/dnsmasq-neutron.conf':
-      ensure  => file,
-      mode    => '0644',
-      owner   => 'root',
-      group   => 'neutron',
-      content => "dhcp-option-force=26,1400",
-    } ->
-    file { '/etc/sysconfig/network-scripts/ifcfg-eth1':
-      ensure  => file,
-      mode    => '0644',
-      owner   => 'root',
-      group   => 'root',
-      content => "NAME=eth1
-DEVICE=eth1
-TYPE=OVSPort
-DEVICETYPE=ovs
-OVS_BRIDGE=br-ex
-BOOTPROTO=none
-ONBOOT=yes
-",
-    } ->
-    file { '/etc/sysconfig/network-scripts/ifcfg-br-ex':
-      ensure  => file,
-      mode    => '0644',
-      owner   => 'root',
-      group   => 'root',
-      content => "NAME=br-ex
-DEVICE=br-ex
-DEVICETYPE=ovs
-OVSBOOTPROTO=none
-TYPE=OVSBridge
-BOOTPROTO=none
-ONBOOT=yes
-",
-    } ->
-    file { '/etc/sysconfig/network-scripts/ifcfg-eth2':
-      ensure  => file,
-      mode    => '0644',
-      owner   => 'root',
-      group   => 'root',
-      content => "NAME=eth2
-DEVICE=eth2
-TYPE=OVSPort
-DEVICETYPE=ovs
-OVS_BRIDGE=br-eth2
-BOOTPROTO=none
-ONBOOT=yes
-",
-    } ->
-    file { '/etc/sysconfig/network-scripts/ifcfg-br-eth2':
-      ensure  => file,
-      mode    => '0644',
-      owner   => 'root',
-      group   => 'root',
-      content => "NAME=br-eth2
-DEVICE=br-eth2
-DEVICETYPE=ovs
-OVSBOOTPROTO=none
-TYPE=OVSBridge
-BOOTPROTO=none
-ONBOOT=yes
-",
-    } ->
-    exec { 'ovs-vsctl add-port':
-      timeout   => '3600',
-      tries     => '360',
-      try_sleep => '10',
-      command   => "/usr/bin/ovs-vsctl add-port br-ex   eth1 && \
-                    /usr/bin/ovs-vsctl add-port br-eth2 eth2",
-      unless    => "/usr/bin/ovs-vsctl list-ports br-ex   | grep eth1 && \
-                    /usr/bin/ovs-vsctl list-ports br-eth2 | grep eth2",
     } ->
     pacemaker::resource::service { 'neutron-server': clone_params => 'interleave=true', } ->
     pacemaker::resource::ocf { 'neutron-ovs-cleanup':
