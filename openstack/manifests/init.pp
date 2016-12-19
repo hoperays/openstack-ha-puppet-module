@@ -24,5 +24,7 @@ class openstack {
   # core openstack services
   class { 'openstack::y001_keystone': } ->
   class { 'openstack::y002_glance': } ->
-  class { 'openstack::y003_cinder': }
+  class { 'openstack::y003_cinder': } ->
+  class { 'openstack::y004_neutron': }
+  # other services
 }
