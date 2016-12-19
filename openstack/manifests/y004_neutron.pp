@@ -102,7 +102,7 @@ class openstack::y004_neutron (
   }
 
   class { '::neutron::agents::ml2::ovs':
-    tunnel_types       => 'vxlan',
+    tunnel_types       => ['vxlan'],
     vxlan_udp_port     => '4789',
     integration_bridge => 'br-int',
     tunnel_bridge      => 'br-tun',
