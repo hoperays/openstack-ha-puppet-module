@@ -24,7 +24,7 @@ class openstack::y004_neutron (
     rabbit_ha_queues        => true,
     #
     core_plugin             => 'neutron.plugins.ml2.plugin.Ml2Plugin',
-    service_plugins         => ['router', 'firewall', 'lbaas', 'vpnaas'],
+    service_plugins         => ['router', 'firewall', 'neutron_lbaas.services.loadbalancer.plugin.LoadBalancerPluginv2', 'vpnaas'],
     #
     dhcp_agents_per_network => '2',
   }
