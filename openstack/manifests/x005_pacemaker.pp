@@ -5,7 +5,13 @@ class openstack::x005_pacemaker (
   $cluster_name    = 'openstack-cluster',
   $manage_fw       = false,
   $remote_authkey  = 'remote1234',) {
-  class { 'pacemaker::new':
+  #  if $::hostname == $bootstrap_node {
+  #    $cluster_setup = true
+  #  } else {
+  #    $cluster_setup = false
+  #  }
+
+  class { '::pacemaker::new':
     firewall_corosync_manage => false,
     firewall_pcsd_manage     => false,
     cluster_password         => $hacluster_pwd,
@@ -13,6 +19,8 @@ class openstack::x005_pacemaker (
     cluster_name             => $cluster_name,
     cluster_auth_key         => $remote_authkey,
     cluster_auth_enabled     => true,
+    # cluster_setup            => $cluster_setup,
+    cluster_options          => '--force',
   }
 
   exec { 'wait-for-settle':
@@ -21,7 +29,7 @@ class openstack::x005_pacemaker (
     try_sleep => '10',
     command   => "/usr/sbin/pcs status | grep -q 'partition with quorum' > /dev/null 2>&1",
     unless    => "/usr/sbin/pcs status | grep -q 'partition with quorum' > /dev/null 2>&1",
-    require   => Class['pacemaker::new'],
+    require   => Class['::pacemaker::new'],
   }
 
   if $::hostname == $bootstrap_node {
