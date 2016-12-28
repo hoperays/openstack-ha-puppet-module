@@ -61,17 +61,17 @@ class openstack::y005_nova (
   }
 
   class { '::nova::api':
-    api_bind_address     => $ipaddress_eth0,
-    osapi_compute_listen_port    => '8774',
-    metadata_listen      => $ipaddress_eth0,
-    metadata_listen_port => '8775',
-    enabled_apis         => ['osapi_compute', 'metadata'],
-    sync_db              => $sync_db,
-    sync_db_api          => $sync_db_api,
-    metadata_proxy_shared_secret => 'metadata1234',
+    api_bind_address => $ipaddress_eth0,
+    osapi_compute_listen_port            => '8774',
+    metadata_listen  => $ipaddress_eth0,
+    metadata_listen_port                 => '8775',
+    enabled_apis     => ['osapi_compute', 'metadata'],
+    sync_db          => $sync_db,
+    sync_db_api      => $sync_db_api,
+    neutron_metadata_proxy_shared_secret => 'metadata1234',
     #
-    enabled              => false,
-    manage_service       => false,
+    enabled          => false,
+    manage_service   => false,
   }
 
   class { '::nova::conductor':
