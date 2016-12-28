@@ -279,7 +279,7 @@ ONBOOT=yes
       # email    => 'neutron@example.org',
       domain   => 'default',
     } ->
-    keystone_user_role { 'neutron::default@service::neutron':
+    keystone_user_role { 'neutron::default@service::default':
       ensure         => 'present',
       user           => 'neutron',
       user_domain    => 'default',

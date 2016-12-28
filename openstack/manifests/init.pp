@@ -25,6 +25,9 @@ class openstack {
   class { 'openstack::y001_keystone': } ->
   class { 'openstack::y002_glance': } ->
   class { 'openstack::y003_cinder': } ->
-  class { 'openstack::y004_neutron': }
+  class { 'openstack::y004_neutron': } ->
+  class { 'openstack::y005_nova': } ->
+  class { 'openstack::y006_horizon': }
   # other services
+  # class { 'openstack::z001_zabbix': }
 }

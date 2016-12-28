@@ -19,8 +19,8 @@ class openstack::x005_pacemaker (
     cluster_name             => $cluster_name,
     cluster_auth_key         => $remote_authkey,
     cluster_auth_enabled     => true,
-    # cluster_setup            => $cluster_setup,
-    cluster_options          => '--force',
+  # cluster_setup            => $cluster_setup,
+  # cluster_options          => '--force',
   }
 
   exec { 'wait-for-settle':
