@@ -1,11 +1,12 @@
 class openstack::y005_nova (
-  $bootstrap_node   = 'controller-1',
-  $nova_password    = 'nova1234',
-  $neutron_password = 'neutron1234',
-  $allowed_hosts    = ['%'],
-  $cluster_nodes    = ['controller-1', 'controller-2', 'controller-3'],
-  $host             = 'controller-vip',
-  $controller_vip   = '192.168.0.130',) {
+  $bootstrap_node    = 'controller-1',
+  $nova_password     = 'nova1234',
+  $nova_api_password = '$nova_api1234',
+  $neutron_password  = 'neutron1234',
+  $allowed_hosts     = ['%'],
+  $cluster_nodes     = ['controller-1', 'controller-2', 'controller-3'],
+  $host              = 'controller-vip',
+  $controller_vip    = '192.168.0.130',) {
   if $::hostname == $bootstrap_node {
     $sync_db = true
     $sync_db_api = true
@@ -16,7 +17,7 @@ class openstack::y005_nova (
 
   class { '::nova':
     database_connection     => "mysql+pymysql://nova:${nova_password}@${host}/nova",
-    api_database_connection => "mysql+pymysql://nova:${nova_password}@${host}/nova_api",
+    api_database_connection => "mysql+pymysql://nova_api:${nova_api_password}@${host}/nova_api",
     database_max_retries    => '-1',
     rabbit_userid           => 'guest',
     rabbit_password         => 'guest',
@@ -99,10 +100,6 @@ class openstack::y005_nova (
     manage_service    => false,
   }
 
-  class { '::nova::vncproxy::common':
-    vncproxy_host => $controller_vip,
-  }
-
   if $::hostname == $bootstrap_node {
     class { '::nova::db::mysql':
       user          => 'nova',
@@ -111,8 +108,8 @@ class openstack::y005_nova (
       allowed_hosts => $allowed_hosts,
     } ->
     class { '::nova::db::mysql_api':
-      user          => 'nova',
-      password      => $nova_password,
+      user          => 'nova_api',
+      password      => $nova_api_password,
       host          => 'localhost',
       allowed_hosts => $allowed_hosts,
     } ->
