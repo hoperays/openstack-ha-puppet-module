@@ -1,7 +1,7 @@
 class openstack::y005_nova (
   $bootstrap_node    = 'controller-1',
   $nova_password     = 'nova1234',
-  $nova_api_password = '$nova_api1234',
+  $nova_api_password = 'nova_api1234',
   $neutron_password  = 'neutron1234',
   $allowed_hosts     = ['%'],
   $cluster_nodes     = ['controller-1', 'controller-2', 'controller-3'],
