@@ -99,10 +99,27 @@
 #    Useful when testing in single-host environments.
 #    Defaults to false
 #
+#  [*resize_confirm_window*]
+#   (optional) Automatically confirm resizes after N seconds.
+#   Resize functionality will save the existing server before resizing.
+#   After the resize completes, user is requested to confirm the resize.
+#   The user has the opportunity to either confirm or revert all
+#   changes. Confirm resize removes the original server and changes
+#   server status from resized to active. Setting this option to a time
+#   period (in seconds) will automatically confirm the resize if the
+#   server is in resized state longer than that time.
+#   Defaults to $::os_service_default
+#
 #  [*vcpu_pin_set*]
 #    (optional) A list or range of physical CPU cores to reserve
 #    for virtual machine processes
 #    Defaults to $::os_service_default
+#
+#  [*resume_guests_state_on_host_boot*]
+#   (optional) This option specifies whether to start guests that were running before the
+#   host rebooted. It ensures that all of the instances on a Nova compute node
+#   resume their state each time the compute node boots or restarts.
+#   Defaults to $::os_service_default
 #
 # [*keymgr_api_class*]
 #   (optional) Key Manager service.
@@ -168,7 +185,9 @@ class nova::compute (
   $pci_passthrough                    = $::os_service_default,
   $config_drive_format                = $::os_service_default,
   $allow_resize_to_same_host          = false,
+  $resize_confirm_window              = $::os_service_default,
   $vcpu_pin_set                       = $::os_service_default,
+  $resume_guests_state_on_host_boot   = $::os_service_default,
   $keymgr_api_class                   = $::os_service_default,
   $barbican_auth_endpoint             = $::os_service_default,
   $barbican_endpoint                  = $::os_service_default,
@@ -235,7 +254,9 @@ is used. It will be removed once Nova removes it.")
     'DEFAULT/heal_instance_info_cache_interval': value => $heal_instance_info_cache_interval;
     'DEFAULT/allow_resize_to_same_host':         value => $allow_resize_to_same_host;
     'DEFAULT/pci_passthrough_whitelist':         value => $pci_passthrough_real;
+    'DEFAULT/resize_confirm_window':             value => $resize_confirm_window;
     'DEFAULT/vcpu_pin_set':                      value => $vcpu_pin_set_real;
+    'DEFAULT/resume_guests_state_on_host_boot':  value => $resume_guests_state_on_host_boot;
     'key_manager/api_class':                     value => $keymgr_api_class;
     'barbican/auth_endpoint':                    value => $barbican_auth_endpoint;
     'barbican/barbican_endpoint':                value => $barbican_endpoint;
