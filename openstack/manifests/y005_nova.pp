@@ -5,8 +5,7 @@ class openstack::y005_nova (
   $neutron_password  = 'neutron1234',
   $allowed_hosts     = ['%'],
   $cluster_nodes     = ['controller-1', 'controller-2', 'controller-3'],
-  $host              = 'controller-vip',
-  $controller_vip    = '192.168.0.130',) {
+  $host              = 'controller-vip',) {
   if $::hostname == $bootstrap_node {
     $sync_db = true
     $sync_db_api = true
