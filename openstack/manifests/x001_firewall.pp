@@ -1,7 +1,7 @@
 class openstack::x001_firewall {
   class { 'firewall': }
 
-  resources { 'firewall': purge => true, }
+  # resources { 'firewall': purge => true, }
 
   firewall { '000 accept all icmp':
     proto  => 'icmp',
