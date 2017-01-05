@@ -1,38 +1,20 @@
 class openstack::y007_compute (
-  $bootstrap_node    = 'controller-1',
   $nova_password     = 'nova1234',
   $nova_api_password = 'nova_api1234',
   $neutron_password  = 'neutron1234',
   $allowed_hosts     = ['%'],
   $cluster_nodes     = ['controller-1', 'controller-2', 'controller-3'],
-  $host              = 'controller-vip',) {
-  if $::hostname == $bootstrap_node {
-    $sync_db = true
-    $sync_db_api = true
-  } else {
-    $sync_db = false
-    $sync_db_api = false
-  }
-
-  class { '::nova::compute':
-    enabled     => true,
-    vnc_enabled => true,
-  }
-
-  class { '::nova::compute::libvirt':
-    migration_support => true,
-  }
-
+  $host              = 'controller-vip',
+  $rbd_secret_uuid   = '2ad6a20f-ffdd-460d-afba-04ab286f365f',
+  $cinder_key        = 'AQB+RUpYfv+aIRAA4AbRb+XICXx+x+shF5AeZQ==',) {
   class { '::nova':
-    database_connection     => "mysql+pymysql://nova:${nova_password}@${host}/nova",
-    api_database_connection => "mysql+pymysql://nova_api:${nova_api_password}@${host}/nova_api",
-    database_max_retries    => '-1',
-    rabbit_userid           => 'guest',
-    rabbit_password         => 'guest',
-    rabbit_hosts            => $cluster_nodes,
-    rabbit_ha_queues        => true,
-    auth_strategy           => 'keystone',
-    cinder_catalog_info     => 'volumev2:cinderv2:publicURL',
+    rabbit_userid       => 'guest',
+    rabbit_password     => 'guest',
+    rabbit_hosts        => $cluster_nodes,
+    rabbit_ha_queues    => true,
+    auth_strategy       => 'keystone',
+    glance_api_servers  => "http://${host}:9292",
+    cinder_catalog_info => 'volumev2:cinderv2:publicURL',
   }
 
   class { '::nova::keystone::authtoken':
@@ -46,6 +28,48 @@ class openstack::y007_compute (
     project_name        => 'service',
     username            => 'nova',
     password            => $nova_password,
+  }
+
+  class { '::nova::compute':
+    vnc_enabled          => true,
+    vncserver_proxyclient_address    => $ipaddress_eth0,
+    vncproxy_host        => $host,
+    vncproxy_protocol    => 'http',
+    vncproxy_port        => '6080',
+    vncproxy_path        => '/vnc_auto.html',
+    vnc_keymap           => 'en-us',
+    reserved_host_memory => '512', # MB
+    allow_resize_to_same_host        => true,
+    resume_guests_state_on_host_boot => true,
+    #
+    enabled              => false,
+    manage_service       => false,
+  }
+
+  class { '::nova::compute::libvirt':
+    libvirt_virt_type        => 'kvm',
+    vncserver_listen         => '0.0.0.0',
+    migration_support        => true,
+    libvirt_cpu_mode         => 'host-model', # 'custom'
+    libvirt_cpu_model        => undef, # 'core2duo'
+    libvirt_disk_cachemodes  => ['network=writeback'],
+    libvirt_hw_disk_discard  => 'unmap',
+    libvirt_inject_password  => false,
+    libvirt_inject_key       => false,
+    libvirt_inject_partition => -2,
+    #
+    manage_libvirt_services  => false,
+  }
+
+  class { '::nova::compute::rbd':
+    libvirt_rbd_user             => 'cinder',
+    libvirt_rbd_secret_uuid      => $rbd_secret_uuid,
+    libvirt_rbd_secret_key       => $cinder_key,
+    libvirt_images_rbd_pool      => 'vms',
+    libvirt_images_rbd_ceph_conf => '/etc/ceph/ceph.conf',
+    rbd_keyring                  => 'client.cinder',
+    ephemeral_storage            => true,
+    manage_ceph_client           => false,
   }
 
   class { '::nova::network::neutron':
@@ -69,27 +93,83 @@ class openstack::y007_compute (
     dhcp_domain                     => 'novalocal',
   }
 
-  class { '::nova::api':
-    api_bind_address => $ipaddress_eth0,
-    osapi_compute_listen_port            => '8774',
-    metadata_listen  => $ipaddress_eth0,
-    metadata_listen_port                 => '8775',
-    enabled_apis     => ['osapi_compute', 'metadata'],
-    sync_db          => $sync_db,
-    sync_db_api      => $sync_db_api,
-    neutron_metadata_proxy_shared_secret => 'metadata1234',
+  class { '::neutron':
+    auth_strategy       => 'keystone',
     #
-    enabled          => false,
-    manage_service   => false,
+    notification_driver => 'neutron.openstack.common.notifier.rpc_notifier',
+    rabbit_user         => 'guest',
+    rabbit_password     => 'guest',
+    rabbit_hosts        => $cluster_nodes,
+    rabbit_ha_queues    => true,
   }
 
-  class { '::nova::vncproxy':
-    vncproxy_protocol => 'http',
-    host              => $::hostname,
-    port              => '6080',
-    vncproxy_path     => '/vnc_auto.html',
+  class { '::neutron::keystone::authtoken':
+    auth_uri            => "http://${host}:5000/",
+    auth_url            => "http://${host}:35357/",
+    memcached_servers   => $cluster_nodes,
+    auth_type           => 'password',
+    project_domain_name => 'default',
+    user_domain_name    => 'default',
+    region_name         => 'RegionOne',
+    project_name        => 'service',
+    username            => 'neutron',
+    password            => $neutron_password,
+  }
+
+  class { '::neutron::agents::ml2::ovs':
+    tunnel_types       => ['vxlan'],
+    vxlan_udp_port     => '4789',
+    local_ip           => $::ipaddress_eth3,
+    integration_bridge => 'br-int',
+    tunnel_bridge      => 'br-tun',
+    bridge_mappings    => ['physnet1:br-eth2'],
+    firewall_driver    => 'neutron.agent.linux.iptables_firewall.OVSHybridIptablesFirewallDriver',
+    l2_population      => false,
     #
-    enabled           => false,
-    manage_service    => false,
+    manage_service     => false,
+    enabled            => false,
+  }
+
+  file { '/etc/sysconfig/network-scripts/ifcfg-eth2':
+    ensure  => file,
+    mode    => '0644',
+    owner   => 'root',
+    group   => 'root',
+    content => "NAME=eth2
+DEVICE=eth2
+TYPE=OVSPort
+DEVICETYPE=ovs
+OVS_BRIDGE=br-eth2
+BOOTPROTO=none
+ONBOOT=yes
+",
+  } ->
+  file { '/etc/sysconfig/network-scripts/ifcfg-br-eth2':
+    ensure  => file,
+    mode    => '0644',
+    owner   => 'root',
+    group   => 'root',
+    content => "NAME=br-eth2
+DEVICE=br-eth2
+DEVICETYPE=ovs
+OVSBOOTPROTO=none
+TYPE=OVSBridge
+BOOTPROTO=none
+ONBOOT=yes
+",
+  } ->
+  exec { 'ovs-vsctl add-br br-eth2':
+    timeout   => '3600',
+    tries     => '360',
+    try_sleep => '10',
+    command   => "/usr/bin/ovs-vsctl add-br br-eth2",
+    unless    => "/usr/bin/ovs-vsctl list-ports br-eth2",
+  } ->
+  exec { 'ovs-vsctl add-port br-eth2 eth2':
+    timeout   => '3600',
+    tries     => '360',
+    try_sleep => '10',
+    command   => "/usr/bin/ovs-vsctl add-port br-eth2 eth2",
+    unless    => "/usr/bin/ovs-vsctl list-ports br-eth2 | /usr/bin/grep eth2",
   }
 }

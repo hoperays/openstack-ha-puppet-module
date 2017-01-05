@@ -91,7 +91,7 @@ class openstack::y005_nova (
 
   class { '::nova::vncproxy':
     vncproxy_protocol => 'http',
-    host              => $::hostname,
+    host              => $ipaddress_eth0,
     port              => '6080',
     vncproxy_path     => '/vnc_auto.html',
     #
