@@ -23,6 +23,7 @@ class openstack::y005_nova (
     rabbit_hosts            => $cluster_nodes,
     rabbit_ha_queues        => true,
     auth_strategy           => 'keystone',
+    glance_api_servers      => "http://${host}:9292",
     cinder_catalog_info     => 'volumev2:cinderv2:publicURL',
   }
 
