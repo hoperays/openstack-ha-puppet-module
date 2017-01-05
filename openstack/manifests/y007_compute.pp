@@ -61,6 +61,13 @@ class openstack::y007_compute (
     manage_libvirt_services  => false,
   }
 
+  class { '::nova::compute::libvirt::services':
+    libvirt_service_name  => 'libvirtd',
+    virtlock_service_name => 'virtlockd',
+    virtlog_service_name  => 'virtlogd',
+    libvirt_virt_type     => 'kvm',
+  }
+
   class { '::nova::compute::rbd':
     libvirt_rbd_user             => 'cinder',
     libvirt_rbd_secret_uuid      => $rbd_secret_uuid,
