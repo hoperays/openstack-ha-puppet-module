@@ -95,8 +95,8 @@ class openstack::y007_compute (
     neutron_ovs_bridge              => 'br-int',
     neutron_extension_sync_interval => '600',
     firewall_driver                 => 'nova.virt.firewall.NoopFirewallDriver',
-    vif_plugging_is_fatal           => true,
-    vif_plugging_timeout            => '300',
+    vif_plugging_is_fatal           => false,
+    vif_plugging_timeout            => '0',
     dhcp_domain                     => 'novalocal',
   }
 
