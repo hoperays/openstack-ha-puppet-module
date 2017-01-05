@@ -1,16 +1,9 @@
 class openstack::y006_horizon (
   $bind_address   = $ipaddress_eth0,
   $servername     = $::hostname,
-  $server_aliases = [
-    $::hostname,
-    'controller-vip',
-    $ipaddress_eth0,
-    '192.168.0.130'],
+  $server_aliases = [$::hostname, 'controller-vip', $ipaddress_eth0, '192.168.0.130'],
   $allowed_hosts  = [$::hostname, 'controller-vip', $ipaddress_eth0, '192.168.0.130'],
-  $cluster_nodes  = [
-    'controller-1',
-    'controller-2',
-    'controller-3'],
+  $cluster_nodes  = ['controller-1', 'controller-2', 'controller-3'],
   $secret_key     = 'd872760ce14ffd0919ad',
   $host           = 'controller-vip',
   $bootstrap_node = 'controller-1',) {
@@ -19,10 +12,10 @@ class openstack::y006_horizon (
     servername                   => $servername,
     server_aliases               => $server_aliases,
     allowed_hosts                => $allowed_hosts,
-    # listen_ssl            => true,
-    # horizon_cert          => undef,
-    # horizon_key           => undef,
-    # horizon_ca            => undef,
+    # listen_ssl                   => true,
+    # horizon_cert                 => undef,
+    # horizon_key                  => undef,
+    # horizon_ca                   => undef,
     cache_server_ip              => $cluster_nodes,
     cache_server_port            => '11211',
     secret_key                   => $secret_key,
