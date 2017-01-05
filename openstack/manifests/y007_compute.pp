@@ -1,12 +1,11 @@
 class openstack::y007_compute (
-  $nova_password     = 'nova1234',
-  $nova_api_password = 'nova_api1234',
-  $neutron_password  = 'neutron1234',
-  $allowed_hosts     = ['%'],
-  $cluster_nodes     = ['controller-1', 'controller-2', 'controller-3'],
-  $host              = 'controller-vip',
-  $rbd_secret_uuid   = '2ad6a20f-ffdd-460d-afba-04ab286f365f',
-  $cinder_key        = 'AQB+RUpYfv+aIRAA4AbRb+XICXx+x+shF5AeZQ==',) {
+  $nova_password    = 'nova1234',
+  $neutron_password = 'neutron1234',
+  $cluster_nodes    = ['controller-1', 'controller-2', 'controller-3'],
+  $host             = 'controller-vip',
+  $controller_vip   = '192.168.0.130',
+  $rbd_secret_uuid  = '2ad6a20f-ffdd-460d-afba-04ab286f365f',
+  $cinder_key       = 'AQB+RUpYfv+aIRAA4AbRb+XICXx+x+shF5AeZQ==',) {
   class { '::nova':
     rabbit_userid       => 'guest',
     rabbit_password     => 'guest',
@@ -33,7 +32,7 @@ class openstack::y007_compute (
   class { '::nova::compute':
     vnc_enabled          => true,
     vncserver_proxyclient_address    => $ipaddress_eth0,
-    vncproxy_host        => $host,
+    vncproxy_host        => $controller_vip,
     vncproxy_protocol    => 'http',
     vncproxy_port        => '6080',
     vncproxy_path        => '/vnc_auto.html',
