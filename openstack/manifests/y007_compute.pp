@@ -50,7 +50,7 @@ class openstack::y007_compute (
     vncserver_listen         => '0.0.0.0',
     migration_support        => true,
     libvirt_cpu_mode         => 'host-model', # 'custom'
-    libvirt_cpu_model        => undef, # 'core2duo'
+    libvirt_cpu_model        => undef,        # 'core2duo'
     libvirt_disk_cachemodes  => ['network=writeback'],
     libvirt_hw_disk_discard  => 'unmap',
     libvirt_inject_password  => false,
