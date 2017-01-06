@@ -339,6 +339,7 @@ class openstack::x006_haproxy (
   haproxy::backend { 'nova-vnc-novncproxy-vms':
     options => {
       'balance' => 'roundrobin',
+      'timeout' => 'tunnel 1h',
     }
   }
 
