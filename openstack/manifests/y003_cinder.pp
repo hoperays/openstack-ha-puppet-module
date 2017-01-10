@@ -159,6 +159,14 @@ class openstack::y003_cinder (
       roles          => ['admin'],
     } ->
     pacemaker::resource::service { 'openstack-cinder-api': clone_params => 'interleave=true', } ->
+    pacemaker::constraint::base { 'order-httpd-clone-openstack-cinder-api-clone-Mandatory':
+      constraint_type   => 'order',
+      first_action      => 'start',
+      first_resource    => 'httpd-clone',
+      second_action     => 'start',
+      second_resource   => 'openstack-cinder-api-clone',
+      constraint_params => 'kind=Mandatory',
+    } ->
     pacemaker::resource::service { 'openstack-cinder-scheduler': clone_params => 'interleave=true', } ->
     pacemaker::constraint::base { 'order-openstack-cinder-api-clone-openstack-cinder-scheduler-clone-Mandatory':
       constraint_type   => 'order',

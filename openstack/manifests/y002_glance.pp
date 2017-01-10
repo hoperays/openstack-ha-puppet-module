@@ -117,6 +117,14 @@ class openstack::y002_glance (
       roles          => ['admin'],
     } ->
     pacemaker::resource::service { 'openstack-glance-registry': clone_params => 'interleave=true', } ->
+    pacemaker::constraint::base { 'order-httpd-clone-openstack-glance-registry-clone-Mandatory':
+      constraint_type   => 'order',
+      first_action      => 'start',
+      first_resource    => 'httpd-clone',
+      second_action     => 'start',
+      second_resource   => 'openstack-glance-registry-clone',
+      constraint_params => 'kind=Mandatory',
+    } ->
     pacemaker::resource::service { 'openstack-glance-api': clone_params => 'interleave=true', } ->
     pacemaker::constraint::base { 'order-openstack-glance-registry-clone-openstack-glance-api-clone-Mandatory':
       constraint_type   => 'order',

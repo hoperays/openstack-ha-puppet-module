@@ -291,6 +291,14 @@ ONBOOT=yes
       op_params    => 'start timeout=90s',
       clone_params => 'interleave=true',
     } ->
+    pacemaker::constraint::base { 'order-httpd-clone-neutron-server-clone-Mandatory':
+      constraint_type   => 'order',
+      first_action      => 'start',
+      first_resource    => 'httpd-clone',
+      second_action     => 'start',
+      second_resource   => 'neutron-server-clone',
+      constraint_params => 'kind=Mandatory',
+    } ->
     pacemaker::resource::ocf { 'neutron-ovs-cleanup':
       ensure         => 'present',
       ocf_agent_name => 'neutron:OVSCleanup',

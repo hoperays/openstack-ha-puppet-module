@@ -138,6 +138,14 @@ class openstack::y005_nova (
       roles          => ['admin'],
     } ->
     pacemaker::resource::service { 'openstack-nova-consoleauth': clone_params => 'interleave=true', } ->
+    pacemaker::constraint::base { 'order-httpd-clone-openstack-nova-consoleauth-clone-Mandatory':
+      constraint_type   => 'order',
+      first_action      => 'start',
+      first_resource    => 'httpd-clone',
+      second_action     => 'start',
+      second_resource   => 'openstack-nova-consoleauth-clone',
+      constraint_params => 'kind=Mandatory',
+    } ->
     pacemaker::resource::service { 'openstack-nova-novncproxy': clone_params => 'interleave=true', } ->
     pacemaker::constraint::base { 'order-openstack-nova-consoleauth-clone-openstack-nova-novncproxy-clone-Mandatory':
       constraint_type   => 'order',
