@@ -49,7 +49,7 @@ class openstack::x005_pacemaker (
     } ->
     pacemaker::property { 'cluster-recheck-interval':
       property => 'cluster-recheck-interval',
-      value    => '3min',
+      value    => '1min',
     } ->
     pacemaker::property { 'osprole-controller-1':
       property => 'osprole',
