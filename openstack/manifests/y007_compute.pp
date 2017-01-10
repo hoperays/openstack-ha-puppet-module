@@ -1,11 +1,12 @@
 class openstack::y007_compute (
   $nova_password    = 'nova1234',
   $neutron_password = 'neutron1234',
-  $cluster_nodes    = ['controller-1', 'controller-2', 'controller-3'],
+  $cluster_nodes    = ['controller-1','controller-2','controller-3'],
   $host             = 'controller-vip',
   $controller_vip   = '192.168.0.130',
   $rbd_secret_uuid  = '2ad6a20f-ffdd-460d-afba-04ab286f365f',
-  $cinder_key       = 'AQB+RUpYfv+aIRAA4AbRb+XICXx+x+shF5AeZQ==',) {
+  $cinder_key       = 'AQB+RUpYfv+aIRAA4AbRb+XICXx+x+shF5AeZQ==',
+  $remote_authkey   = 'remote1234',) {
   class { '::nova':
     rabbit_userid       => 'guest',
     rabbit_password     => 'guest',
@@ -177,5 +178,14 @@ ONBOOT=yes
     try_sleep => '10',
     command   => "/usr/bin/ovs-vsctl add-port br-eth2 eth2",
     unless    => "/usr/bin/ovs-vsctl list-ports br-eth2 | /usr/bin/grep eth2",
+  }
+
+  package { 'pacemaker-remote': } ->
+  file { 'etc-pacemaker-authkey':
+    path    => '/etc/pacemaker/authkey',
+    owner   => 'hacluster',
+    group   => 'haclient',
+    mode    => '0640',
+    content => $remote_authkey,
   }
 }

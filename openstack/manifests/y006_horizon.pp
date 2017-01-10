@@ -45,8 +45,8 @@ class openstack::y006_horizon (
   }
 
   if $::hostname == $bootstrap_node {
-    exec { 'apache-restart':
-      command     => "/usr/sbin/pcs resource restart apache-clone",
+    exec { 'httpd-restart':
+      command     => "/usr/sbin/pcs resource restart httpd-clone",
       refreshonly => true,
       subscribe   => Class['::horizon'],
     }

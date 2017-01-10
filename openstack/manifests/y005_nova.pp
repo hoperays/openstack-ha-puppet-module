@@ -102,13 +102,11 @@ class openstack::y005_nova (
 
   if $::hostname == $bootstrap_node {
     class { '::nova::db::mysql':
-      user          => 'nova',
       password      => $nova_password,
       host          => 'localhost',
       allowed_hosts => $allowed_hosts,
     } ->
     class { '::nova::db::mysql_api':
-      user          => 'nova_api',
       password      => $nova_api_password,
       host          => 'localhost',
       allowed_hosts => $allowed_hosts,
@@ -139,11 +137,63 @@ class openstack::y005_nova (
       project_domain => 'default',
       roles          => ['admin'],
     } ->
-    pacemaker::resource::service { 'openstack-nova-api': clone_params => 'interleave=true', } ->
-    pacemaker::resource::service { 'openstack-nova-conductor': clone_params => 'interleave=true', } ->
     pacemaker::resource::service { 'openstack-nova-consoleauth': clone_params => 'interleave=true', } ->
     pacemaker::resource::service { 'openstack-nova-novncproxy': clone_params => 'interleave=true', } ->
+    pacemaker::constraint::base { 'order-openstack-nova-consoleauth-clone-openstack-nova-novncproxy-clone-Mandatory':
+      constraint_type   => 'order',
+      first_action      => 'start',
+      first_resource    => 'openstack-nova-consoleauth-clone',
+      second_action     => 'start',
+      second_resource   => 'openstack-nova-novncproxy-clone',
+      constraint_params => 'kind=Mandatory',
+    } ->
+    pacemaker::constraint::colocation { 'colocation-openstack-nova-novncproxy-clone-openstack-nova-consoleauth-clone-INFINITY':
+      source => 'openstack-nova-novncproxy-clone',
+      target => 'openstack-nova-consoleauth-clone',
+      score  => 'INFINITY',
+    } ->
+    pacemaker::resource::service { 'openstack-nova-api': clone_params => 'interleave=true', } ->
+    pacemaker::constraint::base { 'order-openstack-nova-novncproxy-clone-openstack-nova-api-clone-Mandatory':
+      constraint_type   => 'order',
+      first_action      => 'start',
+      first_resource    => 'openstack-nova-novncproxy-clone',
+      second_action     => 'start',
+      second_resource   => 'openstack-nova-api-clone',
+      constraint_params => 'kind=Mandatory',
+    } ->
+    pacemaker::constraint::colocation { 'colocation-openstack-nova-api-clone-openstack-nova-novncproxy-clone-INFINITY':
+      source => 'openstack-nova-api-clone',
+      target => 'openstack-nova-novncproxy-clone',
+      score  => 'INFINITY',
+    } ->
     pacemaker::resource::service { 'openstack-nova-scheduler': clone_params => 'interleave=true', } ->
+    pacemaker::constraint::base { 'order-openstack-nova-api-clone-openstack-nova-scheduler-clone-Mandatory':
+      constraint_type   => 'order',
+      first_action      => 'start',
+      first_resource    => 'openstack-nova-api-clone',
+      second_action     => 'start',
+      second_resource   => 'openstack-nova-scheduler-clone',
+      constraint_params => 'kind=Mandatory',
+    } ->
+    pacemaker::constraint::colocation { 'colocation-openstack-nova-scheduler-clone-openstack-nova-api-clone-INFINITY':
+      source => 'openstack-nova-scheduler-clone',
+      target => 'openstack-nova-api-clone',
+      score  => 'INFINITY',
+    } ->
+    pacemaker::resource::service { 'openstack-nova-conductor': clone_params => 'interleave=true', } ->
+    pacemaker::constraint::base { 'order-openstack-nova-scheduler-clone-openstack-nova-conductor-clone-Mandatory':
+      constraint_type   => 'order',
+      first_action      => 'start',
+      first_resource    => 'openstack-nova-scheduler-clone',
+      second_action     => 'start',
+      second_resource   => 'openstack-nova-conductor-clone',
+      constraint_params => 'kind=Mandatory',
+    } ->
+    pacemaker::constraint::colocation { 'colocation-openstack-nova-conductor-clone-openstack-nova-scheduler-clone-INFINITY':
+      source => 'openstack-nova-conductor-clone',
+      target => 'openstack-nova-scheduler-clone',
+      score  => 'INFINITY',
+    } ->
     exec { 'nova-ready':
       timeout   => '3600',
       tries     => '360',

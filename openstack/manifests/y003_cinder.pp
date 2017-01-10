@@ -160,8 +160,6 @@ class openstack::y003_cinder (
     } ->
     pacemaker::resource::service { 'openstack-cinder-api': clone_params => 'interleave=true', } ->
     pacemaker::resource::service { 'openstack-cinder-scheduler': clone_params => 'interleave=true', } ->
-    pacemaker::resource::service { 'openstack-cinder-volume': } ->
-    pacemaker::resource::service { 'openstack-cinder-backup': clone_params => 'interleave=true', } ->
     pacemaker::constraint::base { 'order-openstack-cinder-api-clone-openstack-cinder-scheduler-clone-Mandatory':
       constraint_type   => 'order',
       first_action      => 'start',
@@ -175,6 +173,7 @@ class openstack::y003_cinder (
       target => 'openstack-cinder-api-clone',
       score  => 'INFINITY',
     } ->
+    pacemaker::resource::service { 'openstack-cinder-volume': op_params => 'start timeout=200s stop timeout=200s', } ->
     pacemaker::constraint::base { 'order-openstack-cinder-scheduler-clone-openstack-cinder-volume-Mandatory':
       constraint_type   => 'order',
       first_action      => 'start',
@@ -188,16 +187,17 @@ class openstack::y003_cinder (
       target => 'openstack-cinder-scheduler-clone',
       score  => 'INFINITY',
     } ->
-    pacemaker::constraint::base { 'order-openstack-cinder-scheduler-clone-openstack-cinder-backup-clone-Mandatory':
+    pacemaker::resource::service { 'openstack-cinder-backup': op_params => 'start timeout=200s stop timeout=200s', } ->
+    pacemaker::constraint::base { 'order-openstack-cinder-scheduler-clone-openstack-cinder-backup-Mandatory':
       constraint_type   => 'order',
       first_action      => 'start',
       first_resource    => 'openstack-cinder-scheduler-clone',
       second_action     => 'start',
-      second_resource   => 'openstack-cinder-backup-clone',
+      second_resource   => 'openstack-cinder-backup',
       constraint_params => 'kind=Mandatory',
     } ->
-    pacemaker::constraint::colocation { 'colocation-openstack-cinder-backup-clone-openstack-cinder-scheduler-clone-INFINITY':
-      source => 'openstack-cinder-backup-clone',
+    pacemaker::constraint::colocation { 'colocation-openstack-cinder-backup-openstack-cinder-scheduler-clone-INFINITY':
+      source => 'openstack-cinder-backup',
       target => 'openstack-cinder-scheduler-clone',
       score  => 'INFINITY',
     } ->

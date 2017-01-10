@@ -45,6 +45,12 @@ class openstack::y001_keystone (
     admin_bind_host => $::ipaddress_eth0,
   }
 
+  class { '::keystone::cors':
+  }
+
+  class { '::keystone::cron::token_flush':
+  }
+
   if $::hostname == $bootstrap_node {
     class { '::keystone::db::mysql':
       password      => $keystone_password,
@@ -57,7 +63,6 @@ class openstack::y001_keystone (
       try_sleep => '10',
       command   => "/usr/bin/keystone-manage fernet_setup --keystone-user keystone --keystone-group keystone > /dev/null 2>&1",
       unless    => "/usr/bin/keystone-manage fernet_setup --keystone-user keystone --keystone-group keystone > /dev/null 2>&1",
-      require   => Class['::keystone'],
     } ->
     exec { 'rsync fernet-keys':
       timeout   => '3600',
@@ -85,14 +90,42 @@ class openstack::y001_keystone (
                     /usr/bin/rsync -avzP /etc/keystone/credential-keys/ controller-3:/etc/keystone/credential-keys/ > /dev/null 2>&1",
     } ->
     exec { 'keystone-manage bootstrap':
-      command     => "/usr/bin/keystone-manage bootstrap --bootstrap-password ${admin_password}",
+      command     => "/usr/bin/keystone-manage bootstrap --bootstrap-password ${admin_password} \
+                      --bootstrap-admin-url    http://${host}:35357/v3/ \
+                      --bootstrap-public-url   http://${host}:5000/v3/ \
+                      --bootstrap-internal-url http://${host}:5000/v3/ \
+                      --bootstrap-region-id RegionOne",
       subscribe   => Anchor['keystone::dbsync::end'],
       refreshonly => true,
     } ->
-    pacemaker::resource::ocf { 'apache':
+    pacemaker::resource::ocf { 'httpd':
       ensure         => 'present',
       ocf_agent_name => 'heartbeat:apache',
       clone_params   => 'interleave=true',
+    } ->
+    pacemaker::constraint::base { 'order-galera-master-httpd-clone-Mandatory':
+      constraint_type   => 'order',
+      first_action      => 'promote',
+      first_resource    => 'galera-master',
+      second_action     => 'start',
+      second_resource   => 'httpd-clone',
+      constraint_params => 'kind=Mandatory',
+    } ->
+    pacemaker::constraint::base { 'order-rabbitmq-clone-httpd-clone-Mandatory':
+      constraint_type   => 'order',
+      first_action      => 'start',
+      first_resource    => 'rabbitmq-clone',
+      second_action     => 'start',
+      second_resource   => 'httpd-clone',
+      constraint_params => 'kind=Mandatory',
+    } ->
+    pacemaker::constraint::base { 'order-memcached-clone-httpd-clone-Mandatory':
+      constraint_type   => 'order',
+      first_action      => 'start',
+      first_resource    => 'memcached-clone',
+      second_action     => 'start',
+      second_resource   => 'httpd-clone',
+      constraint_params => 'kind=Mandatory',
     } ->
     exec { 'keystone-ready':
       timeout   => '3600',
