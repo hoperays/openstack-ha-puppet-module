@@ -44,6 +44,19 @@
 #   (optional) Whether to verify creation of resource
 #   Defaults to false
 #
+# [*location_rule*]
+#   (optional) Add a location constraint before actually enabling
+#   the resource. Must be a hash like the following example:
+#   location_rule => {
+#     resource_discovery => 'exclusive',    # optional
+#     role               => 'master|slave', # optional
+#     score              => 0,              # optional
+#     score_attribute    => foo,            # optional
+#     # Multiple expressions can be used
+#     expression         => ['opsrole eq controller']
+#   }
+#   Defaults to undef
+#
 # === Dependencies
 #
 #  None
@@ -79,6 +92,7 @@ define pacemaker::resource::ip(
   $tries              = 1,
   $try_sleep          = 0,
   $verify_on_create   = false,
+  $location_rule      = undef,
   ) {
 
   $cidr_option = $cidr_netmask ? {
@@ -93,6 +107,9 @@ define pacemaker::resource::ip(
   # pcs dislikes colons from IPv6 addresses. Replacing them with dots.
   $resource_name = regsubst($ip_address, '(:)', '.', 'G')
 
+  # We do not want to require Exec['wait-for-settle'] when we run this
+  # from a pacemaker remote node
+  $pcmk_require = str2bool($::pcmk_is_remote) ? { true => [], false => Exec['wait-for-settle'] }
   pcmk_resource { "ip-${resource_name}":
     ensure             => $ensure,
     resource_type      => 'IPaddr2',
@@ -102,7 +119,8 @@ define pacemaker::resource::ip(
     tries              => $tries,
     try_sleep          => $try_sleep,
     verify_on_create   => $verify_on_create,
-    require            => Exec['wait-for-settle'],
+    location_rule      => $location_rule,
+    require            => $pcmk_require,
   }
 
 }

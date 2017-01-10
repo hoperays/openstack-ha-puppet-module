@@ -67,26 +67,24 @@ class pacemaker::new (
     package_provider => $package_provider,
   }
 
-  class { '::pacemaker::new::setup':
-    pcsd_mode            => $pcsd_mode,
+  class { '::pacemaker::new::setup' :
+    pcsd_mode           => $pcsd_mode,
     # pcsd only
-    cluster_nodes        => $cluster_nodes,
-    cluster_rrp_nodes    => $cluster_rrp_nodes,
-    cluster_name         => $cluster_name,
-    cluster_auth_key     => $cluster_auth_key,
-    cluster_setup        => $cluster_setup,
-    cluster_options      => $cluster_options,
-    cluster_user         => $cluster_user,
-    cluster_password     => $cluster_password,
-    pcs_bin_path         => $pcs_bin_path,
+    cluster_nodes       => $cluster_nodes,
+    cluster_rrp_nodes   => $cluster_rrp_nodes,
+    cluster_name        => $cluster_name,
+    cluster_auth_key    => $cluster_auth_key,
+    cluster_setup       => $cluster_setup,
+    cluster_options     => $cluster_options,
+    cluster_user        => $cluster_user,
+    cluster_password    => $cluster_password,
+    pcs_bin_path        => $pcs_bin_path,
     # config only
-    cluster_config_path  => $cluster_config_path,
-    cluster_interfaces   => $cluster_interfaces,
-    cluster_log_subsys   => $cluster_log_subsys,
-    plugin_version       => $plugin_version,
-    log_file_path        => $log_file_path,
-    # add by chengql
-    cluster_auth_enabled => $cluster_auth_enabled,
+    cluster_config_path => $cluster_config_path,
+    cluster_interfaces  => $cluster_interfaces,
+    cluster_log_subsys  => $cluster_log_subsys,
+    plugin_version      => $plugin_version,
+    log_file_path       => $log_file_path,
   }
 
   class { '::pacemaker::new::service' :
