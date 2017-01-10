@@ -46,7 +46,7 @@ class openstack::y004_neutron (
     database_connection      => "mysql+pymysql://neutron:${neutron_password}@${host}/neutron",
     database_max_retries     => '-1',
     service_providers        => [
-      'LOADBALANCERV2:Octavia:neutron_lbaas.drivers.octavia.driver.OctaviaDriver:default',
+      'LOADBALANCERV2:Haproxy:neutron_lbaas.drivers.haproxy.plugin_driver.HaproxyOnHostPluginDriver:default',
       'VPN:openswan:neutron_vpnaas.services.vpn.service_drivers.ipsec.IPsecVPNDriver:default'],
     auth_strategy            => false,
     #
@@ -130,6 +130,15 @@ class openstack::y004_neutron (
     enabled                  => false,
   }
 
+  class { '::neutron::agents::l3':
+    interface_driver => 'neutron.agent.linux.interface.OVSInterfaceDriver',
+    handle_internal_only_routers => false,
+    send_arp_for_ha  => '3',
+    #
+    manage_service   => false,
+    enabled          => false,
+  }
+
   class { '::neutron::agents::metadata':
     shared_secret     => 'metadata1234',
     metadata_ip       => $host,
@@ -142,13 +151,14 @@ class openstack::y004_neutron (
     enabled           => false,
   }
 
-  class { '::neutron::agents::l3':
-    interface_driver => 'neutron.agent.linux.interface.OVSInterfaceDriver',
-    handle_internal_only_routers => false,
-    send_arp_for_ha  => '3',
+  class { '::neutron::agents::lbaas':
+    interface_driver       => 'neutron.agent.linux.interface.OVSInterfaceDriver',
+    device_driver          => 'neutron_lbaas.drivers.haproxy.namespace_driver.HaproxyNSDriver',
+    manage_haproxy_package => true,
+    purge_config           => false,
     #
-    manage_service   => false,
-    enabled          => false,
+    manage_service         => false,
+    enabled                => false,
   }
 
   class { '::neutron::agents::vpnaas':
@@ -363,20 +373,6 @@ ONBOOT=yes
       target => 'neutron-openvswitch-agent-clone',
       score  => 'INFINITY',
     } ->
-    pacemaker::resource::service { 'neutron-metadata-agent': clone_params => 'interleave=true', } ->
-    pacemaker::constraint::base { 'order-neutron-dhcp-agent-clone-neutron-metadata-agent-clone-Mandatory':
-      constraint_type   => 'order',
-      first_action      => 'start',
-      first_resource    => 'neutron-dhcp-agent-clone',
-      second_action     => 'start',
-      second_resource   => 'neutron-metadata-agent-clone',
-      constraint_params => 'kind=Mandatory',
-    } ->
-    pacemaker::constraint::colocation { 'colocation-neutron-metadata-agent-clone-neutron-dhcp-agent-clone-INFINITY':
-      source => 'neutron-metadata-agent-clone',
-      target => 'neutron-dhcp-agent-clone',
-      score  => 'INFINITY',
-    } ->
     pacemaker::resource::service { 'neutron-l3-agent': clone_params => 'interleave=true', } ->
     pacemaker::constraint::base { 'order-neutron-dhcp-agent-clone-neutron-l3-agent-clone-Mandatory':
       constraint_type   => 'order',
@@ -389,6 +385,34 @@ ONBOOT=yes
     pacemaker::constraint::colocation { 'colocation-neutron-l3-agent-clone-neutron-dhcp-agent-clone-INFINITY':
       source => 'neutron-l3-agent-clone',
       target => 'neutron-dhcp-agent-clone',
+      score  => 'INFINITY',
+    } ->
+    pacemaker::resource::service { 'neutron-metadata-agent': clone_params => 'interleave=true', } ->
+    pacemaker::constraint::base { 'order-neutron-l3-agent-clone-neutron-metadata-agent-clone-Mandatory':
+      constraint_type   => 'order',
+      first_action      => 'start',
+      first_resource    => 'neutron-l3-agent-clone',
+      second_action     => 'start',
+      second_resource   => 'neutron-metadata-agent-clone',
+      constraint_params => 'kind=Mandatory',
+    } ->
+    pacemaker::constraint::colocation { 'colocation-neutron-metadata-agent-clone-neutron-l3-agent-clone-INFINITY':
+      source => 'neutron-metadata-agent-clone',
+      target => 'neutron-l3-agent-clone',
+      score  => 'INFINITY',
+    } ->
+    pacemaker::resource::service { 'neutron-lbaasv2-agent': clone_params => 'interleave=true', } ->
+    pacemaker::constraint::base { 'order-neutron-l3-agent-clone-neutron-lbaasv2-agent-clone-Mandatory':
+      constraint_type   => 'order',
+      first_action      => 'start',
+      first_resource    => 'neutron-l3-agent-clone',
+      second_action     => 'start',
+      second_resource   => 'neutron-lbaasv2-agent-clone',
+      constraint_params => 'kind=Mandatory',
+    } ->
+    pacemaker::constraint::colocation { 'colocation-neutron-lbaasv2-agent-clone-neutron-l3-agent-clone-INFINITY':
+      source => 'neutron-lbaasv2-agent-clone',
+      target => 'neutron-l3-agent-clone',
       score  => 'INFINITY',
     } ->
     pacemaker::resource::service { 'neutron-vpn-agent': clone_params => 'interleave=true', } ->
