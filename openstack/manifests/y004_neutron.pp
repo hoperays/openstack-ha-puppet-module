@@ -154,7 +154,7 @@ class openstack::y004_neutron (
   class { '::neutron::agents::lbaas':
     interface_driver       => 'neutron.agent.linux.interface.OVSInterfaceDriver',
     device_driver          => 'neutron_lbaas.drivers.haproxy.namespace_driver.HaproxyNSDriver',
-    manage_haproxy_package => true,
+    manage_haproxy_package => false,
     purge_config           => false,
     #
     manage_service         => false,
