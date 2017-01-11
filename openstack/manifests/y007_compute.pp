@@ -181,11 +181,22 @@ ONBOOT=yes
   }
 
   package { 'pacemaker-remote': } ->
-  file { 'etc-pacemaker-authkey':
-    path    => '/etc/pacemaker/authkey',
+  file { '/etc/pacemaker':
+    ensure  => directory,
+    mode    => '0750',
     owner   => 'hacluster',
     group   => 'haclient',
+  } ->
+  file { '/etc/pacemaker/authkey':
+    ensure  => file,
     mode    => '0640',
+    owner   => 'hacluster',
+    group   => 'haclient',
     content => $remote_authkey,
+  } ->
+  service { 'pacemaker_remote':
+    name   => 'pacemaker_remote',
+    ensure => 'running',
+    enable => true,
   }
 }
