@@ -105,9 +105,11 @@ class neutron::agents::lbaas (
   })
 
   if $manage_service {
-    $service_ensure = 'running'
+    if $enabled {
+      $service_ensure = 'running'
     } else {
-    $service_ensure = 'stopped'
+      $service_ensure = 'stopped'
+    }
   }
 
   service { 'neutron-lbaasv2-service':
