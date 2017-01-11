@@ -102,7 +102,7 @@ class openstack::y005_nova (
 
   if $::hostname == $bootstrap_node {
     # 临时处理资源依赖问题。。。。。。
-    Exec['galera-ready'] ->
+    Exec['neutron-ready'] ->
     # 。。。。。。。。。。。。。。。。
     class { '::nova::db::mysql':
       password      => $nova_password,
