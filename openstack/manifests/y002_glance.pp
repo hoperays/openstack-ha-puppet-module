@@ -138,6 +138,17 @@ class openstack::y002_glance (
       source => 'openstack-glance-api-clone',
       target => 'openstack-glance-registry-clone',
       score  => 'INFINITY',
+    } ->
+    exec { 'glance-ready':
+      timeout   => '3600',
+      tries     => '360',
+      try_sleep => '10',
+      command   => "/usr/bin/openstack --os-project-domain-name default --os-user-domain-name default --os-project-name admin --os-username admin --os-password admin1234 --os-auth-url http://${host}:35357/v3 --os-identity-api-version 3 image list > /dev/null 2>&1 && \
+                    /usr/bin/openstack --os-project-domain-name default --os-user-domain-name default --os-project-name admin --os-username admin --os-password admin1234 --os-auth-url http://${host}:35357/v3 --os-identity-api-version 3 image list > /dev/null 2>&1 && \
+                    /usr/bin/openstack --os-project-domain-name default --os-user-domain-name default --os-project-name admin --os-username admin --os-password admin1234 --os-auth-url http://${host}:35357/v3 --os-identity-api-version 3 image list > /dev/null 2>&1",
+      unless    => "/usr/bin/openstack --os-project-domain-name default --os-user-domain-name default --os-project-name admin --os-username admin --os-password admin1234 --os-auth-url http://${host}:35357/v3 --os-identity-api-version 3 image list > /dev/null 2>&1 && \
+                    /usr/bin/openstack --os-project-domain-name default --os-user-domain-name default --os-project-name admin --os-username admin --os-password admin1234 --os-auth-url http://${host}:35357/v3 --os-identity-api-version 3 image list > /dev/null 2>&1 && \
+                    /usr/bin/openstack --os-project-domain-name default --os-user-domain-name default --os-project-name admin --os-username admin --os-password admin1234 --os-auth-url http://${host}:35357/v3 --os-identity-api-version 3 image list > /dev/null 2>&1",
     }
   }
 }
