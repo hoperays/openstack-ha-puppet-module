@@ -108,7 +108,7 @@ class openstack::y004_neutron (
     local_ip           => $::ipaddress_eth3,
     integration_bridge => 'br-int',
     tunnel_bridge      => 'br-tun',
-    bridge_mappings    => ['physnet1:br-eth2', 'extnet:br-ex'],
+    bridge_mappings    => ['physnet1:br-eth2', 'extnet:br-ex1'],
     firewall_driver    => 'neutron.agent.linux.iptables_firewall.OVSHybridIptablesFirewallDriver',
     l2_population      => false,
     #
@@ -188,19 +188,19 @@ class openstack::y004_neutron (
 DEVICE=eth1
 TYPE=OVSPort
 DEVICETYPE=ovs
-OVS_BRIDGE=br-ex
+OVS_BRIDGE=br-ex1
 BOOTPROTO=none
 ONBOOT=yes
 ",
     require => Class['::neutron::agents::ml2::ovs'],
   } ->
-  file { '/etc/sysconfig/network-scripts/ifcfg-br-ex':
+  file { '/etc/sysconfig/network-scripts/ifcfg-br-ex1':
     ensure  => file,
     mode    => '0644',
     owner   => 'root',
     group   => 'root',
-    content => "NAME=br-ex
-DEVICE=br-ex
+    content => "NAME=br-ex1
+DEVICE=br-ex1
 DEVICETYPE=ovs
 OVSBOOTPROTO=none
 TYPE=OVSBridge
@@ -236,19 +236,19 @@ BOOTPROTO=none
 ONBOOT=yes
 ",
   } ->
-  exec { 'ovs-vsctl add-br br-ex':
+  exec { 'ovs-vsctl add-br br-ex1':
     timeout   => '3600',
     tries     => '360',
     try_sleep => '10',
-    command   => "/usr/bin/ovs-vsctl add-br br-ex",
-    unless    => "/usr/bin/ovs-vsctl list-ports br-ex",
+    command   => "/usr/bin/ovs-vsctl add-br br-ex1",
+    unless    => "/usr/bin/ovs-vsctl list-ports br-ex1",
   } ->
-  exec { 'ovs-vsctl add-port br-ex eth1':
+  exec { 'ovs-vsctl add-port br-ex1 eth1':
     timeout   => '3600',
     tries     => '360',
     try_sleep => '10',
-    command   => "/usr/bin/ovs-vsctl add-port br-ex eth1",
-    unless    => "/usr/bin/ovs-vsctl list-ports br-ex | /usr/bin/grep eth1",
+    command   => "/usr/bin/ovs-vsctl add-port br-ex1 eth1",
+    unless    => "/usr/bin/ovs-vsctl list-ports br-ex1 | /usr/bin/grep eth1",
   } ->
   exec { 'ovs-vsctl add-br br-eth2':
     timeout   => '3600',
