@@ -27,29 +27,13 @@ class openstack::x005_pacemaker (
   anchor { '::pacemaker::corosync::end': }
 
   if $::hostname == $bootstrap_node {
+    pacemaker::property { 'maintenance-mode':
+      property => 'maintenance-mode',
+      value    => false,
+    } ->
     pacemaker::property { 'stonith-enabled':
       property => 'stonith-enabled',
       value    => false,
-    }
-    # pacemaker::property { 'no-quorum-policy':
-    #  property => 'no-quorum-policy',
-    #  value    => 'ignore',
-    # } ->
-    pacemaker::property { 'pe-warn-series-max':
-      property => 'pe-warn-series-max',
-      value    => '1000',
-    } ->
-    pacemaker::property { 'pe-input-series-max':
-      property => 'pe-input-series-max',
-      value    => '1000',
-    } ->
-    pacemaker::property { 'pe-error-series-max':
-      property => 'pe-error-series-max',
-      value    => '1000',
-    } ->
-    pacemaker::property { 'cluster-recheck-interval':
-      property => 'cluster-recheck-interval',
-      value    => '1min',
     } ->
     pacemaker::property { 'osprole-controller-1':
       property => 'osprole',

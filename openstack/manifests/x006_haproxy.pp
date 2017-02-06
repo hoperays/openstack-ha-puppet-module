@@ -524,26 +524,25 @@ class openstack::x006_haproxy (
   }
 
   if $::hostname == $bootstrap_node {
-    pcmk_resource { 'controller-vip':
-      resource_type   => 'IPaddr2',
-      resource_params => "ip=${controller_vip} cidr_netmask=23 nic=eth0",
-      require         => Class['haproxy'],
+    pacemaker::resource::ip { "ip-${controller_vip}":
+      ip_address => $controller_vip,
+      require    => Class['haproxy'],
     } ->
     pacemaker::resource::service { 'haproxy':
       op_params    => 'start timeout=200s stop timeout=200s',
       clone_params => true,
     } ->
-    pacemaker::constraint::base { 'order-controller-vip-haproxy-clone-Optional':
+    pacemaker::constraint::base { "order-ip-${controller_vip}-haproxy-clone-Optional":
       constraint_type   => 'order',
       first_action      => 'start',
-      first_resource    => 'controller-vip',
+      first_resource    => "ip-${controller_vip}",
       second_action     => 'start',
       second_resource   => 'haproxy-clone',
       constraint_params => 'kind=Optional',
     } ->
-    pacemaker::constraint::colocation { 'colocation-haproxy-clone-controller-vip-INFINITY':
-      source => 'haproxy-clone',
-      target => 'controller-vip',
+    pacemaker::constraint::colocation { "colocation-ip-${controller_vip}-haproxy-clone-INFINITY":
+      source => 'controller-vip',
+      target => 'haproxy-clone',
       score  => 'INFINITY',
     }
   }
