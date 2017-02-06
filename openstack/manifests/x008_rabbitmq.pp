@@ -5,7 +5,6 @@ class openstack::x008_rabbitmq (
   class { 'rabbitmq':
     repos_ensure             => $manage_resources,
     admin_enable             => $manage_resources,
-    # service_ensure           => 'stopped',
     service_manage           => $manage_resources,
     config_cluster           => false,
     cluster_nodes            => $cluster_nodes,
@@ -21,7 +20,7 @@ class openstack::x008_rabbitmq (
       resource_params => "set_policy='ha-all ^(?!amq\\.).* {\"ha-mode\":\"all\"}'",
       meta_params     => 'notify=true',
       clone_params    => 'ordered=true interleave=true',
-      # op_params       => 'start timeout=200s stop timeout=200s',
+      op_params       => 'start timeout=200s stop timeout=200s',
       require         => Class['rabbitmq'],
     }
   }
