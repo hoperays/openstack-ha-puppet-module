@@ -541,7 +541,7 @@ class openstack::x006_haproxy (
       constraint_params => 'kind=Optional',
     } ->
     pacemaker::constraint::colocation { "colocation-ip-${controller_vip}-haproxy-clone-INFINITY":
-      source => 'controller-vip',
+      source => "ip-${controller_vip}",
       target => 'haproxy-clone',
       score  => 'INFINITY',
     }
