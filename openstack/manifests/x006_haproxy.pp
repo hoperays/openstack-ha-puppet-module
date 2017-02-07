@@ -4,20 +4,19 @@ class openstack::x006_haproxy (
   $controller_2     = '192.168.0.132',
   $controller_3     = '192.168.0.133',
   $bootstrap_node   = 'controller-1',
-  $bind_address     = $::ipaddress_eth0,
   $manage_resources = false,) {
   class { 'haproxy':
     service_ensure   => $manage_resources,
     service_manage   => $manage_resources,
     global_options   => {
-      log     => "$bind_address local0",
+      log     => "/dev/log local0",
       chroot  => '/var/lib/haproxy',
       pidfile => '/var/run/haproxy.pid',
-      maxconn => '4000',
+      maxconn => '20480',
       user    => 'haproxy',
       group   => 'haproxy',
       daemon  => '',
-      stats   => 'socket /var/lib/haproxy/stats',
+      stats   => 'socket /var/lib/haproxy/stats'
     }
     ,
     defaults_options => {
@@ -27,37 +26,36 @@ class openstack::x006_haproxy (
       retries => '3',
       timeout => [
         'http-request 10s',
-        'queue 1m',
+        'queue 2m',
         'connect 10s',
-        'client 1m',
-        'server 1m',
+        'client 2m',
+        'server 2m',
         'check 10s',
         ],
-      maxconn => '10000',
+      maxconn => '4096',
+      mode    => 'tcp',
     }
     ,
   }
 
   haproxy::listen { 'monitor':
-    ipaddress => "$controller_vip",
-    ports     => '9300',
-    mode      => 'http',
-    options   => {
-      'monitor-uri' => '/status',
-      'stats'       => [
+    bind    => "${controller_vip}:9300 transparent",
+    mode    => 'http',
+    options => {
+      monitor-uri => '/status',
+      stats       => [
         'enable',
         'uri /admin',
         'realm Haproxy\ Statistics',
-        'auth root:root1234',
-        'refresh 5s',
+        'auth admin:admin1234',
+        'refresh 10s',
         ],
     }
   }
 
   haproxy::frontend { 'vip-db':
-    ipaddress => "$controller_vip",
-    ports     => '3306',
-    options   => {
+    bind    => "${controller_vip}:3306 transparent",
+    options => {
       timeout         => 'client 90m',
       default_backend => 'db-vms-galera',
     }
@@ -68,6 +66,7 @@ class openstack::x006_haproxy (
       'option'      => 'httpchk',
       'stick-table' => 'type ip size 1000',
       'stick'       => 'on dst',
+      'timeout'     => 'client 90m',
       'timeout'     => 'server 90m',
     }
   }
@@ -97,9 +96,8 @@ class openstack::x006_haproxy (
   }
 
   haproxy::frontend { 'vip-keystone-admin':
-    ipaddress => "$controller_vip",
-    ports     => '35357',
-    options   => {
+    bind    => "${controller_vip}:35357 transparent",
+    options => {
       timeout         => 'client 600s',
       default_backend => 'keystone-admin-vms',
     }
@@ -137,9 +135,8 @@ class openstack::x006_haproxy (
   }
 
   haproxy::frontend { 'vip-keystone-public':
-    ipaddress => "$controller_vip",
-    ports     => '5000',
-    options   => {
+    bind    => "${controller_vip}:5000 transparent",
+    options => {
       timeout         => 'client 600s',
       default_backend => 'keystone-public-vms',
     }
@@ -177,9 +174,8 @@ class openstack::x006_haproxy (
   }
 
   haproxy::frontend { 'vip-glance-api':
-    ipaddress => "$controller_vip",
-    ports     => '9191',
-    options   => {
+    bind    => "${controller_vip}:9191 transparent",
+    options => {
       default_backend => 'glance-api-vms',
     }
   }
@@ -215,9 +211,8 @@ class openstack::x006_haproxy (
   }
 
   haproxy::frontend { 'vip-glance-registry':
-    ipaddress => "$controller_vip",
-    ports     => '9292',
-    options   => {
+    bind    => "${controller_vip}:9292 transparent",
+    options => {
       default_backend => 'glance-registry-vms',
     }
   }
@@ -253,9 +248,8 @@ class openstack::x006_haproxy (
   }
 
   haproxy::frontend { 'vip-cinder':
-    ipaddress => "$controller_vip",
-    ports     => '8776',
-    options   => {
+    bind    => "${controller_vip}:8776 transparent",
+    options => {
       default_backend => 'cinder-vms',
     }
   }
@@ -291,9 +285,8 @@ class openstack::x006_haproxy (
   }
 
   haproxy::frontend { 'vip-neutron':
-    ipaddress => "$controller_vip",
-    ports     => '9696',
-    options   => {
+    bind    => "${controller_vip}:9696 transparent",
+    options => {
       default_backend => 'neutron-vms',
     }
   }
@@ -329,9 +322,8 @@ class openstack::x006_haproxy (
   }
 
   haproxy::frontend { 'vip-nova-vnc-novncproxy':
-    ipaddress => "$controller_vip",
-    ports     => '6080',
-    options   => {
+    bind    => "${controller_vip}:6080 transparent",
+    options => {
       default_backend => 'nova-vnc-novncproxy-vms',
     }
   }
@@ -368,9 +360,8 @@ class openstack::x006_haproxy (
   }
 
   haproxy::frontend { 'vip-nova-metadata':
-    ipaddress => "$controller_vip",
-    ports     => '8775',
-    options   => {
+    bind    => "${controller_vip}:8775 transparent",
+    options => {
       default_backend => 'nova-metadata-vms',
     }
   }
@@ -406,9 +397,8 @@ class openstack::x006_haproxy (
   }
 
   haproxy::frontend { 'vip-nova-api':
-    ipaddress => "$controller_vip",
-    ports     => '8774',
-    options   => {
+    bind    => "${controller_vip}:8774 transparent",
+    options => {
       default_backend => 'nova-api-vms',
     }
   }
@@ -444,9 +434,8 @@ class openstack::x006_haproxy (
   }
 
   haproxy::frontend { 'vip-horizon':
-    ipaddress => "$controller_vip",
-    ports     => ['80', '443'],
-    options   => {
+    bind    => ["${controller_vip}:80 transparent", "${controller_vip}:443 transparent"],
+    options => {
       timeout         => 'client 180s',
       default_backend => 'horizon-vms',
     }
@@ -486,9 +475,8 @@ class openstack::x006_haproxy (
   }
 
   haproxy::frontend { 'vip-ceilometer':
-    ipaddress => "$controller_vip",
-    ports     => '8777',
-    options   => {
+    bind    => "${controller_vip}:8777 transparent",
+    options => {
       default_backend => 'ceilometer-vms',
     }
   }
@@ -540,9 +528,9 @@ class openstack::x006_haproxy (
       second_resource   => 'haproxy-clone',
       constraint_params => 'kind=Optional',
     } ->
-    pacemaker::constraint::colocation { "colocation-haproxy-clone-ip-${controller_vip}-INFINITY":
-      source => 'haproxy-clone',
-      target => "ip-${controller_vip}",
+    pacemaker::constraint::colocation { "colocation-ip-${controller_vip}-haproxy-clone-INFINITY":
+      source => "ip-${controller_vip}",
+      target => 'haproxy-clone',
       score  => 'INFINITY',
     }
   }
