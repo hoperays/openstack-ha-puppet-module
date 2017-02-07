@@ -39,7 +39,10 @@ class openstack::x006_haproxy (
   }
 
   haproxy::listen { 'monitor':
-    bind    => "${controller_vip}:9300 transparent",
+    bind    => {
+      "${controller_vip}:9300" => ['transparent']
+    }
+    ,
     mode    => 'http',
     options => {
       monitor-uri => '/status',
@@ -54,7 +57,10 @@ class openstack::x006_haproxy (
   }
 
   haproxy::frontend { 'vip-db':
-    bind    => "${controller_vip}:3306 transparent",
+    bind    => {
+      "${controller_vip}:3306" => ['transparent']
+    }
+    ,
     options => {
       timeout         => 'client 90m',
       default_backend => 'db-vms-galera',
@@ -96,7 +102,10 @@ class openstack::x006_haproxy (
   }
 
   haproxy::frontend { 'vip-keystone-admin':
-    bind    => "${controller_vip}:35357 transparent",
+    bind    => {
+      "${controller_vip}:35357" => ['transparent']
+    }
+    ,
     options => {
       timeout         => 'client 600s',
       default_backend => 'keystone-admin-vms',
@@ -135,7 +144,10 @@ class openstack::x006_haproxy (
   }
 
   haproxy::frontend { 'vip-keystone-public':
-    bind    => "${controller_vip}:5000 transparent",
+    bind    => {
+      "${controller_vip}:5000" => ['transparent']
+    }
+    ,
     options => {
       timeout         => 'client 600s',
       default_backend => 'keystone-public-vms',
@@ -174,7 +186,10 @@ class openstack::x006_haproxy (
   }
 
   haproxy::frontend { 'vip-glance-api':
-    bind    => "${controller_vip}:9191 transparent",
+    bind    => {
+      "${controller_vip}:9191" => ['transparent']
+    }
+    ,
     options => {
       default_backend => 'glance-api-vms',
     }
@@ -211,7 +226,10 @@ class openstack::x006_haproxy (
   }
 
   haproxy::frontend { 'vip-glance-registry':
-    bind    => "${controller_vip}:9292 transparent",
+    bind    => {
+      "${controller_vip}:9292" => ['transparent']
+    }
+    ,
     options => {
       default_backend => 'glance-registry-vms',
     }
@@ -248,7 +266,10 @@ class openstack::x006_haproxy (
   }
 
   haproxy::frontend { 'vip-cinder':
-    bind    => "${controller_vip}:8776 transparent",
+    bind    => {
+      "${controller_vip}:8776" => ['transparent']
+    }
+    ,
     options => {
       default_backend => 'cinder-vms',
     }
@@ -285,7 +306,10 @@ class openstack::x006_haproxy (
   }
 
   haproxy::frontend { 'vip-neutron':
-    bind    => "${controller_vip}:9696 transparent",
+    bind    => {
+      "${controller_vip}:9696" => ['transparent']
+    }
+    ,
     options => {
       default_backend => 'neutron-vms',
     }
@@ -322,7 +346,10 @@ class openstack::x006_haproxy (
   }
 
   haproxy::frontend { 'vip-nova-vnc-novncproxy':
-    bind    => "${controller_vip}:6080 transparent",
+    bind    => {
+      "${controller_vip}:6080" => ['transparent']
+    }
+    ,
     options => {
       default_backend => 'nova-vnc-novncproxy-vms',
     }
@@ -360,7 +387,10 @@ class openstack::x006_haproxy (
   }
 
   haproxy::frontend { 'vip-nova-metadata':
-    bind    => "${controller_vip}:8775 transparent",
+    bind    => {
+      "${controller_vip}:8775" => ['transparent']
+    }
+    ,
     options => {
       default_backend => 'nova-metadata-vms',
     }
@@ -397,7 +427,10 @@ class openstack::x006_haproxy (
   }
 
   haproxy::frontend { 'vip-nova-api':
-    bind    => "${controller_vip}:8774 transparent",
+    bind    => {
+      "${controller_vip}:8774" => ['transparent']
+    }
+    ,
     options => {
       default_backend => 'nova-api-vms',
     }
@@ -434,7 +467,11 @@ class openstack::x006_haproxy (
   }
 
   haproxy::frontend { 'vip-horizon':
-    bind    => ["${controller_vip}:80 transparent", "${controller_vip}:443 transparent"],
+    bind    => {
+      "${controller_vip}:80"  => ['transparent'],
+      "${controller_vip}:442" => ['transparent'],
+    }
+    ,
     options => {
       timeout         => 'client 180s',
       default_backend => 'horizon-vms',
@@ -475,7 +512,10 @@ class openstack::x006_haproxy (
   }
 
   haproxy::frontend { 'vip-ceilometer':
-    bind    => "${controller_vip}:8777 transparent",
+    bind    => {
+      "${controller_vip}:8777" => ['transparent'],
+    }
+    ,
     options => {
       default_backend => 'ceilometer-vms',
     }
