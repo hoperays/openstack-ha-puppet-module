@@ -2,78 +2,95 @@ class openstack::y003_cinder (
   $bootstrap_node  = 'controller-1',
   $cinder_password = 'cinder1234',
   $allowed_hosts   = ['%'],
-  $cluster_nodes   = ['controller-1', 'controller-2', 'controller-3'],
-  $host            = 'controller-vip',
+  $controller_vip  = '192.168.0.130',
+  $controller_1    = '192.168.0.131',
+  $controller_2    = '192.168.0.132',
+  $controller_3    = '192.168.0.133',
   $rbd_secret_uuid = '2ad6a20f-ffdd-460d-afba-04ab286f365f',) {
   if $::hostname == $bootstrap_node {
+    class { '::cinder::db::mysql':
+      password      => $cinder_password,
+      host          => 'localhost',
+      allowed_hosts => $allowed_hosts,
+    }
     $sync_db = true
   } else {
     $sync_db = false
   }
 
   class { '::cinder':
-    database_connection  => "mysql+pymysql://cinder:${cinder_password}@${host}/cinder",
-    database_max_retries => '-1',
-    rpc_backend          => 'rabbit',
-    rabbit_password      => 'guest',
-    rabbit_userid        => 'guest',
-    rabbit_hosts         => $cluster_nodes,
-    rabbit_ha_queues     => true,
-    rabbit_use_ssl       => false,
-    control_exchange     => 'cinder',
-    host                 => 'openstack-cinder',
+    enable_v3_api    => true,
+    host             => 'hostgroup',
+    storage_availability_zone          => 'nova',
+    default_availability_zone          => 'nova',
+    log_dir          => '/var/log/cinder',
+    rpc_backend      => 'rabbit',
+    control_exchange => 'openstack',
+    api_paste_config => '/etc/cinder/api-paste.ini',
+    database_connection                => "mysql+pymysql://cinder:${cinder_password}@${controller_vip}/cinder",
+    database_max_retries               => '-1',
+    lock_path        => '/var/lib/cinder/tmp',
+    #
+    rabbit_hosts     => ["${controller_1}:5672", "${controller_2}:5672", "${controller_3}:5672"],
+    rabbit_use_ssl   => false,
+    rabbit_password  => 'guest',
+    rabbit_userid    => 'guest',
+    rabbit_ha_queues => true,
+    rabbit_heartbeat_timeout_threshold => '60',
   }
 
   class { '::cinder::api':
-    bind_host           => $::hostname,
+    bind_host           => $::ipaddress_eth0, # osapi_volume_listen
+    # service_workers   => $::processorcount, # osapi_volume_workers
     default_volume_type => 'rbd',
+    nova_catalog_info   => 'compute:Compute Service:publicURL',
+    nova_catalog_admin_info      => 'compute:Compute Service:adminURL',
+    #
     keystone_enabled    => false,
     auth_strategy       => false,
+    enable_proxy_headers_parsing => true,
     #
     sync_db             => $sync_db,
-    #
-    manage_service      => false,
-    enabled             => false,
   }
 
   class { '::cinder::keystone::authtoken':
-    auth_uri            => "http://${host}:5000/",
-    auth_url            => "http://${host}:35357/",
-    memcached_servers   => $cluster_nodes,
+    auth_uri            => "http://${controller_vip}:5000/",
+    auth_url            => "http://${controller_vip}:35357/",
+    memcached_servers   => ["${controller_1}:11211", "${controller_2}:11211", "${controller_3}:11211"],
     auth_type           => 'password',
     project_domain_name => 'default',
     user_domain_name    => 'default',
-    project_name        => 'service',
+    project_name        => 'services',
     username            => 'cinder',
     password            => $cinder_password,
   }
 
   class { '::cinder::scheduler':
-    manage_service => false,
-    enabled        => false,
-  }
-
-  class { '::cinder::volume':
-    manage_service => false,
-    enabled        => false,
+    scheduler_driver => 'cinder.scheduler.filter_scheduler.FilterScheduler',
   }
 
   class { '::cinder::glance':
-    glance_api_servers => $host,
+    glance_api_servers => "http://${controller_vip}:9292",
     glance_api_version => '2',
   }
 
   ::cinder::backend::rbd { 'rbd':
     rbd_pool              => 'volumes',
-    rbd_user              => 'cinder',
+    backend_host          => 'hostgroup',
+    rbd_secret_uuid       => $rbd_secret_uuid,
+    volume_backend_name   => $name,
+    rbd_user              => 'openstack',
     rbd_ceph_conf         => '/etc/ceph/ceph.conf',
     rbd_flatten_volume_from_snapshot => false,
-    rbd_secret_uuid       => $rbd_secret_uuid,
     rbd_max_clone_depth   => '5',
     rbd_store_chunk_size  => '4',
     rados_connect_timeout => '-1',
-    volume_backend_name   => $name,
-  # manage_volume_type    => true,
+    manage_volume_type    => true,
+  }
+
+  class { '::cinder::volume':
+    manage_service => false,
+    enabled        => false,
   }
 
   class { '::cinder::backup':
@@ -103,126 +120,49 @@ class openstack::y003_cinder (
   }
 
   if $::hostname == $bootstrap_node {
-    class { '::cinder::db::mysql':
-      password      => $cinder_password,
-      host          => 'localhost',
-      allowed_hosts => $allowed_hosts,
-    } ->
-    keystone_service { 'cinder':
-      ensure      => 'present',
-      type        => 'volume',
-      description => 'OpenStack Block Storage',
-    } ->
-    keystone_endpoint { 'cinder':
-      ensure       => 'present',
-      region       => 'RegionOne',
-      admin_url    => "http://${host}:8776/v1/%(tenant_id)s",
-      public_url   => "http://${host}:8776/v1/%(tenant_id)s",
-      internal_url => "http://${host}:8776/v1/%(tenant_id)s",
-    } ->
-    keystone_service { 'cinderv2':
-      ensure      => 'present',
-      type        => 'volumev2',
-      description => 'OpenStack Block Storage',
-    } ->
-    keystone_endpoint { 'cinderv2':
-      ensure       => 'present',
-      region       => 'RegionOne',
-      admin_url    => "http://${host}:8776/v2/%(tenant_id)s",
-      public_url   => "http://${host}:8776/v2/%(tenant_id)s",
-      internal_url => "http://${host}:8776/v2/%(tenant_id)s",
-    } ->
-    keystone_service { 'cinderv3':
-      ensure      => 'present',
-      type        => 'volumev3',
-      description => 'OpenStack Block Storage',
-    } ->
-    keystone_endpoint { 'cinderv3':
-      ensure       => 'present',
-      region       => 'RegionOne',
-      admin_url    => "http://${host}:8776/v3/%(tenant_id)s",
-      public_url   => "http://${host}:8776/v3/%(tenant_id)s",
-      internal_url => "http://${host}:8776/v3/%(tenant_id)s",
-    } ->
-    keystone_user { 'cinder':
-      ensure   => 'present',
-      password => $cinder_password,
-      # email    => 'cinder@example.org',
-      domain   => 'default',
-    } ->
-    keystone_user_role { 'cinder::default@service::default':
-      ensure         => 'present',
-      user           => 'cinder',
-      user_domain    => 'default',
-      project        => 'service',
-      project_domain => 'default',
-      roles          => ['admin'],
-    } ->
-    pacemaker::resource::service { 'openstack-cinder-api': clone_params => 'interleave=true', } ->
-    pacemaker::constraint::base { 'order-httpd-clone-openstack-cinder-api-clone-Mandatory':
-      constraint_type   => 'order',
-      first_action      => 'start',
-      first_resource    => 'httpd-clone',
-      second_action     => 'start',
-      second_resource   => 'openstack-cinder-api-clone',
-      constraint_params => 'kind=Mandatory',
-    } ->
-    pacemaker::resource::service { 'openstack-cinder-scheduler': clone_params => 'interleave=true', } ->
-    pacemaker::constraint::base { 'order-openstack-cinder-api-clone-openstack-cinder-scheduler-clone-Mandatory':
-      constraint_type   => 'order',
-      first_action      => 'start',
-      first_resource    => 'openstack-cinder-api-clone',
-      second_action     => 'start',
-      second_resource   => 'openstack-cinder-scheduler-clone',
-      constraint_params => 'kind=Mandatory',
-    } ->
-    pacemaker::constraint::colocation { 'colocation-openstack-cinder-scheduler-clone-openstack-cinder-api-clone-INFINITY':
-      source => 'openstack-cinder-scheduler-clone',
-      target => 'openstack-cinder-api-clone',
-      score  => 'INFINITY',
+    class { '::cinder::keystone::auth':
+      password               => $cinder_password,
+      password_user_v2       => $cinder_password,
+      password_user_v3       => $cinder_password,
+      auth_name              => 'cinder',
+      auth_name_v2           => 'cinderv2',
+      auth_name_v3           => 'cinderv3',
+      tenant                 => 'services',
+      tenant_user_v2         => 'services',
+      tenant_user_v3         => 'services',
+      email                  => 'cinder@example.com',
+      email_user_v2          => 'cinderv2@example.com',
+      email_user_v3          => 'cinderv3@example.com',
+      public_url             => 'http://${controller_vip}:8776/v1/%(tenant_id)s',
+      internal_url           => 'http://${controller_vip}:8776/v1/%(tenant_id)s',
+      admin_url              => 'http://${controller_vip}:8776/v1/%(tenant_id)s',
+      public_url_v2          => 'http://${controller_vip}:8776/v2/%(tenant_id)s',
+      internal_url_v2        => 'http://${controller_vip}:8776/v2/%(tenant_id)s',
+      admin_url_v2           => 'http://${controller_vip}:8776/v2/%(tenant_id)s',
+      public_url_v3          => 'http://${controller_vip}:8776/v3/%(tenant_id)s',
+      internal_url_v3        => 'http://${controller_vip}:8776/v3/%(tenant_id)s',
+      admin_url_v3           => 'http://${controller_vip}:8776/v3/%(tenant_id)s',
+      configure_endpoint     => true,
+      configure_endpoint_v2  => true,
+      configure_endpoint_v3  => true,
+      configure_user         => true,
+      configure_user_v2      => false,
+      configure_user_v3      => false,
+      configure_user_role    => true,
+      configure_user_role_v2 => false,
+      configure_user_role_v3 => false,
+      service_name           => 'cinder',
+      service_name_v2        => 'cinderv2',
+      service_name_v3        => 'cinderv3',
+      service_type           => 'volume',
+      service_type_v2        => 'volumev2',
+      service_type_v3        => 'volumev3',
+      service_description    => 'Cinder Service',
+      service_description_v2 => 'Cinder Service v2',
+      service_description_v3 => 'Cinder Service v3',
+      region                 => 'RegionOne',
     } ->
     pacemaker::resource::service { 'openstack-cinder-volume': op_params => 'start timeout=200s stop timeout=200s', } ->
-    pacemaker::constraint::base { 'order-openstack-cinder-scheduler-clone-openstack-cinder-volume-Mandatory':
-      constraint_type   => 'order',
-      first_action      => 'start',
-      first_resource    => 'openstack-cinder-scheduler-clone',
-      second_action     => 'start',
-      second_resource   => 'openstack-cinder-volume',
-      constraint_params => 'kind=Mandatory',
-    } ->
-    pacemaker::constraint::colocation { 'colocation-openstack-cinder-volume-openstack-cinder-scheduler-clone-INFINITY':
-      source => 'openstack-cinder-volume',
-      target => 'openstack-cinder-scheduler-clone',
-      score  => 'INFINITY',
-    } ->
-    pacemaker::resource::service { 'openstack-cinder-backup': op_params => 'start timeout=200s stop timeout=200s', } ->
-    pacemaker::constraint::base { 'order-openstack-cinder-scheduler-clone-openstack-cinder-backup-Mandatory':
-      constraint_type   => 'order',
-      first_action      => 'start',
-      first_resource    => 'openstack-cinder-scheduler-clone',
-      second_action     => 'start',
-      second_resource   => 'openstack-cinder-backup',
-      constraint_params => 'kind=Mandatory',
-    } ->
-    pacemaker::constraint::colocation { 'colocation-openstack-cinder-backup-openstack-cinder-scheduler-clone-INFINITY':
-      source => 'openstack-cinder-backup',
-      target => 'openstack-cinder-scheduler-clone',
-      score  => 'INFINITY',
-    } ->
-    exec { 'cinder-ready':
-      timeout   => '3600',
-      tries     => '360',
-      try_sleep => '10',
-      command   => "/usr/bin/openstack --os-project-domain-name default --os-user-domain-name default --os-project-name admin --os-username admin --os-password admin1234 --os-auth-url http://${host}:35357/v3 --os-identity-api-version 3 volume list > /dev/null 2>&1 && \
-                    /usr/bin/openstack --os-project-domain-name default --os-user-domain-name default --os-project-name admin --os-username admin --os-password admin1234 --os-auth-url http://${host}:35357/v3 --os-identity-api-version 3 volume list > /dev/null 2>&1 && \
-                    /usr/bin/openstack --os-project-domain-name default --os-user-domain-name default --os-project-name admin --os-username admin --os-password admin1234 --os-auth-url http://${host}:35357/v3 --os-identity-api-version 3 volume list > /dev/null 2>&1",
-      unless    => "/usr/bin/openstack --os-project-domain-name default --os-user-domain-name default --os-project-name admin --os-username admin --os-password admin1234 --os-auth-url http://${host}:35357/v3 --os-identity-api-version 3 volume list > /dev/null 2>&1 && \
-                    /usr/bin/openstack --os-project-domain-name default --os-user-domain-name default --os-project-name admin --os-username admin --os-password admin1234 --os-auth-url http://${host}:35357/v3 --os-identity-api-version 3 volume list > /dev/null 2>&1 && \
-                    /usr/bin/openstack --os-project-domain-name default --os-user-domain-name default --os-project-name admin --os-username admin --os-password admin1234 --os-auth-url http://${host}:35357/v3 --os-identity-api-version 3 volume list > /dev/null 2>&1",
-    } ->
-    cinder_type { 'rbd':
-      ensure     => present,
-      properties => ['volume_backend_name=rbd'],
-    }
+    pacemaker::resource::service { 'openstack-cinder-backup': op_params => 'start timeout=200s stop timeout=200s', }
   }
 }

@@ -100,7 +100,7 @@ class openstack::y002_glance (
   }
 
   if $::hostname == $bootstrap_node {
-    class { 'glance::keystone::auth':
+    class { '::glance::keystone::auth':
       email               => 'glance@example.com',
       password            => $glance_password,
       auth_name           => 'glance',
