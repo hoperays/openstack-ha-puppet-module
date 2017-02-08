@@ -78,7 +78,7 @@ class openstack::y003_cinder (
     rbd_pool              => 'volumes',
     backend_host          => 'hostgroup',
     rbd_secret_uuid       => $rbd_secret_uuid,
-    volume_backend_name   => $name,
+    volume_backend_name   => 'rbd',
     rbd_user              => 'openstack',
     rbd_ceph_conf         => '/etc/ceph/ceph.conf',
     rbd_flatten_volume_from_snapshot => false,
