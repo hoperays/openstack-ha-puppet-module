@@ -64,7 +64,7 @@ class openstack::y002_glance (
 
   class { '::glance::backend::rbd':
     rbd_store_pool       => 'images',
-    rbd_store_user       => 'glance',
+    rbd_store_user       => 'openstack',
     rbd_store_ceph_conf  => '/etc/ceph/ceph.conf',
     rbd_store_chunk_size => '8',
     multi_store          => true,

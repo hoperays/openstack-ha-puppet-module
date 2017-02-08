@@ -93,24 +93,10 @@ class openstack::x004_ceph (
       cap_mon      => 'allow profile bootstrap-rgw',
     }
 
-    ceph::key { 'client.cinder':
+    ceph::key { 'client.openstack':
       secret  => $cinder_key,
       cap_mon => 'allow r',
-      cap_osd => 'allow class-read object_prefix rbd_children, allow rwx pool=volumes, allow rwx pool=vms, allow rx pool=images',
-      mode    => '0644',
-    }
-
-    ceph::key { 'client.cinder-backup':
-      secret  => $cinder_backup_key,
-      cap_mon => 'allow r',
-      cap_osd => 'allow class-read object_prefix rbd_children, allow rwx pool=backups',
-      mode    => '0644',
-    }
-
-    ceph::key { 'client.glance':
-      secret  => $glance_key,
-      cap_mon => 'allow r',
-      cap_osd => 'allow class-read object_prefix rbd_children, allow rwx pool=images',
+      cap_osd => 'allow class-read object_prefix rbd_children, allow rwx pool=volumes, allow rwx pool=backups, allow rwx pool=vms, allow rwx pool=images',
       mode    => '0644',
     }
 
@@ -159,10 +145,10 @@ class openstack::x004_ceph (
     #        journal => '/dev/sdb';
     #    }
   } elsif $::hostname =~ /^compute-\d+$/ {
-    ceph::key { 'client.cinder':
+    ceph::key { 'client.openstack':
       secret  => $cinder_key,
       cap_mon => 'allow r',
-      cap_osd => 'allow class-read object_prefix rbd_children, allow rwx pool=volumes, allow rwx pool=vms, allow rx pool=images',
+      cap_osd => 'allow class-read object_prefix rbd_children, allow rwx pool=volumes, allow rwx pool=backups, allow rwx pool=vms, allow rwx pool=images',
       mode    => '0644',
     }
   }
