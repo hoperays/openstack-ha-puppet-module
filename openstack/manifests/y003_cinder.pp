@@ -163,6 +163,10 @@ class openstack::y003_cinder (
       region                 => 'RegionOne',
     } ->
     pacemaker::resource::service { 'openstack-cinder-volume': op_params => 'start timeout=200s stop timeout=200s', } ->
-    pacemaker::resource::service { 'openstack-cinder-backup': op_params => 'start timeout=200s stop timeout=200s', }
+    pacemaker::resource::service { 'openstack-cinder-backup': op_params => 'start timeout=200s stop timeout=200s', } ->
+    cinder_type { 'rbd':
+      ensure     => present,
+      properties => ["volume_backend_name=rbd"],
+    }
   }
 }
