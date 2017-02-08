@@ -2,51 +2,64 @@ class openstack::y002_glance (
   $bootstrap_node  = 'controller-1',
   $glance_password = 'glance1234',
   $allowed_hosts   = ['%'],
-  $cluster_nodes   = ['controller-1', 'controller-2', 'controller-3'],
-  $host            = 'controller-vip',) {
+  $controller_vip  = '192.168.0.130',
+  $controller_1    = '192.168.0.131',
+  $controller_2    = '192.168.0.132',
+  $controller_3    = '192.168.0.133',) {
   if $::hostname == $bootstrap_node {
+    class { '::glance::db::mysql':
+      password      => $glance_password,
+      host          => 'localhost',
+      allowed_hosts => $allowed_hosts,
+    }
     $sync_db = true
   } else {
     $sync_db = false
   }
 
   class { '::glance::api':
-    database_connection     => "mysql+pymysql://glance:${glance_password}@${host}/glance",
-    database_max_retries    => '-1',
-    bind_host               => $::hostname,
-    registry_host           => $host,
+    show_image_direct_url        => true,
+    show_multiple_locations      => true,
+    bind_host       => $::ipaddress_eth0,
+    bind_port       => '9292',
+    # workers       => $::processorcount,
+    image_cache_dir => '/var/lib/glance/image-cache',
+    registry_host   => $controller_vip,
+    registry_client_protocol     => 'http',
+    log_file        => '/var/log/glance/api.log',
+    log_dir         => '/var/log/glance',
+    # rpc_backend   => 'rabbit',
+    database_connection          => "mysql+pymysql://glance:${glance_password}@${controller_vip}/glance",
+    database_max_retries         => '-1',
+    stores          => ['glance.store.http.Store', 'glance.store.rbd.Store'],
+    default_store   => 'rbd',
+    os_region_name  => 'RegionOne',
     #
-    pipeline                => 'keystone',
-    auth_strategy           => '::glance::api::authtoken',
+    enable_proxy_headers_parsing => true,
+    pipeline        => 'keystone',
+    auth_strategy   => '::glance::api::authtoken',
     #
-    show_image_direct_url   => true,
-    show_multiple_locations => true,
-    stores                  => ['rbd', 'http'],
-    default_store           => 'rbd',
-    multi_store             => true,
-    #
-    manage_service          => false,
-    enabled                 => false,
+    multi_store     => true,
   }
 
   class { '::glance::api::authtoken':
-    auth_uri            => "http://${host}:5000/",
-    auth_url            => "http://${host}:35357/",
-    memcached_servers   => $cluster_nodes,
+    auth_uri            => "http://${controller_vip}:5000/",
+    auth_url            => "http://${controller_vip}:35357/",
+    memcached_servers   => ["${controller_1}:11211", "${controller_2}:11211", "${controller_3}:11211"],
     auth_type           => 'password',
     project_domain_name => 'default',
     user_domain_name    => 'default',
-    project_name        => 'service',
+    project_name        => 'services',
     username            => 'glance',
     password            => $glance_password,
   }
 
   class { '::glance::notify::rabbitmq':
+    rabbit_hosts     => ["${controller_1}:5672", "${controller_2}:5672", "${controller_3}:5672"],
+    rabbit_use_ssl   => false,
     rabbit_password  => 'guest',
     rabbit_userid    => 'guest',
-    rabbit_hosts     => $cluster_nodes,
     rabbit_ha_queues => true,
-    rabbit_use_ssl   => false,
   }
 
   class { '::glance::backend::rbd':
@@ -59,96 +72,49 @@ class openstack::y002_glance (
   }
 
   class { '::glance::registry':
-    database_connection  => "mysql+pymysql://glance:${glance_password}@${host}/glance",
+    bind_host            => $::ipaddress_eth0,
+    bind_port            => '9191',
+    # workers            => $::processorcount,
+    log_file             => '/var/log/glance/registry.log',
+    log_dir              => '/var/log/glance',
+    # rpc_backend        => 'rabbit',
+    database_connection  => "mysql+pymysql://glance:${glance_password}@${controller_vip}/glance",
     database_max_retries => '-1',
-    bind_host            => $::hostname,
     #
     pipeline             => 'keystone',
     auth_strategy        => '::glance::registry::authtoken',
     #
     sync_db              => $sync_db,
-    #
-    manage_service       => false,
-    enabled              => false,
   }
 
   class { '::glance::registry::authtoken':
-    auth_uri            => "http://${host}:5000/",
-    auth_url            => "http://${host}:35357/",
-    memcached_servers   => $cluster_nodes,
+    auth_uri            => "http://${controller_vip}:5000/",
+    auth_url            => "http://${controller_vip}:35357/",
+    memcached_servers   => ["${controller_1}:11211", "${controller_2}:11211", "${controller_3}:11211"],
     auth_type           => 'password',
     project_domain_name => 'default',
     user_domain_name    => 'default',
-    project_name        => 'service',
+    project_name        => 'services',
     username            => 'glance',
     password            => $glance_password,
   }
 
   if $::hostname == $bootstrap_node {
-    class { '::glance::db::mysql':
-      password      => $glance_password,
-      host          => 'localhost',
-      allowed_hosts => $allowed_hosts,
-    } ->
-    keystone_service { 'glance':
-      ensure      => 'present',
-      type        => 'image',
-      description => 'OpenStack Image',
-    } ->
-    keystone_endpoint { 'glance':
-      ensure       => 'present',
-      region       => 'RegionOne',
-      admin_url    => "http://${host}:9292",
-      public_url   => "http://${host}:9292",
-      internal_url => "http://${host}:9292",
-    } ->
-    keystone_user { 'glance':
-      ensure   => 'present',
-      password => $glance_password,
-      # email    => 'glance@example.org',
-      domain   => 'default',
-    } ->
-    keystone_user_role { 'glance::default@service::default':
-      ensure         => 'present',
-      user           => 'glance',
-      user_domain    => 'default',
-      project        => 'service',
-      project_domain => 'default',
-      roles          => ['admin'],
-    } ->
-    pacemaker::resource::service { 'openstack-glance-registry': clone_params => 'interleave=true', } ->
-    pacemaker::constraint::base { 'order-httpd-clone-openstack-glance-registry-clone-Mandatory':
-      constraint_type   => 'order',
-      first_action      => 'start',
-      first_resource    => 'httpd-clone',
-      second_action     => 'start',
-      second_resource   => 'openstack-glance-registry-clone',
-      constraint_params => 'kind=Mandatory',
-    } ->
-    pacemaker::resource::service { 'openstack-glance-api': clone_params => 'interleave=true', } ->
-    pacemaker::constraint::base { 'order-openstack-glance-registry-clone-openstack-glance-api-clone-Mandatory':
-      constraint_type   => 'order',
-      first_action      => 'start',
-      first_resource    => 'openstack-glance-registry-clone',
-      second_action     => 'start',
-      second_resource   => 'openstack-glance-api-clone',
-      constraint_params => 'kind=Mandatory',
-    } ->
-    pacemaker::constraint::colocation { 'colocation-openstack-glance-api-clone-openstack-glance-registry-clone-INFINITY':
-      source => 'openstack-glance-api-clone',
-      target => 'openstack-glance-registry-clone',
-      score  => 'INFINITY',
-    } ->
-    exec { 'glance-ready':
-      timeout   => '3600',
-      tries     => '360',
-      try_sleep => '10',
-      command   => "/usr/bin/openstack --os-project-domain-name default --os-user-domain-name default --os-project-name admin --os-username admin --os-password admin1234 --os-auth-url http://${host}:35357/v3 --os-identity-api-version 3 image list > /dev/null 2>&1 && \
-                    /usr/bin/openstack --os-project-domain-name default --os-user-domain-name default --os-project-name admin --os-username admin --os-password admin1234 --os-auth-url http://${host}:35357/v3 --os-identity-api-version 3 image list > /dev/null 2>&1 && \
-                    /usr/bin/openstack --os-project-domain-name default --os-user-domain-name default --os-project-name admin --os-username admin --os-password admin1234 --os-auth-url http://${host}:35357/v3 --os-identity-api-version 3 image list > /dev/null 2>&1",
-      unless    => "/usr/bin/openstack --os-project-domain-name default --os-user-domain-name default --os-project-name admin --os-username admin --os-password admin1234 --os-auth-url http://${host}:35357/v3 --os-identity-api-version 3 image list > /dev/null 2>&1 && \
-                    /usr/bin/openstack --os-project-domain-name default --os-user-domain-name default --os-project-name admin --os-username admin --os-password admin1234 --os-auth-url http://${host}:35357/v3 --os-identity-api-version 3 image list > /dev/null 2>&1 && \
-                    /usr/bin/openstack --os-project-domain-name default --os-user-domain-name default --os-project-name admin --os-username admin --os-password admin1234 --os-auth-url http://${host}:35357/v3 --os-identity-api-version 3 image list > /dev/null 2>&1",
+    class { 'glance::keystone::auth':
+      email               => 'glance@example.com',
+      password            => $glance_password,
+      auth_name           => 'glance',
+      configure_endpoint  => true,
+      configure_user      => true,
+      configure_user_role => true,
+      service_name        => 'glance',
+      service_type        => 'image',
+      region              => 'RegionOne',
+      tenant              => 'services',
+      service_description => 'OpenStack Image Service',
+      public_url          => "http://${controller_vip}:9292",
+      admin_url           => "http://${controller_vip}:9292",
+      internal_url        => "http://${controller_vip}:9292",
     }
   }
 }
