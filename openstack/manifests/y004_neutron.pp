@@ -3,74 +3,94 @@ class openstack::y004_neutron (
   $neutron_password = 'neutron1234',
   $nova_password    = 'nova1234',
   $allowed_hosts    = ['%'],
-  $cluster_nodes    = ['controller-1', 'controller-2', 'controller-3'],
-  $host             = 'controller-vip',
-  $rbd_secret_uuid  = '2ad6a20f-ffdd-460d-afba-04ab286f365f',) {
+  $controller_vip   = '192.168.0.130',
+  $controller_1     = '192.168.0.131',
+  $controller_2     = '192.168.0.132',
+  $controller_3     = '192.168.0.133',
+  $metadata_secret  = 'metadata1234',) {
   if $::hostname == $bootstrap_node {
+    class { '::neutron::db::mysql':
+      password      => $neutron_password,
+      host          => 'localhost',
+      allowed_hosts => $allowed_hosts,
+    }
     $sync_db = true
   } else {
     $sync_db = false
   }
 
   class { '::neutron':
-    host                    => $::hostname,
-    bind_host               => $::hostname,
+    bind_host               => $::ipaddress_eth0,
     auth_strategy           => 'keystone',
+    core_plugin             => 'neutron.plugins.ml2.plugin.Ml2Plugin',
+    service_plugins         => [
+      'router',
+      'qos',
+      'trunk',
+      'firewall',
+      'vpnaas',
+      'neutron_lbaas.services.loadbalancer.plugin.LoadBalancerPluginv2'],
+    allow_overlapping_ips   => true,
+    host                    => $::hostname,
+    global_physnet_mtu      => '1450',
+    log_dir                 => '/var/log/neutron',
+    rpc_backend             => 'rabbit',
+    control_exchange        => 'neutron',
+    # nova_url              => "http://${controller_vip}:8774/v2.1",
+    root_helper             => 'sudo neutron-rootwrap /etc/neutron/rootwrap.conf',
     #
-    notification_driver     => 'neutron.openstack.common.notifier.rpc_notifier',
+    rabbit_hosts            => ["${controller_1}:5672", "${controller_2}:5672", "${controller_3}:5672"],
+    rabbit_use_ssl          => false,
     rabbit_user             => 'guest',
     rabbit_password         => 'guest',
-    rabbit_hosts            => $cluster_nodes,
     rabbit_ha_queues        => true,
+    rabbit_heartbeat_timeout_threshold => '60',
     #
-    core_plugin             => 'neutron.plugins.ml2.plugin.Ml2Plugin',
-    service_plugins         => ['router', 'firewall', 'neutron_lbaas.services.loadbalancer.plugin.LoadBalancerPluginv2', 'vpnaas'],
-    #
-    dhcp_agents_per_network => '2',
+    dhcp_agents_per_network => '3',
   }
 
   class { '::neutron::keystone::authtoken':
-    auth_uri            => "http://${host}:5000/",
-    auth_url            => "http://${host}:35357/",
-    memcached_servers   => $cluster_nodes,
+    auth_uri            => "http://${controller_vip}:5000/",
+    auth_url            => "http://${controller_vip}:35357/",
+    memcached_servers   => ["${controller_1}:11211", "${controller_2}:11211", "${controller_3}:11211"],
     auth_type           => 'password',
     project_domain_name => 'default',
     user_domain_name    => 'default',
     region_name         => 'RegionOne',
-    project_name        => 'service',
+    project_name        => 'services',
     username            => 'neutron',
     password            => $neutron_password,
   }
 
   class { '::neutron::server':
-    database_connection      => "mysql+pymysql://neutron:${neutron_password}@${host}/neutron",
-    database_max_retries     => '-1',
-    service_providers        => [
-      'LOADBALANCERV2:Haproxy:neutron_lbaas.drivers.haproxy.plugin_driver.HaproxyOnHostPluginDriver:default',
+    database_connection          => "mysql+pymysql://neutron:${neutron_password}@${controller_vip}/neutron",
+    database_max_retries         => '-1',
+    # db_max_retries             => '-1',
+    service_providers            => [
+      'LOADBALANCERV2:Octavia:neutron_lbaas.drivers.octavia.driver.OctaviaDriver:default',
+      'LOADBALANCER:Haproxy:neutron_lbaas.services.loadbalancer.drivers.haproxy.plugin_driver.HaproxyOnHostPluginDriver',
       'VPN:openswan:neutron_vpnaas.services.vpn.service_drivers.ipsec.IPsecVPNDriver:default'],
-    auth_strategy            => false,
+    auth_strategy => false,
+    enable_proxy_headers_parsing => true,
     #
-    router_scheduler_driver  => 'neutron.scheduler.l3_agent_scheduler.ChanceScheduler',
+    router_distributed           => false,
+    router_scheduler_driver      => 'neutron.scheduler.l3_agent_scheduler.ChanceScheduler',
     #
-    api_workers              => '2',
-    rpc_workers              => '2',
-    l3_ha                    => true,
-    min_l3_agents_per_router => '2',
-    max_l3_agents_per_router => '2',
+    api_workers   => '2',
+    rpc_workers   => '2',
+    l3_ha         => true,
+    max_l3_agents_per_router     => '3',
     #
-    sync_db                  => $sync_db,
-    #
-    manage_service           => false,
-    enabled                  => false,
+    sync_db       => $sync_db,
   }
 
   class { '::neutron::server::notifications':
-    auth_url          => "http://${host}:35357/",
+    auth_url          => "http://${controller_vip}:35357/v3",
     auth_type         => 'password',
     project_domain_id => 'default',
     user_domain_id    => 'default',
     region_name       => 'RegionOne',
-    project_name      => 'service',
+    project_name      => 'services',
     username          => 'nova',
     password          => $nova_password,
     #
@@ -79,16 +99,15 @@ class openstack::y004_neutron (
   }
 
   class { '::neutron::plugins::ml2':
-    type_drivers          => ['local', 'flat', 'vlan', 'gre', 'vxlan'],
-    tenant_network_types  => ['vlan', 'vxlan'],
-    mechanism_drivers     => ['openvswitch'],
-    flat_networks         => '*',
-    network_vlan_ranges   => 'physnet1:1000:1099',
-    tunnel_id_ranges      => undef,
-    vxlan_group           => '224.0.0.1',
-    vni_ranges            => '100:199',
-    enable_security_group => true,
-    firewall_driver       => 'neutron.agent.linux.iptables_firewall.OVSHybridIptablesFirewallDriver',
+    type_drivers         => ['local', 'flat', 'vlan', 'gre', 'vxlan'],
+    tenant_network_types => ['vlan', 'vxlan'],
+    mechanism_drivers    => ['openvswitch'],
+    extension_drivers    => ['qos', 'port_security'],
+    flat_networks        => '*',
+    network_vlan_ranges  => 'physnet1:1:4094',
+    tunnel_id_ranges     => '1:4094',
+    vxlan_group          => '224.0.0.1',
+    vni_ranges           => '1:4094',
   }
 
   class { '::neutron::services::fwaas':
@@ -103,17 +122,18 @@ class openstack::y004_neutron (
   }
 
   class { '::neutron::agents::ml2::ovs':
-    tunnel_types       => ['vxlan'],
-    vxlan_udp_port     => '4789',
-    local_ip           => $::ipaddress_eth3,
-    integration_bridge => 'br-int',
-    tunnel_bridge      => 'br-tun',
-    bridge_mappings    => ['physnet1:br-eth2', 'extnet:br-ex1'],
-    firewall_driver    => 'neutron.agent.linux.iptables_firewall.OVSHybridIptablesFirewallDriver',
-    l2_population      => false,
-    #
-    manage_service     => false,
-    enabled            => false,
+    tunnel_types               => ['vxlan'],
+    vxlan_udp_port             => '4789',
+    l2_population              => false,
+    arp_responder              => false,
+    enable_distributed_routing => false,
+    drop_flows_on_start        => false,
+    extensions                 => ['qos'],
+    integration_bridge         => 'br-int',
+    tunnel_bridge              => 'br-tun',
+    local_ip                   => $::ipaddress_eth3,
+    bridge_mappings            => ['physnet1:br-eth2', 'extnet:br-ex'],
+    firewall_driver            => 'neutron.agent.linux.iptables_firewall.OVSHybridIptablesFirewallDriver',
   }
 
   class { '::neutron::agents::dhcp':
@@ -125,30 +145,19 @@ class openstack::y004_neutron (
     enable_force_metadata    => true,
     enable_isolated_metadata => true,
     enable_metadata_network  => true,
-    #
-    manage_service           => false,
-    enabled                  => false,
   }
 
   class { '::neutron::agents::l3':
-    interface_driver => 'neutron.agent.linux.interface.OVSInterfaceDriver',
-    handle_internal_only_routers => false,
-    send_arp_for_ha  => '3',
+    interface_driver             => 'neutron.agent.linux.interface.OVSInterfaceDriver',
+    agent_mode                   => 'legacy',
     #
-    manage_service   => false,
-    enabled          => false,
+    handle_internal_only_routers => false,
+    send_arp_for_ha              => '3',
   }
 
   class { '::neutron::agents::metadata':
-    shared_secret     => 'metadata1234',
-    metadata_ip       => $host,
-    metadata_port     => '8775',
-    metadata_protocol => 'http',
-    metadata_workers  => '4',
-    metadata_backlog  => '4096',
-    #
-    manage_service    => false,
-    enabled           => false,
+    metadata_ip   => $controller_vip,
+    shared_secret => $metadata_secret,
   }
 
   class { '::neutron::agents::lbaas':
@@ -156,27 +165,12 @@ class openstack::y004_neutron (
     device_driver          => 'neutron_lbaas.drivers.haproxy.namespace_driver.HaproxyNSDriver',
     manage_haproxy_package => false,
     purge_config           => false,
-    #
-    manage_service         => false,
-    enabled                => false,
   }
 
   class { '::neutron::agents::vpnaas':
     vpn_device_driver           => 'neutron.services.vpn.device_drivers.ipsec.OpenSwanDriver',
     interface_driver            => 'neutron.agent.linux.interface.OVSInterfaceDriver',
     ipsec_status_check_interval => '30',
-    #
-    manage_service              => false,
-    enabled                     => false,
-  }
-
-  file { '/etc/neutron/dnsmasq-neutron.conf':
-    ensure  => file,
-    mode    => '0644',
-    owner   => 'root',
-    group   => 'neutron',
-    content => "dhcp-option-force=26,1400",
-    require => Class['::neutron::agents::dhcp'],
   }
 
   file { '/etc/sysconfig/network-scripts/ifcfg-eth1':
@@ -188,19 +182,19 @@ class openstack::y004_neutron (
 DEVICE=eth1
 TYPE=OVSPort
 DEVICETYPE=ovs
-OVS_BRIDGE=br-ex1
+OVS_BRIDGE=br-ex
 BOOTPROTO=none
 ONBOOT=yes
 ",
     require => Class['::neutron::agents::ml2::ovs'],
   } ->
-  file { '/etc/sysconfig/network-scripts/ifcfg-br-ex1':
+  file { '/etc/sysconfig/network-scripts/ifcfg-br-ex':
     ensure  => file,
     mode    => '0644',
     owner   => 'root',
     group   => 'root',
-    content => "NAME=br-ex1
-DEVICE=br-ex1
+    content => "NAME=br-ex
+DEVICE=br-ex
 DEVICETYPE=ovs
 OVSBOOTPROTO=none
 TYPE=OVSBridge
@@ -236,19 +230,19 @@ BOOTPROTO=none
 ONBOOT=yes
 ",
   } ->
-  exec { 'ovs-vsctl add-br br-ex1':
+  exec { 'ovs-vsctl add-br br-ex':
     timeout   => '3600',
     tries     => '360',
     try_sleep => '10',
-    command   => "/usr/bin/ovs-vsctl add-br br-ex1",
-    unless    => "/usr/bin/ovs-vsctl list-ports br-ex1",
+    command   => "/usr/bin/ovs-vsctl add-br br-ex",
+    unless    => "/usr/bin/ovs-vsctl list-ports br-ex",
   } ->
-  exec { 'ovs-vsctl add-port br-ex1 eth1':
+  exec { 'ovs-vsctl add-port br-ex eth1':
     timeout   => '3600',
     tries     => '360',
     try_sleep => '10',
-    command   => "/usr/bin/ovs-vsctl add-port br-ex1 eth1",
-    unless    => "/usr/bin/ovs-vsctl list-ports br-ex1 | /usr/bin/grep eth1",
+    command   => "/usr/bin/ovs-vsctl add-port br-ex eth1",
+    unless    => "/usr/bin/ovs-vsctl list-ports br-ex | /usr/bin/grep eth1",
   } ->
   exec { 'ovs-vsctl add-br br-eth2':
     timeout   => '3600',
@@ -266,179 +260,21 @@ ONBOOT=yes
   }
 
   if $::hostname == $bootstrap_node {
-    class { '::neutron::db::mysql':
-      password      => $neutron_password,
-      host          => 'localhost',
-      allowed_hosts => $allowed_hosts,
-    } ->
-    keystone_service { 'neutron':
-      ensure      => 'present',
-      type        => 'network',
-      description => 'OpenStack Networking',
-    } ->
-    keystone_endpoint { 'neutron':
-      ensure       => 'present',
-      region       => 'RegionOne',
-      admin_url    => "http://${host}:9696",
-      public_url   => "http://${host}:9696",
-      internal_url => "http://${host}:9696",
-    } ->
-    keystone_user { 'neutron':
-      ensure   => 'present',
-      password => $neutron_password,
-      # email    => 'neutron@example.org',
-      domain   => 'default',
-    } ->
-    keystone_user_role { 'neutron::default@service::default':
-      ensure         => 'present',
-      user           => 'neutron',
-      user_domain    => 'default',
-      project        => 'service',
-      project_domain => 'default',
-      roles          => ['admin'],
-    } ->
-    pacemaker::resource::service { 'neutron-server':
-      op_params    => 'start timeout=90s',
-      clone_params => 'interleave=true',
-    } ->
-    pacemaker::constraint::base { 'order-httpd-clone-neutron-server-clone-Mandatory':
-      constraint_type   => 'order',
-      first_action      => 'start',
-      first_resource    => 'httpd-clone',
-      second_action     => 'start',
-      second_resource   => 'neutron-server-clone',
-      constraint_params => 'kind=Mandatory',
-    } ->
-    pacemaker::resource::ocf { 'neutron-ovs-cleanup':
-      ensure         => 'present',
-      ocf_agent_name => 'neutron:OVSCleanup',
-      clone_params   => 'interleave=true',
-    } ->
-    pacemaker::constraint::base { 'order-neutron-server-clone-neutron-ovs-cleanup-clone-Mandatory':
-      constraint_type   => 'order',
-      first_action      => 'start',
-      first_resource    => 'neutron-server-clone',
-      second_action     => 'start',
-      second_resource   => 'neutron-ovs-cleanup-clone',
-      constraint_params => 'kind=Mandatory',
-    } ->
-    pacemaker::constraint::colocation { 'colocation-neutron-ovs-cleanup-clone-neutron-server-clone-INFINITY':
-      source => 'neutron-ovs-cleanup-clone',
-      target => 'neutron-server-clone',
-      score  => 'INFINITY',
-    } ->
-    pacemaker::resource::ocf { 'neutron-netns-cleanup':
-      ensure         => 'present',
-      ocf_agent_name => 'neutron:NetnsCleanup',
-      clone_params   => 'interleave=true',
-    } ->
-    pacemaker::constraint::base { 'order-neutron-ovs-cleanup-clone-neutron-netns-cleanup-clone-Mandatory':
-      constraint_type   => 'order',
-      first_action      => 'start',
-      first_resource    => 'neutron-ovs-cleanup-clone',
-      second_action     => 'start',
-      second_resource   => 'neutron-netns-cleanup-clone',
-      constraint_params => 'kind=Mandatory',
-    } ->
-    pacemaker::constraint::colocation { 'colocation-neutron-netns-cleanup-clone-neutron-ovs-cleanup-clone-INFINITY':
-      source => 'neutron-netns-cleanup-clone',
-      target => 'neutron-ovs-cleanup-clone',
-      score  => 'INFINITY',
-    } ->
-    pacemaker::resource::service { 'neutron-openvswitch-agent': clone_params => 'interleave=true', } ->
-    pacemaker::constraint::base { 'order-neutron-netns-cleanup-clone-neutron-openvswitch-agent-clone-Mandatory':
-      constraint_type   => 'order',
-      first_action      => 'start',
-      first_resource    => 'neutron-netns-cleanup-clone',
-      second_action     => 'start',
-      second_resource   => 'neutron-openvswitch-agent-clone',
-      constraint_params => 'kind=Mandatory',
-    } ->
-    pacemaker::constraint::colocation { 'colocation-neutron-openvswitch-agent-clone-neutron-netns-cleanup-clone-INFINITY':
-      source => 'neutron-openvswitch-agent-clone',
-      target => 'neutron-netns-cleanup-clone',
-      score  => 'INFINITY',
-    } ->
-    pacemaker::resource::service { 'neutron-dhcp-agent': clone_params => 'interleave=true', } ->
-    pacemaker::constraint::base { 'order-neutron-openvswitch-agent-clone-neutron-dhcp-agent-clone-Mandatory':
-      constraint_type   => 'order',
-      first_action      => 'start',
-      first_resource    => 'neutron-openvswitch-agent-clone',
-      second_action     => 'start',
-      second_resource   => 'neutron-dhcp-agent-clone',
-      constraint_params => 'kind=Mandatory',
-    } ->
-    pacemaker::constraint::colocation { 'colocation-neutron-dhcp-agent-clone-neutron-openvswitch-agent-clone-INFINITY':
-      source => 'neutron-dhcp-agent-clone',
-      target => 'neutron-openvswitch-agent-clone',
-      score  => 'INFINITY',
-    } ->
-    pacemaker::resource::service { 'neutron-l3-agent': clone_params => 'interleave=true', } ->
-    pacemaker::constraint::base { 'order-neutron-dhcp-agent-clone-neutron-l3-agent-clone-Mandatory':
-      constraint_type   => 'order',
-      first_action      => 'start',
-      first_resource    => 'neutron-dhcp-agent-clone',
-      second_action     => 'start',
-      second_resource   => 'neutron-l3-agent-clone',
-      constraint_params => 'kind=Mandatory',
-    } ->
-    pacemaker::constraint::colocation { 'colocation-neutron-l3-agent-clone-neutron-dhcp-agent-clone-INFINITY':
-      source => 'neutron-l3-agent-clone',
-      target => 'neutron-dhcp-agent-clone',
-      score  => 'INFINITY',
-    } ->
-    pacemaker::resource::service { 'neutron-metadata-agent': clone_params => 'interleave=true', } ->
-    pacemaker::constraint::base { 'order-neutron-l3-agent-clone-neutron-metadata-agent-clone-Mandatory':
-      constraint_type   => 'order',
-      first_action      => 'start',
-      first_resource    => 'neutron-l3-agent-clone',
-      second_action     => 'start',
-      second_resource   => 'neutron-metadata-agent-clone',
-      constraint_params => 'kind=Mandatory',
-    } ->
-    pacemaker::constraint::colocation { 'colocation-neutron-metadata-agent-clone-neutron-l3-agent-clone-INFINITY':
-      source => 'neutron-metadata-agent-clone',
-      target => 'neutron-l3-agent-clone',
-      score  => 'INFINITY',
-    } ->
-    pacemaker::resource::service { 'neutron-lbaasv2-agent': clone_params => 'interleave=true', } ->
-    pacemaker::constraint::base { 'order-neutron-l3-agent-clone-neutron-lbaasv2-agent-clone-Mandatory':
-      constraint_type   => 'order',
-      first_action      => 'start',
-      first_resource    => 'neutron-l3-agent-clone',
-      second_action     => 'start',
-      second_resource   => 'neutron-lbaasv2-agent-clone',
-      constraint_params => 'kind=Mandatory',
-    } ->
-    pacemaker::constraint::colocation { 'colocation-neutron-lbaasv2-agent-clone-neutron-l3-agent-clone-INFINITY':
-      source => 'neutron-lbaasv2-agent-clone',
-      target => 'neutron-l3-agent-clone',
-      score  => 'INFINITY',
-    } ->
-    pacemaker::resource::service { 'neutron-vpn-agent': clone_params => 'interleave=true', } ->
-    pacemaker::constraint::base { 'order-neutron-l3-agent-clone-neutron-vpn-agent-clone-Mandatory':
-      constraint_type   => 'order',
-      first_action      => 'start',
-      first_resource    => 'neutron-l3-agent-clone',
-      second_action     => 'start',
-      second_resource   => 'neutron-vpn-agent-clone',
-      constraint_params => 'kind=Mandatory',
-    } ->
-    pacemaker::constraint::colocation { 'colocation-neutron-vpn-agent-clone-neutron-l3-agent-clone-INFINITY':
-      source => 'neutron-vpn-agent-clone',
-      target => 'neutron-l3-agent-clone',
-      score  => 'INFINITY',
-    } ->
-    exec { 'neutron-ready':
-      timeout   => '3600',
-      tries     => '360',
-      try_sleep => '10',
-      command   => "/usr/bin/openstack --os-project-domain-name default --os-user-domain-name default --os-project-name admin --os-username admin --os-password admin1234 --os-auth-url http://${host}:35357/v3 --os-identity-api-version 3 network list > /dev/null 2>&1 && \
-                    /usr/bin/openstack --os-project-domain-name default --os-user-domain-name default --os-project-name admin --os-username admin --os-password admin1234 --os-auth-url http://${host}:35357/v3 --os-identity-api-version 3 network list > /dev/null 2>&1 && \
-                    /usr/bin/openstack --os-project-domain-name default --os-user-domain-name default --os-project-name admin --os-username admin --os-password admin1234 --os-auth-url http://${host}:35357/v3 --os-identity-api-version 3 network list > /dev/null 2>&1",
-      unless    => "/usr/bin/openstack --os-project-domain-name default --os-user-domain-name default --os-project-name admin --os-username admin --os-password admin1234 --os-auth-url http://${host}:35357/v3 --os-identity-api-version 3 network list > /dev/null 2>&1 && \
-                    /usr/bin/openstack --os-project-domain-name default --os-user-domain-name default --os-project-name admin --os-username admin --os-password admin1234 --os-auth-url http://${host}:35357/v3 --os-identity-api-version 3 network list > /dev/null 2>&1 && \
-                    /usr/bin/openstack --os-project-domain-name default --os-user-domain-name default --os-project-name admin --os-username admin --os-password admin1234 --os-auth-url http://${host}:35357/v3 --os-identity-api-version 3 network list > /dev/null 2>&1",
+    class { '::neutron::keystone::auth':
+      password            => $neutron_password,
+      auth_name           => 'neutron',
+      email               => 'neutron@example.com',
+      tenant              => 'services',
+      configure_endpoint  => true,
+      configure_user      => true,
+      configure_user_role => true,
+      service_name        => 'neutron',
+      service_type        => 'network',
+      service_description => 'Neutron Networking Service',
+      region              => 'RegionOne',
+      public_url          => "http://${controller_vip}:9696",
+      admin_url           => "http://${controller_vip}:9696",
+      internal_url        => "http://${controller_vip}:9696",
     }
   }
 }
