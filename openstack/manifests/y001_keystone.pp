@@ -1,42 +1,81 @@
 class openstack::y001_keystone (
   $bootstrap_node    = 'controller-1',
+  $admin_token       = 'xnYAbZ638Za2NnuwHB3MtxKF6',
+  $admin_password    = 'admin1234',
   $keystone_password = 'keystone1234',
   $allowed_hosts     = ['%'],
-  $admin_token       = 'e38f3dd7116ee3bc3dba',
-  $admin_password    = 'admin1234',
-  $cluster_nodes     = [
-    'controller-1',
-    'controller-2',
-    'controller-3'],
-  $host              = 'controller-vip',) {
+  $controller_vip    = '192.168.0.130',
+  $controller_1      = '192.168.0.131',
+  $controller_2      = '192.168.0.132',
+  $controller_3      = '192.168.0.133',) {
   if $::hostname == $bootstrap_node {
+    class { '::keystone::db::mysql':
+      password      => $keystone_password,
+      host          => 'localhost',
+      allowed_hosts => $allowed_hosts,
+    }
     $sync_db = true
   } else {
     $sync_db = false
   }
 
   class { '::keystone':
-    admin_token          => $admin_token,
-    admin_password       => $admin_password,
-    rabbit_hosts         => $cluster_nodes,
-    rabbit_ha_queues     => true,
-    admin_endpoint       => "http://${host}:35357/",
-    public_endpoint      => "http://${host}:5000/",
-    database_connection  => "mysql+pymysql://keystone:${keystone_password}@${host}/keystone",
-    database_max_retries => '-1',
-    public_bind_host     => $::hostname,
-    admin_bind_host      => $::hostname,
-    token_provider       => 'fernet',
-    sync_db              => $sync_db,
-    enable_bootstrap     => false,
-    manage_service       => false,
-    enabled              => false,
+    admin_token           => $admin_token,
+    admin_password        => $admin_password,
+    notification_format   => 'basic',
+    log_dir               => '/var/log/keystone',
+    # rpc_backend         => 'rabbit',
+    public_port           => '5000',
+    public_bind_host      => $::ipaddress_eth0,
+    admin_bind_host       => $::ipaddress_eth0,
+    admin_port            => '35357',
+    catalog_template_file => '/etc/keystone/default_catalog.templates',
+    catalog_driver        => 'sql',
+    credential_key_repository          => '/etc/keystone/credential-keys',
+    database_connection   => "mysql+pymysql://keystone:${keystone_password}@${controller_vip}/keystone",
+    database_max_retries  => '-1',
+    # admin_workers       => max($::processorcount, 2),
+    # public_workers      => max($::processorcount, 2),
+    fernet_key_repository => '/etc/keystone/fernet-keys',
+    notification_driver   => 'messaging',
+    rabbit_hosts          => ["${controller_1}:5672", "${controller_2}:5672", "${controller_3}:5672"],
+    rabbit_use_ssl        => false,
+    rabbit_userid         => 'guest',
+    rabbit_password       => 'guest',
+    rabbit_ha_queues      => true,
+    rabbit_heartbeat_timeout_threshold => '60',
+    enable_proxy_headers_parsing       => true,
+    token_expiration      => '3600',
+    token_provider        => 'uuid', # fernet
+    token_driver          => 'sql',
+    revoke_by_id          => true,
+    enable_ssl            => false,
+    #
+    sync_db               => $sync_db,
+    enable_bootstrap      => $sync_db,
+    # enable_fernet_setup => $sync_db,
+    enable_credential_setup            => true,
+    credential_keys       => {
+      '/etc/keystone/credential-keys/0' => {
+        content => 'd_9esDjvKlaN_Og7ZCqEbvnv9iXphnjOfnt2ZfXq4C4=',
+      }
+      ,
+      '/etc/keystone/credential-keys/1' => {
+        content => '17tl2C3zlfMbDwaNpdiufd2zjsXpDPLF3i5Hm1Rd1rQ=',
+      }
+      ,
+    }
+    ,
+    # default_domain      => 'default',
+    manage_service        => false,
+    enabled               => false,
+  }
+
+  class { '::keystone::config':
   }
 
   class { '::apache':
-    ip             => $::ipaddress_eth0,
-    service_ensure => 'stopped',
-    service_enable => false,
+    ip => $::ipaddress_eth0,
   }
 
   class { '::keystone::wsgi::apache':
@@ -52,139 +91,32 @@ class openstack::y001_keystone (
   }
 
   if $::hostname == $bootstrap_node {
-    class { '::keystone::db::mysql':
-      password      => $keystone_password,
-      host          => 'localhost',
-      allowed_hosts => $allowed_hosts,
-    } ->
-    exec { 'keystone-manage fernet_setup':
-      timeout   => '3600',
-      tries     => '360',
-      try_sleep => '10',
-      command   => "/usr/bin/keystone-manage fernet_setup --keystone-user keystone --keystone-group keystone > /dev/null 2>&1",
-      unless    => "/usr/bin/keystone-manage fernet_setup --keystone-user keystone --keystone-group keystone > /dev/null 2>&1",
-    } ->
-    exec { 'rsync fernet-keys':
-      timeout   => '3600',
-      tries     => '360',
-      try_sleep => '10',
-      command   => "/usr/bin/rsync -avzP /etc/keystone/fernet-keys/ controller-2:/etc/keystone/fernet-keys/ > /dev/null 2>&1 &&\
-                    /usr/bin/rsync -avzP /etc/keystone/fernet-keys/ controller-3:/etc/keystone/fernet-keys/ > /dev/null 2>&1",
-      unless    => "/usr/bin/rsync -avzP /etc/keystone/fernet-keys/ controller-2:/etc/keystone/fernet-keys/ > /dev/null 2>&1 &&\
-                    /usr/bin/rsync -avzP /etc/keystone/fernet-keys/ controller-3:/etc/keystone/fernet-keys/ > /dev/null 2>&1",
-    } ->
-    exec { 'keystone-manage credential_setup':
-      timeout   => '3600',
-      tries     => '360',
-      try_sleep => '10',
-      command   => "/usr/bin/keystone-manage credential_setup --keystone-user keystone --keystone-group keystone > /dev/null 2>&1",
-      unless    => "/usr/bin/keystone-manage credential_setup --keystone-user keystone --keystone-group keystone > /dev/null 2>&1",
-    } ->
-    exec { 'rsync credential-keys':
-      timeout   => '3600',
-      tries     => '360',
-      try_sleep => '10',
-      command   => "/usr/bin/rsync -avzP /etc/keystone/credential-keys/ controller-2:/etc/keystone/credential-keys/ > /dev/null 2>&1 &&\
-                    /usr/bin/rsync -avzP /etc/keystone/credential-keys/ controller-3:/etc/keystone/credential-keys/ > /dev/null 2>&1",
-      unless    => "/usr/bin/rsync -avzP /etc/keystone/credential-keys/ controller-2:/etc/keystone/credential-keys/ > /dev/null 2>&1 &&\
-                    /usr/bin/rsync -avzP /etc/keystone/credential-keys/ controller-3:/etc/keystone/credential-keys/ > /dev/null 2>&1",
-    } ->
-    exec { 'keystone-manage bootstrap':
-      command     => "/usr/bin/keystone-manage bootstrap --bootstrap-password ${admin_password} \
-                      --bootstrap-admin-url    http://${host}:35357/v3/ \
-                      --bootstrap-public-url   http://${host}:5000/v3/ \
-                      --bootstrap-internal-url http://${host}:5000/v3/ \
-                      --bootstrap-region-id RegionOne",
-      subscribe   => Anchor['keystone::dbsync::end'],
-      refreshonly => true,
-    } ->
-    pacemaker::resource::ocf { 'httpd':
-      ensure         => 'present',
-      ocf_agent_name => 'heartbeat:apache',
-      clone_params   => 'interleave=true',
-    } ->
-    pacemaker::constraint::base { 'order-galera-master-httpd-clone-Mandatory':
-      constraint_type   => 'order',
-      first_action      => 'promote',
-      first_resource    => 'galera-master',
-      second_action     => 'start',
-      second_resource   => 'httpd-clone',
-      constraint_params => 'kind=Mandatory',
-    } ->
-    pacemaker::constraint::base { 'order-rabbitmq-clone-httpd-clone-Mandatory':
-      constraint_type   => 'order',
-      first_action      => 'start',
-      first_resource    => 'rabbitmq-clone',
-      second_action     => 'start',
-      second_resource   => 'httpd-clone',
-      constraint_params => 'kind=Mandatory',
-    } ->
-    pacemaker::constraint::base { 'order-memcached-clone-httpd-clone-Mandatory':
-      constraint_type   => 'order',
-      first_action      => 'start',
-      first_resource    => 'memcached-clone',
-      second_action     => 'start',
-      second_resource   => 'httpd-clone',
-      constraint_params => 'kind=Mandatory',
-    } ->
-    exec { 'keystone-ready':
-      timeout   => '3600',
-      tries     => '360',
-      try_sleep => '10',
-      command   => "/usr/bin/openstack --os-token ${admin_token} --os-url http://${host}:35357/v3 --os-identity-api-version 3 domain list > /dev/null 2>&1 && \
-                    /usr/bin/openstack --os-token ${admin_token} --os-url http://${host}:35357/v3 --os-identity-api-version 3 domain list > /dev/null 2>&1 && \
-                    /usr/bin/openstack --os-token ${admin_token} --os-url http://${host}:35357/v3 --os-identity-api-version 3 domain list > /dev/null 2>&1",
-      unless    => "/usr/bin/openstack --os-token ${admin_token} --os-url http://${host}:35357/v3 --os-identity-api-version 3 domain list > /dev/null 2>&1 && \
-                    /usr/bin/openstack --os-token ${admin_token} --os-url http://${host}:35357/v3 --os-identity-api-version 3 domain list > /dev/null 2>&1 && \
-                    /usr/bin/openstack --os-token ${admin_token} --os-url http://${host}:35357/v3 --os-identity-api-version 3 domain list > /dev/null 2>&1",
-    } ->
-    keystone_service { 'keystone':
-      ensure      => 'present',
-      type        => 'identity',
-      description => 'OpenStack Identity',
-    } ->
-    keystone_endpoint { 'keystone':
-      ensure       => 'present',
-      region       => 'RegionOne',
-      admin_url    => "http://${host}:35357/v3",
-      public_url   => "http://${host}:5000/v3",
-      internal_url => "http://${host}:5000/v3",
-    } ->
-    exec { 'delete domain default':
-      command => "/usr/bin/openstack --os-token ${admin_token} --os-url http://${host}:35357/v3 --os-identity-api-version 3 domain set --disable default && \
-                  /usr/bin/openstack --os-token ${admin_token} --os-url http://${host}:35357/v3 --os-identity-api-version 3 domain delete default",
-      onlyif  => "/usr/bin/openstack --os-token ${admin_token} --os-url http://${host}:35357/v3 --os-identity-api-version 3 domain show default | \
-                  /usr/bin/grep 'The default domain' > /dev/null 2>&1",
-    } ->
-    keystone_domain { 'default':
-      ensure      => 'present',
-      description => 'Default Domain',
-    } ->
-    keystone_tenant { 'admin':
-      ensure      => 'present',
-      description => 'Admin Project',
-      domain      => 'default',
-    } ->
-    keystone_user { 'admin':
-      ensure   => 'present',
-      password => $admin_password,
-      # email    => 'admin@example.org',
-      domain   => 'default',
-    } ->
-    keystone_role { 'admin': ensure => 'present', } ->
-    keystone_user_role { 'admin::default@admin::default':
-      ensure         => 'present',
-      user           => 'admin',
-      user_domain    => 'default',
-      project        => 'admin',
-      project_domain => 'default',
-      roles          => ['admin'],
-    } ->
-    keystone_tenant { 'service':
-      ensure      => 'present',
-      enabled     => true,
-      description => 'Service Project',
-      domain      => 'default',
+    class { '::keystone::roles::admin':
+      email                  => 'admin@example.com',
+      password               => $admin_password,
+      admin                  => 'admin',
+      admin_tenant           => 'openstack',
+      admin_roles            => ['admin'],
+      service_tenant         => 'services',
+      admin_tenant_desc      => 'admin tenant',
+      service_tenant_desc    => 'Tenant for the openstack services',
+      configure_user         => true,
+      configure_user_role    => true,
+      admin_user_domain      => undef,
+      admin_project_domain   => undef,
+      service_project_domain => undef,
+      target_admin_domain    => undef,
+    }
+
+    class { '::keystone::endpoint':
+      public_url     => "http://${controller_vip}:5000",
+      internal_url   => "http://${controller_vip}:5000",
+      admin_url      => "http://${controller_vip}:35357",
+      region         => 'RegionOne',
+      user_domain    => undef,
+      project_domain => undef,
+      default_domain => undef,
+      version        => 'v3',
     }
   }
 
@@ -198,10 +130,10 @@ export OS_USER_DOMAIN_NAME=default
 export OS_PROJECT_NAME=admin
 export OS_USERNAME=admin
 export OS_PASSWORD=admin1234
-export OS_AUTH_URL=http://${host}:35357/v3
+export OS_AUTH_URL=http://${controller_vip}:35357/v3
 export OS_IDENTITY_API_VERSION=3
 export OS_IMAGE_API_VERSION=2
-export PS1='[\u@\h \W(keystone_admin)]\$ '
+export PS1='[\u@\h \W(keystone_admin)]# '
 ",
   }
 }
