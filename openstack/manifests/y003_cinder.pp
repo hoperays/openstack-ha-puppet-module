@@ -85,7 +85,6 @@ class openstack::y003_cinder (
     rbd_max_clone_depth   => '5',
     rbd_store_chunk_size  => '4',
     rados_connect_timeout => '-1',
-    manage_volume_type    => true,
   }
 
   class { '::cinder::volume':
