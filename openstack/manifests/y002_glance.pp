@@ -40,6 +40,8 @@ class openstack::y002_glance (
     auth_strategy   => '::glance::api::authtoken',
     #
     multi_store     => true,
+    #
+    purge_config    => true,
   }
 
   class { '::glance::api::authtoken':
@@ -85,6 +87,8 @@ class openstack::y002_glance (
     auth_strategy        => '::glance::registry::authtoken',
     #
     sync_db              => $sync_db,
+    #
+    purge_config         => true,
   }
 
   class { '::glance::registry::authtoken':

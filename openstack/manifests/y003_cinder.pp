@@ -37,6 +37,8 @@ class openstack::y003_cinder (
     rabbit_userid    => 'guest',
     rabbit_ha_queues => true,
     rabbit_heartbeat_timeout_threshold => '60',
+    #
+    purge_config     => true,
   }
 
   class { '::cinder::api':

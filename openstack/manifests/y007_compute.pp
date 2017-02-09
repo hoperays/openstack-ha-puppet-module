@@ -153,6 +153,8 @@ class openstack::y007_compute (
     local_ip                   => $::ipaddress_eth3,
     bridge_mappings            => ['physnet1:br-eth2'],
     firewall_driver            => 'neutron.agent.linux.iptables_firewall.OVSHybridIptablesFirewallDriver',
+    #
+    purge_config               => true,
   }
 
   file { '/etc/sysconfig/network-scripts/ifcfg-eth2':

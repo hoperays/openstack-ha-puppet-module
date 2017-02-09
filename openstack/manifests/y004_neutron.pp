@@ -36,7 +36,6 @@ class openstack::y004_neutron (
     log_dir                 => '/var/log/neutron',
     rpc_backend             => 'rabbit',
     control_exchange        => 'neutron',
-    # nova_url              => "http://${controller_vip}:8774/v2.1",
     root_helper             => 'sudo neutron-rootwrap /etc/neutron/rootwrap.conf',
     #
     rabbit_hosts            => ["${controller_1}:5672", "${controller_2}:5672", "${controller_3}:5672"],
@@ -48,7 +47,7 @@ class openstack::y004_neutron (
     #
     dhcp_agents_per_network => '3',
     #
-    purge_config            => false,
+    purge_config            => true,
   }
 
   class { '::neutron::keystone::authtoken':
@@ -96,9 +95,9 @@ class openstack::y004_neutron (
     username          => 'nova',
     password          => $nova_password,
     #
+    nova_url          => "http://${controller_vip}:8774/v2.1",
     notify_nova_on_port_status_changes => true,
     notify_nova_on_port_data_changes   => true,
-    nova_url          => "http://${controller_vip}:8774/v2.1",
   }
 
   class { '::neutron::plugins::ml2':
@@ -111,11 +110,15 @@ class openstack::y004_neutron (
     tunnel_id_ranges     => '1:4094',
     vxlan_group          => '224.0.0.1',
     vni_ranges           => '1:4094',
+    #
+    purge_config         => true,
   }
 
   class { '::neutron::services::fwaas':
-    enabled => true,
-    driver  => 'openvswitch',
+    enabled              => true,
+    driver               => 'openvswitch',
+    vpnaas_agent_package => false,
+    purge_config         => true,
   }
 
   class { '::neutron::services::lbaas':
@@ -137,6 +140,8 @@ class openstack::y004_neutron (
     local_ip                   => $::ipaddress_eth3,
     bridge_mappings            => ['physnet1:br-eth2', 'extnet:br-ex'],
     firewall_driver            => 'neutron.agent.linux.iptables_firewall.OVSHybridIptablesFirewallDriver',
+    #
+    purge_config               => true,
   }
 
   class { '::neutron::agents::dhcp':
@@ -148,6 +153,8 @@ class openstack::y004_neutron (
     enable_force_metadata    => true,
     enable_isolated_metadata => true,
     enable_metadata_network  => true,
+    #
+    purge_config             => true,
   }
 
   class { '::neutron::agents::l3':
@@ -156,24 +163,31 @@ class openstack::y004_neutron (
     #
     handle_internal_only_routers => false,
     send_arp_for_ha              => '3',
+    #
+    purge_config                 => true,
   }
 
   class { '::neutron::agents::metadata':
     metadata_ip   => $controller_vip,
     shared_secret => $metadata_secret,
+    #
+    purge_config  => true,
   }
 
   class { '::neutron::agents::lbaas':
     interface_driver       => 'neutron.agent.linux.interface.OVSInterfaceDriver',
     device_driver          => 'neutron_lbaas.drivers.haproxy.namespace_driver.HaproxyNSDriver',
     manage_haproxy_package => false,
-    purge_config           => false,
+    #
+    purge_config           => true,
   }
 
   class { '::neutron::agents::vpnaas':
     vpn_device_driver           => 'neutron.services.vpn.device_drivers.ipsec.OpenSwanDriver',
     interface_driver            => 'neutron.agent.linux.interface.OVSInterfaceDriver',
     ipsec_status_check_interval => '30',
+    #
+    purge_config                => true,
   }
 
   file { '/etc/sysconfig/network-scripts/ifcfg-eth1':

@@ -69,6 +69,8 @@ class openstack::y001_keystone (
     # default_domain      => 'default',
     manage_service        => false,
     enabled               => false,
+    #
+    purge_config          => true,
   }
 
   class { '::keystone::config':

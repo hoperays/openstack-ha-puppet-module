@@ -21,8 +21,6 @@ class openstack::y006_horizon (
     compress_offline             => true,
     api_versions                 => {
       identity => '3',
-      image    => '2',
-      volume   => '2',
     }
     ,
     keystone_multidomain_support => true,
