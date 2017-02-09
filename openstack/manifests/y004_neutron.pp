@@ -149,7 +149,7 @@ class openstack::y004_neutron (
     interface_driver         => 'neutron.agent.linux.interface.OVSInterfaceDriver',
     dhcp_driver              => 'neutron.agent.linux.dhcp.Dnsmasq',
     root_helper              => 'sudo neutron-rootwrap /etc/neutron/rootwrap.conf',
-    dnsmasq_config_file      => '/etc/neutron/dnsmasq-neutron.conf',
+    # dnsmasq_config_file      => '/etc/neutron/dnsmasq-neutron.conf',
     enable_force_metadata    => true,
     enable_isolated_metadata => true,
     enable_metadata_network  => true,
