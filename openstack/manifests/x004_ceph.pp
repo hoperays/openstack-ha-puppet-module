@@ -23,9 +23,7 @@ class openstack::x004_ceph (
   $bootstrap_mds_key           = 'AQAyGSxY9+bgNRAAdMFl/EjA6KM5hP1wBcDZog==',
   $bootstrap_osd_key           = 'AQBMdOxXzLkwHxAA8TeFuJyvG6/NHziVyb06bg==',
   $bootstrap_rgw_key           = 'AQClPkpYRsB1CxAAZ9hhExzByrXKbPiV1kDu5Q==',
-  $cinder_key                  = 'AQB+RUpYfv+aIRAA4AbRb+XICXx+x+shF5AeZQ==',
-  $cinder_backup_key           = 'AQB/RUpYDbwvGBAAcJ/1PemnYHV/qzI70t3cDA==',
-  $glance_key                  = 'AQCARUpYaPujERAAUmBPrYcMICw13OLYNQce0Q==',) {
+  $openstack_key               = 'AQB+RUpYfv+aIRAA4AbRb+XICXx+x+shF5AeZQ==',) {
   class { 'ceph':
     fsid                   => $fsid,
     mon_initial_members    => $mon_initial_members,
@@ -94,7 +92,7 @@ class openstack::x004_ceph (
     }
 
     ceph::key { 'client.openstack':
-      secret  => $cinder_key,
+      secret  => $openstack_key,
       cap_mon => 'allow r',
       cap_osd => 'allow class-read object_prefix rbd_children, allow rwx pool=volumes, allow rwx pool=backups, allow rwx pool=vms, allow rwx pool=images',
       mode    => '0644',
@@ -146,7 +144,7 @@ class openstack::x004_ceph (
     #    }
   } elsif $::hostname =~ /^compute-\d+$/ {
     ceph::key { 'client.openstack':
-      secret  => $cinder_key,
+      secret  => $openstack_key,
       cap_mon => 'allow r',
       cap_osd => 'allow class-read object_prefix rbd_children, allow rwx pool=volumes, allow rwx pool=backups, allow rwx pool=vms, allow rwx pool=images',
       mode    => '0644',

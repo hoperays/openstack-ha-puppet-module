@@ -51,7 +51,7 @@ class openstack::x006_haproxy (
         'uri /admin',
         'realm Haproxy\ Statistics',
         'auth admin:admin1234',
-        'refresh 10s',
+        'refresh 30s',
         ],
     }
   }

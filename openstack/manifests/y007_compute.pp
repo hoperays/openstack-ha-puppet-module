@@ -1,49 +1,70 @@
 class openstack::y007_compute (
-  $nova_password    = 'nova1234',
-  $neutron_password = 'neutron1234',
-  $cluster_nodes    = ['controller-1','controller-2','controller-3'],
-  $host             = 'controller-vip',
-  $controller_vip   = '192.168.0.130',
-  $rbd_secret_uuid  = '2ad6a20f-ffdd-460d-afba-04ab286f365f',
-  $cinder_key       = 'AQB+RUpYfv+aIRAA4AbRb+XICXx+x+shF5AeZQ==',
-  $remote_authkey   = 'remote1234',) {
+  $nova_password     = 'nova1234',
+  $nova_api_password = 'nova_api1234',
+  $neutron_password  = 'neutron1234',
+  $controller_vip    = '192.168.0.130',
+  $controller_1      = '192.168.0.131',
+  $controller_2      = '192.168.0.132',
+  $controller_3      = '192.168.0.133',
+  $remote_authkey    = 'remote1234',
+  $rbd_secret_uuid   = '2ad6a20f-ffdd-460d-afba-04ab286f365f',
+  $openstack_key     = 'AQB+RUpYfv+aIRAA4AbRb+XICXx+x+shF5AeZQ==',) {
   class { '::nova':
-    rabbit_userid       => 'guest',
-    rabbit_password     => 'guest',
-    rabbit_hosts        => $cluster_nodes,
-    rabbit_ha_queues    => true,
-    auth_strategy       => 'keystone',
-    glance_api_servers  => "http://${host}:9292",
-    cinder_catalog_info => 'volumev2:cinderv2:publicURL',
+    database_connection                => "mysql+pymysql://nova:${nova_password}@${controller_vip}/nova",
+    api_database_connection            => "mysql+pymysql://nova_api:${nova_api_password}@${controller_vip}/nova_api",
+    database_max_retries               => '-1',
+    rabbit_userid     => 'guest',
+    rabbit_password   => 'guest',
+    rabbit_ha_queues  => true,
+    rabbit_use_ssl    => false,
+    rabbit_heartbeat_timeout_threshold => '60',
+    rabbit_hosts      => ["${controller_1}:5672", "${controller_2}:5672", "${controller_3}:5672"],
+    auth_strategy     => 'keystone',
+    #
+    glance_api_servers                 => "http://${controller_vip}:9292",
+    cinder_catalog_info                => 'volumev2:cinderv2:publicURL',
+    log_dir           => '/var/log/nova',
+    notify_api_faults => false,
+    state_path        => '/var/lib/nova',
+    report_interval   => '10',
+    image_service     => 'nova.image.glance.GlanceImageService',
+    notify_on_state_change             => 'vm_and_task_state',
+    use_ipv6          => false,
+    cpu_allocation_ratio               => '4.0',
+    ram_allocation_ratio               => '1.0',
+    disk_allocation_ratio              => '0.8',
+    service_down_time => '60',
+    host              => $::hostname,
+    rootwrap_config   => '/etc/nova/rootwrap.conf',
+    rpc_backend       => 'rabbit',
+    notification_driver                => 'messagingv2',
   }
 
   class { '::nova::keystone::authtoken':
-    auth_uri            => "http://${host}:5000/",
-    auth_url            => "http://${host}:35357/",
-    memcached_servers   => $cluster_nodes,
+    auth_uri            => "http://${controller_vip}:5000/",
+    auth_url            => "http://${controller_vip}:35357/",
+    memcached_servers   => ["${controller_1}:11211", "${controller_2}:11211", "${controller_3}:11211"],
     auth_type           => 'password',
     project_domain_name => 'default',
     user_domain_name    => 'default',
     region_name         => 'RegionOne',
-    project_name        => 'service',
+    project_name        => 'services',
     username            => 'nova',
     password            => $nova_password,
   }
 
   class { '::nova::compute':
     vnc_enabled          => true,
-    vncserver_proxyclient_address    => $ipaddress_eth0,
+    vncserver_proxyclient_address     => $ipaddress_eth0,
     vncproxy_host        => $controller_vip,
     vncproxy_protocol    => 'http',
     vncproxy_port        => '6080',
     vncproxy_path        => '/vnc_auto.html',
     vnc_keymap           => 'en-us',
-    reserved_host_memory => '512', # MB
-    allow_resize_to_same_host        => true,
-    resume_guests_state_on_host_boot => true,
-    #
-    enabled              => false,
-    manage_service       => false,
+    reserved_host_memory => '2048', # MB
+    heal_instance_info_cache_interval => '60',
+    allow_resize_to_same_host         => true,
+    resume_guests_state_on_host_boot  => true,
   }
 
   class { '::nova::compute::libvirt':
@@ -51,43 +72,36 @@ class openstack::y007_compute (
     vncserver_listen         => '0.0.0.0',
     migration_support        => true,
     libvirt_cpu_mode         => 'host-model', # 'custom'
-    libvirt_cpu_model        => undef,        # 'core2duo'
+    libvirt_cpu_model        => undef, # 'core2duo'
     libvirt_disk_cachemodes  => ['network=writeback'],
     libvirt_hw_disk_discard  => 'unmap',
     libvirt_inject_password  => false,
     libvirt_inject_key       => false,
     libvirt_inject_partition => -2,
     #
-    manage_libvirt_services  => false,
-  }
-
-  class { '::nova::compute::libvirt::services':
-    libvirt_service_name  => 'libvirtd',
-    virtlock_service_name => 'virtlockd',
-    virtlog_service_name  => 'virtlogd',
-    libvirt_virt_type     => 'kvm',
+    manage_libvirt_services  => true,
   }
 
   class { '::nova::compute::rbd':
-    libvirt_rbd_user             => 'cinder',
+    libvirt_rbd_user             => 'openstack',
     libvirt_rbd_secret_uuid      => $rbd_secret_uuid,
-    libvirt_rbd_secret_key       => $cinder_key,
+    libvirt_rbd_secret_key       => $openstack_key,
     libvirt_images_rbd_pool      => 'vms',
     libvirt_images_rbd_ceph_conf => '/etc/ceph/ceph.conf',
-    rbd_keyring                  => 'client.cinder',
+    rbd_keyring                  => 'client.openstack',
     ephemeral_storage            => true,
     manage_ceph_client           => false,
   }
 
   class { '::nova::network::neutron':
-    neutron_auth_url                => "http://${host}:35357/v3",
-    neutron_url                     => "http://${host}:9696",
+    neutron_auth_url                => "http://${controller_vip}:35357/v3",
+    neutron_url                     => "http://${controller_vip}:9696",
     #
     neutron_auth_type               => 'v3password',
     neutron_project_domain_name     => 'default',
     neutron_user_domain_name        => 'default',
     neutron_region_name             => 'RegionOne',
-    neutron_project_name            => 'service',
+    neutron_project_name            => 'services',
     neutron_username                => 'neutron',
     neutron_password                => $neutron_password,
     #
@@ -95,8 +109,8 @@ class openstack::y007_compute (
     neutron_ovs_bridge              => 'br-int',
     neutron_extension_sync_interval => '600',
     firewall_driver                 => 'nova.virt.firewall.NoopFirewallDriver',
-    vif_plugging_is_fatal           => false,
-    vif_plugging_timeout            => '0',
+    vif_plugging_is_fatal           => true, # false
+    vif_plugging_timeout            => '300', # 0
     dhcp_domain                     => 'novalocal',
   }
 
@@ -104,21 +118,23 @@ class openstack::y007_compute (
     auth_strategy       => 'keystone',
     #
     notification_driver => 'neutron.openstack.common.notifier.rpc_notifier',
+    rabbit_hosts        => ["${controller_1}:5672", "${controller_2}:5672", "${controller_3}:5672"],
+    rabbit_use_ssl      => false,
     rabbit_user         => 'guest',
     rabbit_password     => 'guest',
-    rabbit_hosts        => $cluster_nodes,
     rabbit_ha_queues    => true,
+    rabbit_heartbeat_timeout_threshold => '60',
   }
 
   class { '::neutron::keystone::authtoken':
-    auth_uri            => "http://${host}:5000/",
-    auth_url            => "http://${host}:35357/",
-    memcached_servers   => $cluster_nodes,
+    auth_uri            => "http://${controller_vip}:5000/",
+    auth_url            => "http://${controller_vip}:35357/",
+    memcached_servers   => ["${controller_1}:11211", "${controller_2}:11211", "${controller_3}:11211"],
     auth_type           => 'password',
     project_domain_name => 'default',
     user_domain_name    => 'default',
     region_name         => 'RegionOne',
-    project_name        => 'service',
+    project_name        => 'services',
     username            => 'neutron',
     password            => $neutron_password,
   }
@@ -132,9 +148,6 @@ class openstack::y007_compute (
     bridge_mappings    => ['physnet1:br-eth2'],
     firewall_driver    => 'neutron.agent.linux.iptables_firewall.OVSHybridIptablesFirewallDriver',
     l2_population      => false,
-    #
-    manage_service     => false,
-    enabled            => false,
   }
 
   file { '/etc/sysconfig/network-scripts/ifcfg-eth2':
@@ -182,10 +195,10 @@ ONBOOT=yes
 
   package { 'pacemaker-remote': } ->
   file { '/etc/pacemaker':
-    ensure  => directory,
-    mode    => '0750',
-    owner   => 'hacluster',
-    group   => 'haclient',
+    ensure => directory,
+    mode   => '0750',
+    owner  => 'hacluster',
+    group  => 'haclient',
   } ->
   file { '/etc/pacemaker/authkey':
     ensure  => file,
@@ -196,7 +209,7 @@ ONBOOT=yes
   } ->
   service { 'pacemaker_remote':
     name   => 'pacemaker_remote',
-    ensure => 'running',
-    enable => true,
+    ensure => 'stopped',
+    enable => false,
   }
 }

@@ -4,9 +4,26 @@ class openstack::y005_nova (
   $nova_api_password = 'nova_api1234',
   $neutron_password  = 'neutron1234',
   $allowed_hosts     = ['%'],
-  $cluster_nodes     = ['controller-1', 'controller-2', 'controller-3'],
-  $host              = 'controller-vip',) {
+  $controller_vip    = '192.168.0.130',
+  $controller_1      = '192.168.0.131',
+  $controller_2      = '192.168.0.132',
+  $controller_3      = '192.168.0.133',
+  $metadata_secret   = 'metadata1234',
+  $rbd_secret_uuid   = '2ad6a20f-ffdd-460d-afba-04ab286f365f',
+  $openstack_key     = 'AQB+RUpYfv+aIRAA4AbRb+XICXx+x+shF5AeZQ==',) {
   if $::hostname == $bootstrap_node {
+    class { '::nova::db::mysql':
+      password      => $nova_password,
+      host          => 'localhost',
+      allowed_hosts => $allowed_hosts,
+    }
+
+    class { '::nova::db::mysql_api':
+      password      => $nova_api_password,
+      host          => 'localhost',
+      allowed_hosts => $allowed_hosts,
+    }
+
     $sync_db = true
     $sync_db_api = true
   } else {
@@ -15,40 +32,58 @@ class openstack::y005_nova (
   }
 
   class { '::nova':
-    database_connection     => "mysql+pymysql://nova:${nova_password}@${host}/nova",
-    api_database_connection => "mysql+pymysql://nova_api:${nova_api_password}@${host}/nova_api",
-    database_max_retries    => '-1',
-    rabbit_userid           => 'guest',
-    rabbit_password         => 'guest',
-    rabbit_hosts            => $cluster_nodes,
-    rabbit_ha_queues        => true,
-    auth_strategy           => 'keystone',
-    glance_api_servers      => "http://${host}:9292",
-    cinder_catalog_info     => 'volumev2:cinderv2:publicURL',
+    database_connection                => "mysql+pymysql://nova:${nova_password}@${controller_vip}/nova",
+    api_database_connection            => "mysql+pymysql://nova_api:${nova_api_password}@${controller_vip}/nova_api",
+    database_max_retries               => '-1',
+    rabbit_userid     => 'guest',
+    rabbit_password   => 'guest',
+    rabbit_ha_queues  => true,
+    rabbit_use_ssl    => false,
+    rabbit_heartbeat_timeout_threshold => '60',
+    rabbit_hosts      => ["${controller_1}:5672", "${controller_2}:5672", "${controller_3}:5672"],
+    auth_strategy     => 'keystone',
+    #
+    glance_api_servers                 => "http://${controller_vip}:9292",
+    cinder_catalog_info                => 'volumev2:cinderv2:publicURL',
+    log_dir           => '/var/log/nova',
+    notify_api_faults => false,
+    state_path        => '/var/lib/nova',
+    report_interval   => '10',
+    image_service     => 'nova.image.glance.GlanceImageService',
+    notify_on_state_change             => 'vm_and_task_state',
+    use_ipv6          => false,
+    cpu_allocation_ratio               => '4.0',
+    ram_allocation_ratio               => '1.0',
+    disk_allocation_ratio              => '0.8',
+    service_down_time => '60',
+    host              => $::hostname,
+    rootwrap_config   => '/etc/nova/rootwrap.conf',
+    rpc_backend       => 'rabbit',
+    notification_driver                => 'messagingv2',
   }
 
   class { '::nova::keystone::authtoken':
-    auth_uri            => "http://${host}:5000/",
-    auth_url            => "http://${host}:35357/",
-    memcached_servers   => $cluster_nodes,
+    auth_uri            => "http://${controller_vip}:5000/",
+    auth_url            => "http://${controller_vip}:35357/",
+    memcached_servers   => ["${controller_1}:11211", "${controller_2}:11211", "${controller_3}:11211"],
     auth_type           => 'password',
     project_domain_name => 'default',
     user_domain_name    => 'default',
     region_name         => 'RegionOne',
-    project_name        => 'service',
+    project_name        => 'services',
     username            => 'nova',
     password            => $nova_password,
   }
 
   class { '::nova::network::neutron':
-    neutron_auth_url                => "http://${host}:35357/v3",
-    neutron_url                     => "http://${host}:9696",
+    neutron_auth_url                => "http://${controller_vip}:35357/v3",
+    neutron_url                     => "http://${controller_vip}:9696",
     #
     neutron_auth_type               => 'v3password',
     neutron_project_domain_name     => 'default',
     neutron_user_domain_name        => 'default',
     neutron_region_name             => 'RegionOne',
-    neutron_project_name            => 'service',
+    neutron_project_name            => 'services',
     neutron_username                => 'neutron',
     neutron_password                => $neutron_password,
     #
@@ -56,165 +91,65 @@ class openstack::y005_nova (
     neutron_ovs_bridge              => 'br-int',
     neutron_extension_sync_interval => '600',
     firewall_driver                 => 'nova.virt.firewall.NoopFirewallDriver',
-    vif_plugging_is_fatal           => false,
-    vif_plugging_timeout            => '0',
+    vif_plugging_is_fatal           => true, # false
+    vif_plugging_timeout            => '300', # 0
     dhcp_domain                     => 'novalocal',
   }
 
   class { '::nova::api':
-    api_bind_address => $ipaddress_eth0,
+    api_bind_address       => $ipaddress_eth0,
     osapi_compute_listen_port            => '8774',
-    metadata_listen  => $ipaddress_eth0,
-    metadata_listen_port                 => '8775',
-    enabled_apis     => ['osapi_compute', 'metadata'],
-    sync_db          => $sync_db,
-    sync_db_api      => $sync_db_api,
-    neutron_metadata_proxy_shared_secret => 'metadata1234',
+    metadata_listen        => $ipaddress_eth0,
+    metadata_listen_port   => '8775',
+    enabled_apis           => ['osapi_compute', 'metadata'],
+    neutron_metadata_proxy_shared_secret => $metadata_secret,
+    instance_name_template => 'instance-%08x',
+    default_floating_pool  => 'public',
+    use_forwarded_for      => 'false',
+    # osapi_compute_workers              => $::processorcount,
+    # metadata_workers                   => $::processorcount,
+    fping_path             => '/usr/sbin/fping',
+    enable_proxy_headers_parsing         => true,
     #
-    enabled          => false,
-    manage_service   => false,
+    sync_db                => $sync_db,
+    sync_db_api            => $sync_db_api,
+  }
+
+  class { '::nova::cache':
+    enabled          => true,
+    backend          => 'oslo_cache.memcache_pool',
+    memcache_servers => ["${controller_1}:11211", "${controller_2}:11211", "${controller_3}:11211"],
   }
 
   class { '::nova::conductor':
-    enabled        => false,
-    manage_service => false,
   }
 
   class { '::nova::consoleauth':
-    enabled        => false,
-    manage_service => false,
   }
 
   class { '::nova::scheduler':
-    enabled        => false,
-    manage_service => false,
   }
 
   class { '::nova::vncproxy':
-    vncproxy_protocol => 'http',
-    host              => $ipaddress_eth0,
-    port              => '6080',
-    vncproxy_path     => '/vnc_auto.html',
-    #
-    enabled           => false,
-    manage_service    => false,
+    host => $::ipaddress_eth0,
+    port => '6080',
   }
 
   if $::hostname == $bootstrap_node {
-    # 临时处理资源依赖问题。。。。。。。。。。。。。。。。。
-    Exec <| title == 'neutron-ready' |> ->
-    # 临时处理资源依赖问题。。。。。。。。。。。。。。。。。
-    class { '::nova::db::mysql':
-      password      => $nova_password,
-      host          => 'localhost',
-      allowed_hosts => $allowed_hosts,
-    } ->
-    class { '::nova::db::mysql_api':
-      password      => $nova_api_password,
-      host          => 'localhost',
-      allowed_hosts => $allowed_hosts,
-    } ->
-    keystone_service { 'nova':
-      ensure      => 'present',
-      type        => 'compute',
-      description => 'OpenStack Compute',
-    } ->
-    keystone_endpoint { 'nova':
-      ensure       => 'present',
-      region       => 'RegionOne',
-      admin_url    => "http://${host}:8774/v2.1/%(tenant_id)s",
-      public_url   => "http://${host}:8774/v2.1/%(tenant_id)s",
-      internal_url => "http://${host}:8774/v2.1/%(tenant_id)s",
-    } ->
-    keystone_user { 'nova':
-      ensure   => 'present',
-      password => $nova_password,
-      # email    => 'nova@example.org',
-      domain   => 'default',
-    } ->
-    keystone_user_role { 'nova::default@service::default':
-      ensure         => 'present',
-      user           => 'nova',
-      user_domain    => 'default',
-      project        => 'service',
-      project_domain => 'default',
-      roles          => ['admin'],
-    } ->
-    pacemaker::resource::service { 'openstack-nova-consoleauth': clone_params => 'interleave=true', } ->
-    pacemaker::constraint::base { 'order-httpd-clone-openstack-nova-consoleauth-clone-Mandatory':
-      constraint_type   => 'order',
-      first_action      => 'start',
-      first_resource    => 'httpd-clone',
-      second_action     => 'start',
-      second_resource   => 'openstack-nova-consoleauth-clone',
-      constraint_params => 'kind=Mandatory',
-    } ->
-    pacemaker::resource::service { 'openstack-nova-novncproxy': clone_params => 'interleave=true', } ->
-    pacemaker::constraint::base { 'order-openstack-nova-consoleauth-clone-openstack-nova-novncproxy-clone-Mandatory':
-      constraint_type   => 'order',
-      first_action      => 'start',
-      first_resource    => 'openstack-nova-consoleauth-clone',
-      second_action     => 'start',
-      second_resource   => 'openstack-nova-novncproxy-clone',
-      constraint_params => 'kind=Mandatory',
-    } ->
-    pacemaker::constraint::colocation { 'colocation-openstack-nova-novncproxy-clone-openstack-nova-consoleauth-clone-INFINITY':
-      source => 'openstack-nova-novncproxy-clone',
-      target => 'openstack-nova-consoleauth-clone',
-      score  => 'INFINITY',
-    } ->
-    pacemaker::resource::service { 'openstack-nova-api': clone_params => 'interleave=true', } ->
-    pacemaker::constraint::base { 'order-openstack-nova-novncproxy-clone-openstack-nova-api-clone-Mandatory':
-      constraint_type   => 'order',
-      first_action      => 'start',
-      first_resource    => 'openstack-nova-novncproxy-clone',
-      second_action     => 'start',
-      second_resource   => 'openstack-nova-api-clone',
-      constraint_params => 'kind=Mandatory',
-    } ->
-    pacemaker::constraint::colocation { 'colocation-openstack-nova-api-clone-openstack-nova-novncproxy-clone-INFINITY':
-      source => 'openstack-nova-api-clone',
-      target => 'openstack-nova-novncproxy-clone',
-      score  => 'INFINITY',
-    } ->
-    pacemaker::resource::service { 'openstack-nova-scheduler': clone_params => 'interleave=true', } ->
-    pacemaker::constraint::base { 'order-openstack-nova-api-clone-openstack-nova-scheduler-clone-Mandatory':
-      constraint_type   => 'order',
-      first_action      => 'start',
-      first_resource    => 'openstack-nova-api-clone',
-      second_action     => 'start',
-      second_resource   => 'openstack-nova-scheduler-clone',
-      constraint_params => 'kind=Mandatory',
-    } ->
-    pacemaker::constraint::colocation { 'colocation-openstack-nova-scheduler-clone-openstack-nova-api-clone-INFINITY':
-      source => 'openstack-nova-scheduler-clone',
-      target => 'openstack-nova-api-clone',
-      score  => 'INFINITY',
-    } ->
-    pacemaker::resource::service { 'openstack-nova-conductor': clone_params => 'interleave=true', } ->
-    pacemaker::constraint::base { 'order-openstack-nova-scheduler-clone-openstack-nova-conductor-clone-Mandatory':
-      constraint_type   => 'order',
-      first_action      => 'start',
-      first_resource    => 'openstack-nova-scheduler-clone',
-      second_action     => 'start',
-      second_resource   => 'openstack-nova-conductor-clone',
-      constraint_params => 'kind=Mandatory',
-    } ->
-    pacemaker::constraint::colocation { 'colocation-openstack-nova-conductor-clone-openstack-nova-scheduler-clone-INFINITY':
-      source => 'openstack-nova-conductor-clone',
-      target => 'openstack-nova-scheduler-clone',
-      score  => 'INFINITY',
-    } ->
-    exec { 'nova-ready':
-      timeout   => '3600',
-      tries     => '360',
-      try_sleep => '10',
-      command   => "/usr/bin/openstack --os-project-domain-name default --os-user-domain-name default --os-project-name admin --os-username admin --os-password admin1234 --os-auth-url http://${host}:35357/v3 --os-identity-api-version 3 server list > /dev/null 2>&1 && \
-                    /usr/bin/openstack --os-project-domain-name default --os-user-domain-name default --os-project-name admin --os-username admin --os-password admin1234 --os-auth-url http://${host}:35357/v3 --os-identity-api-version 3 server list > /dev/null 2>&1 && \
-                    /usr/bin/openstack --os-project-domain-name default --os-user-domain-name default --os-project-name admin --os-username admin --os-password admin1234 --os-auth-url http://${host}:35357/v3 --os-identity-api-version 3 server list > /dev/null 2>&1",
-      unless    => "/usr/bin/openstack --os-project-domain-name default --os-user-domain-name default --os-project-name admin --os-username admin --os-password admin1234 --os-auth-url http://${host}:35357/v3 --os-identity-api-version 3 server list > /dev/null 2>&1 && \
-                    /usr/bin/openstack --os-project-domain-name default --os-user-domain-name default --os-project-name admin --os-username admin --os-password admin1234 --os-auth-url http://${host}:35357/v3 --os-identity-api-version 3 server list > /dev/null 2>&1 && \
-                    /usr/bin/openstack --os-project-domain-name default --os-user-domain-name default --os-project-name admin --os-username admin --os-password admin1234 --os-auth-url http://${host}:35357/v3 --os-identity-api-version 3 server list > /dev/null 2>&1",
+    class { '::nova::keystone::auth':
+      password            => $nova_password,
+      auth_name           => 'nova',
+      service_name        => 'nova',
+      service_description => 'Openstack Compute Service',
+      region              => 'RegionOne',
+      tenant              => 'services',
+      email               => 'nova@example.com',
+      public_url          => "http://${controller_vip}:8774/v2.1",
+      internal_url        => "http://${controller_vip}:8774/v2.1",
+      admin_url           => "http://${controller_vip}:8774/v2.1",
+      configure_endpoint  => true,
+      configure_user      => true,
+      configure_user_role => true,
     }
   }
 }
