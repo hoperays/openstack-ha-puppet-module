@@ -38,19 +38,14 @@ class openstack::y007_compute (
     rootwrap_config   => '/etc/nova/rootwrap.conf',
     rpc_backend       => 'rabbit',
     notification_driver                => 'messagingv2',
+    #
+    purge_config      => true,
   }
 
-  class { '::nova::keystone::authtoken':
-    auth_uri            => "http://${controller_vip}:5000/",
-    auth_url            => "http://${controller_vip}:35357/",
-    memcached_servers   => ["${controller_1}:11211", "${controller_2}:11211", "${controller_3}:11211"],
-    auth_type           => 'password',
-    project_domain_name => 'default',
-    user_domain_name    => 'default',
-    region_name         => 'RegionOne',
-    project_name        => 'services',
-    username            => 'nova',
-    password            => $nova_password,
+  class { '::nova::cache':
+    enabled          => true,
+    backend          => 'oslo_cache.memcache_pool',
+    memcache_servers => ["${controller_1}:11211", "${controller_2}:11211", "${controller_3}:11211"],
   }
 
   class { '::nova::compute':
@@ -115,39 +110,49 @@ class openstack::y007_compute (
   }
 
   class { '::neutron':
-    auth_strategy       => 'keystone',
+    auth_strategy           => 'keystone',
+    core_plugin             => 'neutron.plugins.ml2.plugin.Ml2Plugin',
+    service_plugins         => [
+      'router',
+      'qos',
+      'trunk',
+      'firewall',
+      'vpnaas',
+      'neutron_lbaas.services.loadbalancer.plugin.LoadBalancerPluginv2'],
+    allow_overlapping_ips   => true,
+    host                    => $::hostname,
+    global_physnet_mtu      => '1450',
+    log_dir                 => '/var/log/neutron',
+    rpc_backend             => 'rabbit',
+    control_exchange        => 'neutron',
+    # nova_url              => "http://${controller_vip}:8774/v2.1",
+    root_helper             => 'sudo neutron-rootwrap /etc/neutron/rootwrap.conf',
     #
-    notification_driver => 'neutron.openstack.common.notifier.rpc_notifier',
-    rabbit_hosts        => ["${controller_1}:5672", "${controller_2}:5672", "${controller_3}:5672"],
-    rabbit_use_ssl      => false,
-    rabbit_user         => 'guest',
-    rabbit_password     => 'guest',
-    rabbit_ha_queues    => true,
+    rabbit_hosts            => ["${controller_1}:5672", "${controller_2}:5672", "${controller_3}:5672"],
+    rabbit_use_ssl          => false,
+    rabbit_user             => 'guest',
+    rabbit_password         => 'guest',
+    rabbit_ha_queues        => true,
     rabbit_heartbeat_timeout_threshold => '60',
-  }
-
-  class { '::neutron::keystone::authtoken':
-    auth_uri            => "http://${controller_vip}:5000/",
-    auth_url            => "http://${controller_vip}:35357/",
-    memcached_servers   => ["${controller_1}:11211", "${controller_2}:11211", "${controller_3}:11211"],
-    auth_type           => 'password',
-    project_domain_name => 'default',
-    user_domain_name    => 'default',
-    region_name         => 'RegionOne',
-    project_name        => 'services',
-    username            => 'neutron',
-    password            => $neutron_password,
+    #
+    dhcp_agents_per_network => '3',
+    #
+    purge_config            => true,
   }
 
   class { '::neutron::agents::ml2::ovs':
-    tunnel_types       => ['vxlan'],
-    vxlan_udp_port     => '4789',
-    local_ip           => $::ipaddress_eth3,
-    integration_bridge => 'br-int',
-    tunnel_bridge      => 'br-tun',
-    bridge_mappings    => ['physnet1:br-eth2'],
-    firewall_driver    => 'neutron.agent.linux.iptables_firewall.OVSHybridIptablesFirewallDriver',
-    l2_population      => false,
+    tunnel_types               => ['vxlan'],
+    vxlan_udp_port             => '4789',
+    l2_population              => false,
+    arp_responder              => false,
+    enable_distributed_routing => false,
+    drop_flows_on_start        => false,
+    extensions                 => ['qos'],
+    integration_bridge         => 'br-int',
+    tunnel_bridge              => 'br-tun',
+    local_ip                   => $::ipaddress_eth3,
+    bridge_mappings            => ['physnet1:br-eth2'],
+    firewall_driver            => 'neutron.agent.linux.iptables_firewall.OVSHybridIptablesFirewallDriver',
   }
 
   file { '/etc/sysconfig/network-scripts/ifcfg-eth2':

@@ -47,6 +47,8 @@ class openstack::y004_neutron (
     rabbit_heartbeat_timeout_threshold => '60',
     #
     dhcp_agents_per_network => '3',
+    #
+    purge_config            => false,
   }
 
   class { '::neutron::keystone::authtoken':
@@ -96,6 +98,7 @@ class openstack::y004_neutron (
     #
     notify_nova_on_port_status_changes => true,
     notify_nova_on_port_data_changes   => true,
+    nova_url          => "http://${controller_vip}:8774/v2.1",
   }
 
   class { '::neutron::plugins::ml2':

@@ -60,6 +60,8 @@ class openstack::y005_nova (
     rootwrap_config   => '/etc/nova/rootwrap.conf',
     rpc_backend       => 'rabbit',
     notification_driver                => 'messagingv2',
+    #
+    purge_config      => true,
   }
 
   class { '::nova::keystone::authtoken':
