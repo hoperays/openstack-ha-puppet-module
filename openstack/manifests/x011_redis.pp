@@ -6,14 +6,16 @@ class openstack::x011_redis ($bootstrap_node = 'controller-1', $controller_1 = '
   }
 
   class { '::redis':
-    bind    => $ipaddress_eth0,
-    slaveof => $slaveof,
+    bind           => $ipaddress_eth0,
+    slaveof        => $slaveof,
+    #
+    service_manage => false,
   }
 
   file { '/etc/security/limits.d/redis.conf':
     content => inline_template("redis soft nofile <%= @redis_file_limit %>\nredis hard nofile <%= @redis_file_limit %>\n"),
-    owner   => '0',
-    group   => '0',
+    owner   => 'root',
+    group   => 'root',
     mode    => '0644',
   }
 
