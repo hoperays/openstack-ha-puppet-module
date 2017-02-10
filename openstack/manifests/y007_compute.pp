@@ -197,7 +197,7 @@ ONBOOT=yes
     tries     => '360',
     try_sleep => '10',
     command   => "/usr/bin/ovs-vsctl add-port br-eth2 eth2",
-    unless    => "/usr/bin/ovs-vsctl list-ports br-eth2 | /usr/bin/grep eth2",
+    unless    => "/usr/bin/ovs-vsctl list-ports br-eth2 | /usr/bin/grep ^eth2",
   }
 
   package { 'pacemaker-remote': } ->

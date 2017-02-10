@@ -259,7 +259,7 @@ ONBOOT=yes
     tries     => '360',
     try_sleep => '10',
     command   => "/usr/bin/ovs-vsctl add-port br-ex eth1",
-    unless    => "/usr/bin/ovs-vsctl list-ports br-ex | /usr/bin/grep eth1",
+    unless    => "/usr/bin/ovs-vsctl list-ports br-ex | /usr/bin/grep ^eth1",
   } ->
   exec { 'ovs-vsctl add-br br-eth2':
     timeout   => '3600',
@@ -273,7 +273,7 @@ ONBOOT=yes
     tries     => '360',
     try_sleep => '10',
     command   => "/usr/bin/ovs-vsctl add-port br-eth2 eth2",
-    unless    => "/usr/bin/ovs-vsctl list-ports br-eth2 | /usr/bin/grep eth2",
+    unless    => "/usr/bin/ovs-vsctl list-ports br-eth2 | /usr/bin/grep ^eth2",
   }
 
   if $::hostname == $bootstrap_node {
