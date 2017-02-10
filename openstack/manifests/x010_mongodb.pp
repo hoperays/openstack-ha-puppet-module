@@ -1,21 +1,21 @@
 class openstack::x010_mongodb (
-  $cluster_nodes  = ['controller-1', 'controller-2', 'controller-3'],
-  $bootstrap_node = 'controller-1',) {
+  $controller_vip = '192.168.0.130',
+  $controller_1   = '192.168.0.131',
+  $controller_2   = '192.168.0.132',
+  $controller_3   = '192.168.0.133',) {
   class { '::mongodb::globals':
-    bind_ip             => ['127.0.0.1', $ipaddress_eth0],
     manage_package_repo => false,
     manage_package      => true,
   } ->
-  class { '::mongodb::server': } ->
+  class { '::mongodb::server':
+    bind_ip    => ['127.0.0.1', $ipaddress_eth0],
+    replset    => 'ceilometer',
+    smallfiles => true,
+  } ->
   class { '::mongodb::client': }
 
-  mongodb_replset { 'ceilometer': members => $cluster_nodes, }
-
-  if $::hostname == $bootstrap_node {
-    pacemaker::resource::service { 'mongod':
-      service_name => 'mongod',
-      clone_params => true,
-      require      => Mongodb_replset['ceilometer']
-    }
+  mongodb_replset { 'ceilometer':
+    members => ["${controller_1}:27017", "${controller_2}:27017", "${controller_3}:27017"],
+    arbiter => "${controller_3}:27017",
   }
 }
