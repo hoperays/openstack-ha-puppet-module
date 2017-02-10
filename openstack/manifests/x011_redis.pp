@@ -9,6 +9,7 @@ class openstack::x011_redis ($bootstrap_node = 'controller-1', $controller_1 = '
     bind           => $ipaddress_eth0,
     slaveof        => $slaveof,
     #
+    notify_service => false,
     service_manage => false,
   }
 
