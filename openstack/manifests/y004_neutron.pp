@@ -203,7 +203,6 @@ OVS_BRIDGE=br-ex
 BOOTPROTO=none
 ONBOOT=yes
 ",
-    require => Class['::neutron::agents::ml2::ovs'],
   } ->
   file { '/etc/sysconfig/network-scripts/ifcfg-br-ex':
     ensure  => file,
