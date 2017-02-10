@@ -1,4 +1,4 @@
-class openstack::y007_compute (
+class openstack::y008_compute (
   $nova_password     = 'nova1234',
   $nova_api_password = 'nova_api1234',
   $neutron_password  = 'neutron1234',

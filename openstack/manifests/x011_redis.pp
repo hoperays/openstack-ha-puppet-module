@@ -6,7 +6,7 @@ class openstack::x011_redis ($bootstrap_node = 'controller-1', $controller_1 = '
   }
 
   class { '::redis':
-    bind    => ['127.0.0.1', $ipaddress_eth0],
+    bind    => $ipaddress_eth0,
     slaveof => $slaveof,
   }
 

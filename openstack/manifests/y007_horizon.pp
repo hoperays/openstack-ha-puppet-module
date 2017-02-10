@@ -1,4 +1,4 @@
-class openstack::y006_horizon (
+class openstack::y007_horizon (
   $bind_address   = $ipaddress_eth0,
   $servername     = $::hostname,
   $server_aliases = ['*'],
