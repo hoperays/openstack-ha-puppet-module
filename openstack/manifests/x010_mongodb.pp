@@ -12,7 +12,9 @@ class openstack::x010_mongodb (
   class { '::mongodb::client': }
 
   mongodb_replset { 'ceilometer':
-    members => ["${controller_1}:27017", "${controller_2}:27017", "${controller_3}:27017"],
-    arbiter => "${controller_3}:27017",
+    members => [
+      "${controller_1}:27017",
+      "${controller_2}:27017",
+      "${controller_3}:27017"],
   }
 }
