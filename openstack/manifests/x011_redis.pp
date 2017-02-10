@@ -1,13 +1,20 @@
-class openstack::x011_redis ($bootstrap_node = 'controller-1',) {
+class openstack::x011_redis ($bootstrap_node = 'controller-1', $controller_1 = '192.168.0.131', $redis_file_limit = '10240',) {
   if $::hostname == $bootstrap_node {
     $slaveof = undef
   } else {
-    $slaveof = "${bootstrap_node} 6379"
+    $slaveof = "${controller_1} 6379"
   }
 
   class { '::redis':
     bind    => ['127.0.0.1', $ipaddress_eth0],
     slaveof => $slaveof,
+  }
+
+  file { '/etc/security/limits.d/redis.conf':
+    content => inline_template("redis soft nofile <%= @redis_file_limit %>\nredis hard nofile <%= @redis_file_limit %>\n"),
+    owner   => '0',
+    group   => '0',
+    mode    => '0644',
   }
 
   if $::hostname == $bootstrap_node {
