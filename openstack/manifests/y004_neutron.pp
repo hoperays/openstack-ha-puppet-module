@@ -158,11 +158,13 @@ class openstack::y004_neutron (
   }
 
   class { '::neutron::agents::l3':
-    interface_driver => 'neutron.agent.linux.interface.OVSInterfaceDriver',
-    agent_mode       => 'legacy',
-    debug            => false,
+    interface_driver   => 'neutron.agent.linux.interface.OVSInterfaceDriver',
+    agent_mode         => 'legacy',
+    debug              => false,
     #
-    purge_config     => true,
+    ha_vrrp_advert_int => '3',
+    #
+    purge_config       => true,
   }
 
   class { '::neutron::agents::metadata':
