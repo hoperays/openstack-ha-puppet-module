@@ -1,5 +1,5 @@
 class openstack::x010_mongodb (
-  $controller_vip = '192.168.0.130',
+  $bootstrap_node = 'controller-1',
   $controller_1   = '192.168.0.131',
   $controller_2   = '192.168.0.132',
   $controller_3   = '192.168.0.133',) {
@@ -11,10 +11,12 @@ class openstack::x010_mongodb (
   } ->
   class { '::mongodb::client': }
 
-  mongodb_replset { 'ceilometer':
-    members => [
-      "${controller_1}:27017",
-      "${controller_2}:27017",
-      "${controller_3}:27017"],
+  if $::hostname == $bootstrap_node {
+    mongodb_replset { 'ceilometer':
+      members => [
+        "${controller_1}:27017",
+        "${controller_2}:27017",
+        "${controller_3}:27017"],
+    }
   }
 }
