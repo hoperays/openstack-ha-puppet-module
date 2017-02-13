@@ -52,7 +52,7 @@ class openstack::x006_haproxy (
       monitor-uri => '/status',
       stats       => [
         'enable',
-        'uri /admin',
+        'uri /',
         'realm Haproxy\ Statistics',
         "auth admin:${admin_password}",
         'refresh 30s',
