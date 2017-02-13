@@ -12,20 +12,24 @@ class openstack::x006_haproxy (
     service_manage   => $manage_resources,
     global_options   => {
       daemon  => '',
+      user    => 'haproxy',
       group   => 'haproxy',
       log     => "/dev/log local0",
-      maxconn => '20480',
+      chroot  => '/var/lib/haproxy',
       pidfile => '/var/run/haproxy.pid',
+      maxconn => '20480',
+      stats   => 'socket /var/lib/haproxy/stats',
       ssl-default-bind-ciphers => '!SSLv2:kEECDH:kRSA:kEDH:kPSK:+3DES:!aNULL:!eNULL:!MD5:!EXP:!RC4:!SEED:!IDEA:!DES',
       ssl-default-bind-options => 'no-sslv3',
-      user    => 'haproxy',
     }
     ,
     defaults_options => {
       log     => 'global',
+      stats   => 'enable',
+      option  => 'redispatch',
+      retries => '3',
       maxconn => '4096',
       mode    => 'tcp',
-      retries => '3',
       timeout => [
         'http-request 10s',
         'queue 2m',
@@ -45,7 +49,14 @@ class openstack::x006_haproxy (
     ,
     mode    => 'http',
     options => {
-      stats => ['enable', 'uri /', "auth admin:${admin_password}", 'refresh 30s',],
+      monitor-uri => '/status',
+      stats       => [
+        'enable',
+        'uri /admin',
+        'stats realm Haproxy\ Statistics',
+        "auth admin:${admin_password}",
+        'refresh 30s',
+        ],
     }
   }
 
