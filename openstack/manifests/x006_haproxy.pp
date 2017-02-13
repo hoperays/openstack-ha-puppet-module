@@ -55,12 +55,12 @@ class openstack::x006_haproxy (
     }
     ,
     options => {
-      option      => 'tcpka',
-      option      => 'httpchk',
+      option      => ['tcpka', 'httpchk'],
       stick       => 'on dst',
       stick-table => 'type ip size 1000',
-      timeout     => 'client 90m',
-      timeout     => 'server 90m',
+      timeout     => [
+        'client 90m',
+        'server 90m'],
     }
   }
 
@@ -80,13 +80,14 @@ class openstack::x006_haproxy (
     options => {
       balance   => 'first',
       option    => 'tcp-check',
-      tcp-check => 'send AUTH\ redis1234\r\n',
-      tcp-check => 'send PING\r\n',
-      tcp-check => 'expect string +PONG',
-      tcp-check => 'send info\ replication\r\n',
-      tcp-check => 'expect string role:master',
-      tcp-check => 'send QUIT\r\n',
-      tcp-check => 'expect string +OK',
+      tcp-check => [
+        "send AUTH\ ${redis_password}\r\n",
+        'send PING\r\n',
+        'expect string +PONG',
+        'send info\ replication\r\n',
+        'expect string role:master',
+        'send QUIT\r\n',
+        'expect string +OK'],
     }
   }
 
@@ -105,8 +106,7 @@ class openstack::x006_haproxy (
     ,
     mode    => 'http',
     options => {
-      http-request => 'set-header X-Forwarded-Proto https if { ssl_fc }',
-      http-request => 'set-header X-Forwarded-Proto http if !{ ssl_fc }',
+      http-request => ['set-header X-Forwarded-Proto https if { ssl_fc }', 'set-header X-Forwarded-Proto http if !{ ssl_fc }'],
     }
   }
 
@@ -125,8 +125,7 @@ class openstack::x006_haproxy (
     ,
     mode    => 'http',
     options => {
-      http-request => 'set-header X-Forwarded-Proto https if { ssl_fc }',
-      http-request => 'set-header X-Forwarded-Proto http if !{ ssl_fc }',
+      http-request => ['set-header X-Forwarded-Proto https if { ssl_fc }', 'set-header X-Forwarded-Proto http if !{ ssl_fc }'],
     }
   }
 
@@ -145,8 +144,7 @@ class openstack::x006_haproxy (
     ,
     mode    => 'http',
     options => {
-      http-request => 'set-header X-Forwarded-Proto https if { ssl_fc }',
-      http-request => 'set-header X-Forwarded-Proto http if !{ ssl_fc }',
+      http-request => ['set-header X-Forwarded-Proto https if { ssl_fc }', 'set-header X-Forwarded-Proto http if !{ ssl_fc }'],
     }
   }
 
@@ -180,8 +178,7 @@ class openstack::x006_haproxy (
     ,
     mode    => 'http',
     options => {
-      http-request => 'set-header X-Forwarded-Proto https if { ssl_fc }',
-      http-request => 'set-header X-Forwarded-Proto http if !{ ssl_fc }',
+      http-request => ['set-header X-Forwarded-Proto https if { ssl_fc }', 'set-header X-Forwarded-Proto http if !{ ssl_fc }'],
     }
   }
 
@@ -200,8 +197,7 @@ class openstack::x006_haproxy (
     ,
     mode    => 'http',
     options => {
-      http-request => 'set-header X-Forwarded-Proto https if { ssl_fc }',
-      http-request => 'set-header X-Forwarded-Proto http if !{ ssl_fc }',
+      http-request => ['set-header X-Forwarded-Proto https if { ssl_fc }', 'set-header X-Forwarded-Proto http if !{ ssl_fc }'],
     }
   }
 
@@ -254,8 +250,7 @@ class openstack::x006_haproxy (
     ,
     mode    => 'http',
     options => {
-      http-request => 'set-header X-Forwarded-Proto https if { ssl_fc }',
-      http-request => 'set-header X-Forwarded-Proto http if !{ ssl_fc }',
+      http-request => ['set-header X-Forwarded-Proto https if { ssl_fc }', 'set-header X-Forwarded-Proto http if !{ ssl_fc }'],
     }
   }
 
@@ -296,8 +291,7 @@ class openstack::x006_haproxy (
     ,
     mode    => 'http',
     options => {
-      http-request => 'set-header X-Forwarded-Proto https if { ssl_fc }',
-      http-request => 'set-header X-Forwarded-Proto http if !{ ssl_fc }',
+      http-request => ['set-header X-Forwarded-Proto https if { ssl_fc }', 'set-header X-Forwarded-Proto http if !{ ssl_fc }'],
     }
   }
 
