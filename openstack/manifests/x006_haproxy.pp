@@ -67,7 +67,7 @@ class openstack::x006_haproxy (
   haproxy::balancermember { 'mysql':
     listening_service => 'mysql',
     server_names      => ['controller-1', 'controller-2', 'controller-3'],
-    ipaddresses       => ["$controller_1", "$controller_2", "$controller_3"],
+    ipaddresses       => [$controller_1, $controller_2, $controller_3],
     ports             => '3306',
     options           => 'backup check inter 1s on-marked-down shutdown-sessions port 9200',
   }
@@ -81,7 +81,7 @@ class openstack::x006_haproxy (
       balance   => 'first',
       option    => 'tcp-check',
       tcp-check => [
-        "send AUTH\ ${redis_password}\r\n",
+        "send AUTH\ ${redis_password}\\r\\n",
         'send PING\r\n',
         'expect string +PONG',
         'send info\ replication\r\n',
@@ -94,7 +94,7 @@ class openstack::x006_haproxy (
   haproxy::balancermember { 'redis':
     listening_service => 'redis',
     server_names      => ['controller-1', 'controller-2', 'controller-3'],
-    ipaddresses       => ["$controller_1", "$controller_2", "$controller_3"],
+    ipaddresses       => [$controller_1, $controller_2, $controller_3],
     ports             => '6379',
     options           => 'check fall 5 inter 2000 rise 2',
   }
@@ -113,7 +113,7 @@ class openstack::x006_haproxy (
   haproxy::balancermember { 'keystone_admin':
     listening_service => 'keystone_admin',
     server_names      => ['controller-1', 'controller-2', 'controller-3'],
-    ipaddresses       => ["$controller_1", "$controller_2", "$controller_3"],
+    ipaddresses       => [$controller_1, $controller_2, $controller_3],
     ports             => '35357',
     options           => 'check fall 5 inter 2000 rise 2',
   }
@@ -132,7 +132,7 @@ class openstack::x006_haproxy (
   haproxy::balancermember { 'keystone_public':
     listening_service => 'keystone_public',
     server_names      => ['controller-1', 'controller-2', 'controller-3'],
-    ipaddresses       => ["$controller_1", "$controller_2", "$controller_3"],
+    ipaddresses       => [$controller_1, $controller_2, $controller_3],
     ports             => '5000',
     options           => 'check fall 5 inter 2000 rise 2',
   }
@@ -151,7 +151,7 @@ class openstack::x006_haproxy (
   haproxy::balancermember { 'glance_api':
     listening_service => 'glance_api',
     server_names      => ['controller-1', 'controller-2', 'controller-3'],
-    ipaddresses       => ["$controller_1", "$controller_2", "$controller_3"],
+    ipaddresses       => [$controller_1, $controller_2, $controller_3],
     ports             => '9292',
     options           => 'check fall 5 inter 2000 rise 2',
   }
@@ -166,7 +166,7 @@ class openstack::x006_haproxy (
   haproxy::balancermember { 'glance_registry':
     listening_service => 'glance_registry',
     server_names      => ['controller-1', 'controller-2', 'controller-3'],
-    ipaddresses       => ["$controller_1", "$controller_2", "$controller_3"],
+    ipaddresses       => [$controller_1, $controller_2, $controller_3],
     ports             => '9191',
     options           => 'check fall 5 inter 2000 rise 2',
   }
@@ -185,7 +185,7 @@ class openstack::x006_haproxy (
   haproxy::balancermember { 'cinder':
     listening_service => 'cinder',
     server_names      => ['controller-1', 'controller-2', 'controller-3'],
-    ipaddresses       => ["$controller_1", "$controller_2", "$controller_3"],
+    ipaddresses       => [$controller_1, $controller_2, $controller_3],
     ports             => '8776',
     options           => 'check fall 5 inter 2000 rise 2',
   }
@@ -204,7 +204,7 @@ class openstack::x006_haproxy (
   haproxy::balancermember { 'neutron':
     listening_service => 'neutron',
     server_names      => ['controller-1', 'controller-2', 'controller-3'],
-    ipaddresses       => ["$controller_1", "$controller_2", "$controller_3"],
+    ipaddresses       => [$controller_1, $controller_2, $controller_3],
     ports             => '9696',
     options           => 'check fall 5 inter 2000 rise 2',
   }
@@ -219,7 +219,7 @@ class openstack::x006_haproxy (
   haproxy::balancermember { 'nova_metadata':
     listening_service => 'nova_metadata',
     server_names      => ['controller-1', 'controller-2', 'controller-3'],
-    ipaddresses       => ["$controller_1", "$controller_2", "$controller_3"],
+    ipaddresses       => [$controller_1, $controller_2, $controller_3],
     ports             => '8775',
     options           => 'check fall 5 inter 2000 rise 2',
   }
@@ -238,7 +238,7 @@ class openstack::x006_haproxy (
   haproxy::balancermember { 'nova_novncproxy':
     listening_service => 'nova_novncproxy',
     server_names      => ['controller-1', 'controller-2', 'controller-3'],
-    ipaddresses       => ["$controller_1", "$controller_2", "$controller_3"],
+    ipaddresses       => [$controller_1, $controller_2, $controller_3],
     ports             => '6080',
     options           => 'check fall 5 inter 2000 rise 2',
   }
@@ -257,7 +257,7 @@ class openstack::x006_haproxy (
   haproxy::balancermember { 'nova_osapi':
     listening_service => 'nova_osapi',
     server_names      => ['controller-1', 'controller-2', 'controller-3'],
-    ipaddresses       => ["$controller_1", "$controller_2", "$controller_3"],
+    ipaddresses       => [$controller_1, $controller_2, $controller_3],
     ports             => '8774',
     options           => 'check fall 5 inter 2000 rise 2',
   }
@@ -278,7 +278,7 @@ class openstack::x006_haproxy (
   haproxy::balancermember { 'horizon':
     listening_service => 'horizon',
     server_names      => ['controller-1', 'controller-2', 'controller-3'],
-    ipaddresses       => ["$controller_1", "$controller_2", "$controller_3"],
+    ipaddresses       => [$controller_1, $controller_2, $controller_3],
     ports             => ['80', '443'],
     options           => "check fall 5 inter 2000 rise 2",
     define_cookies    => true,
@@ -298,7 +298,7 @@ class openstack::x006_haproxy (
   haproxy::balancermember { 'ceilometer':
     listening_service => 'ceilometer',
     server_names      => ['controller-1', 'controller-2', 'controller-3'],
-    ipaddresses       => ["$controller_1", "$controller_2", "$controller_3"],
+    ipaddresses       => [$controller_1, $controller_2, $controller_3],
     ports             => '8777',
     options           => 'check fall 5 inter 2000 rise 2',
   }

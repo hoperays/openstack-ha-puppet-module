@@ -3,15 +3,10 @@ class openstack::x011_redis (
   $controller_1     = '192.168.0.131',
   $redis_password   = 'redis1234',
   $redis_file_limit = '10240',) {
-  if $::hostname == $bootstrap_node {
-    $slaveof = undef
-  } else {
-    $slaveof = "${controller_1} 6379"
-  }
-
   class { '::redis':
     bind           => $ipaddress_eth0,
     masterauth     => $redis_password,
+    requirepass    => $redis_password,
     # slaveof        => $slaveof,
     #
     notify_service => false,
