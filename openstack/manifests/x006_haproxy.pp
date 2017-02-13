@@ -1,4 +1,6 @@
 class openstack::x006_haproxy (
+  $admin_password   = 'admin1234',
+  $redis_password   = 'redis1234',
   $controller_vip   = '192.168.0.130',
   $controller_1     = '192.168.0.131',
   $controller_2     = '192.168.0.132',
@@ -9,20 +11,20 @@ class openstack::x006_haproxy (
     service_ensure   => $manage_resources,
     service_manage   => $manage_resources,
     global_options   => {
-      log     => "/dev/log local0",
-      chroot  => '/var/lib/haproxy',
-      pidfile => '/var/run/haproxy.pid',
-      maxconn => '20480',
-      user    => 'haproxy',
-      group   => 'haproxy',
       daemon  => '',
-      stats   => 'socket /var/lib/haproxy/stats'
+      group   => 'haproxy',
+      log     => "/dev/log local0",
+      maxconn => '20480',
+      pidfile => '/var/run/haproxy.pid',
+      ssl-default-bind-ciphers => '!SSLv2:kEECDH:kRSA:kEDH:kPSK:+3DES:!aNULL:!eNULL:!MD5:!EXP:!RC4:!SEED:!IDEA:!DES',
+      ssl-default-bind-options => 'no-sslv3',
+      user    => 'haproxy',
     }
     ,
     defaults_options => {
       log     => 'global',
-      stats   => 'enable',
-      option  => ['redispatch'],
+      maxconn => '4096',
+      mode    => 'tcp',
       retries => '3',
       timeout => [
         'http-request 10s',
@@ -32,523 +34,279 @@ class openstack::x006_haproxy (
         'server 2m',
         'check 10s',
         ],
-      maxconn => '4096',
-      mode    => 'tcp',
     }
     ,
   }
 
   haproxy::listen { 'monitor':
     bind    => {
-      "${controller_vip}:9300" => ['transparent']
+      "${controller_vip}:1993" => ['transparent']
     }
     ,
     mode    => 'http',
     options => {
-      monitor-uri => '/status',
-      stats       => [
-        'enable',
-        'uri /admin',
-        'realm Haproxy\ Statistics',
-        'auth admin:admin1234',
-        'refresh 30s',
-        ],
+      stats => ['enable', 'uri /', "auth admin:${admin_password}", 'refresh 30s',],
     }
   }
 
-  haproxy::frontend { 'vip-db':
+  haproxy::listen { 'mysql':
     bind    => {
       "${controller_vip}:3306" => ['transparent']
     }
     ,
     options => {
-      timeout         => 'client 90m',
-      default_backend => 'db-vms-galera',
+      option      => 'tcpka',
+      option      => 'httpchk',
+      stick       => 'on dst',
+      stick-table => 'type ip size 1000',
+      timeout     => 'client 90m',
+      timeout     => 'server 90m',
     }
   }
 
-  haproxy::backend { 'db-vms-galera':
+  haproxy::balancermember { 'mysql':
+    listening_service => 'mysql',
+    server_names      => ['controller-1', 'controller-2', 'controller-3'],
+    ipaddresses       => ["$controller_1", "$controller_2", "$controller_3"],
+    ports             => '3306',
+    options           => 'backup check inter 1s on-marked-down shutdown-sessions port 9200',
+  }
+
+  haproxy::listen { 'redis':
+    bind    => {
+      "${controller_vip}:6379" => ['transparent']
+    }
+    ,
     options => {
-      'option'      => 'httpchk',
-      'stick-table' => 'type ip size 1000',
-      'stick'       => 'on dst',
-      'timeout'     => 'client 90m',
-      'timeout'     => 'server 90m',
+      balance   => 'first',
+      option    => 'tcp-check',
+      tcp-check => 'send AUTH\ redis1234\r\n',
+      tcp-check => 'send PING\r\n',
+      tcp-check => 'expect string +PONG',
+      tcp-check => 'send info\ replication\r\n',
+      tcp-check => 'expect string role:master',
+      tcp-check => 'send QUIT\r\n',
+      tcp-check => 'expect string +OK',
     }
   }
 
-  haproxy::balancermember { 'controller-1-db':
-    listening_service => 'db-vms-galera',
-    server_names      => 'controller-1',
-    ipaddresses       => "$controller_1",
-    ports             => '3306',
-    options           => 'check inter 1s port 9200 backup on-marked-down shutdown-sessions',
+  haproxy::balancermember { 'redis':
+    listening_service => 'redis',
+    server_names      => ['controller-1', 'controller-2', 'controller-3'],
+    ipaddresses       => ["$controller_1", "$controller_2", "$controller_3"],
+    ports             => '6379',
+    options           => 'check fall 5 inter 2000 rise 2',
   }
 
-  haproxy::balancermember { 'controller-2-db':
-    listening_service => 'db-vms-galera',
-    server_names      => 'controller-2',
-    ipaddresses       => "$controller_2",
-    ports             => '3306',
-    options           => 'check inter 1s port 9200 backup on-marked-down shutdown-sessions',
-  }
-
-  haproxy::balancermember { 'controller-3-db':
-    listening_service => 'db-vms-galera',
-    server_names      => 'controller-3',
-    ipaddresses       => "$controller_3",
-    ports             => '3306',
-    options           => 'check inter 1s port 9200 backup on-marked-down shutdown-sessions',
-  }
-
-  haproxy::frontend { 'vip-keystone-admin':
+  haproxy::listen { 'keystone_admin':
     bind    => {
       "${controller_vip}:35357" => ['transparent']
     }
     ,
+    mode    => 'http',
     options => {
-      timeout         => 'client 600s',
-      default_backend => 'keystone-admin-vms',
+      http-request => 'set-header X-Forwarded-Proto https if { ssl_fc }',
+      http-request => 'set-header X-Forwarded-Proto http if !{ ssl_fc }',
     }
   }
 
-  haproxy::backend { 'keystone-admin-vms':
-    options => {
-      'balance' => 'roundrobin',
-      'timeout' => 'server 600s',
-    }
-  }
-
-  haproxy::balancermember { 'controller-1-keystone-admin':
-    listening_service => 'keystone-admin-vms',
-    server_names      => 'controller-1',
-    ipaddresses       => "$controller_1",
+  haproxy::balancermember { 'keystone_admin':
+    listening_service => 'keystone_admin',
+    server_names      => ['controller-1', 'controller-2', 'controller-3'],
+    ipaddresses       => ["$controller_1", "$controller_2", "$controller_3"],
     ports             => '35357',
-    options           => 'check inter 1s on-marked-down shutdown-sessions',
+    options           => 'check fall 5 inter 2000 rise 2',
   }
 
-  haproxy::balancermember { 'controller-2-keystone-admin':
-    listening_service => 'keystone-admin-vms',
-    server_names      => 'controller-2',
-    ipaddresses       => "$controller_2",
-    ports             => '35357',
-    options           => 'check inter 1s on-marked-down shutdown-sessions',
-  }
-
-  haproxy::balancermember { 'controller-3-keystone-admin':
-    listening_service => 'keystone-admin-vms',
-    server_names      => 'controller-3',
-    ipaddresses       => "$controller_3",
-    ports             => '35357',
-    options           => 'check inter 1s on-marked-down shutdown-sessions',
-  }
-
-  haproxy::frontend { 'vip-keystone-public':
+  haproxy::listen { 'keystone_public':
     bind    => {
       "${controller_vip}:5000" => ['transparent']
     }
     ,
+    mode    => 'http',
     options => {
-      timeout         => 'client 600s',
-      default_backend => 'keystone-public-vms',
+      http-request => 'set-header X-Forwarded-Proto https if { ssl_fc }',
+      http-request => 'set-header X-Forwarded-Proto http if !{ ssl_fc }',
     }
   }
 
-  haproxy::backend { 'keystone-public-vms':
-    options => {
-      'balance' => 'roundrobin',
-      'timeout' => 'server 600s',
-    }
-  }
-
-  haproxy::balancermember { 'controller-1-keystone-public':
-    listening_service => 'keystone-public-vms',
-    server_names      => 'controller-1',
-    ipaddresses       => "$controller_1",
+  haproxy::balancermember { 'keystone_public':
+    listening_service => 'keystone_public',
+    server_names      => ['controller-1', 'controller-2', 'controller-3'],
+    ipaddresses       => ["$controller_1", "$controller_2", "$controller_3"],
     ports             => '5000',
-    options           => 'check inter 1s on-marked-down shutdown-sessions',
+    options           => 'check fall 5 inter 2000 rise 2',
   }
 
-  haproxy::balancermember { 'controller-2-keystone-public':
-    listening_service => 'keystone-public-vms',
-    server_names      => 'controller-2',
-    ipaddresses       => "$controller_2",
-    ports             => '5000',
-    options           => 'check inter 1s on-marked-down shutdown-sessions',
-  }
-
-  haproxy::balancermember { 'controller-3-keystone-public':
-    listening_service => 'keystone-public-vms',
-    server_names      => 'controller-3',
-    ipaddresses       => "$controller_3",
-    ports             => '5000',
-    options           => 'check inter 1s on-marked-down shutdown-sessions',
-  }
-
-  haproxy::frontend { 'vip-glance-api':
-    bind    => {
-      "${controller_vip}:9191" => ['transparent']
-    }
-    ,
-    options => {
-      default_backend => 'glance-api-vms',
-    }
-  }
-
-  haproxy::backend { 'glance-api-vms':
-    options => {
-      'balance' => 'roundrobin',
-    }
-  }
-
-  haproxy::balancermember { 'controller-1-glance-api':
-    listening_service => 'glance-api-vms',
-    server_names      => 'controller-1',
-    ipaddresses       => "$controller_1",
-    ports             => '9191',
-    options           => 'check inter 1s',
-  }
-
-  haproxy::balancermember { 'controller-2-glance-api':
-    listening_service => 'glance-api-vms',
-    server_names      => 'controller-2',
-    ipaddresses       => "$controller_2",
-    ports             => '9191',
-    options           => 'check inter 1s',
-  }
-
-  haproxy::balancermember { 'controller-3-glance-api':
-    listening_service => 'glance-api-vms',
-    server_names      => 'controller-3',
-    ipaddresses       => "$controller_3",
-    ports             => '9191',
-    options           => 'check inter 1s',
-  }
-
-  haproxy::frontend { 'vip-glance-registry':
+  haproxy::listen { 'glance_api':
     bind    => {
       "${controller_vip}:9292" => ['transparent']
     }
     ,
+    mode    => 'http',
     options => {
-      default_backend => 'glance-registry-vms',
+      http-request => 'set-header X-Forwarded-Proto https if { ssl_fc }',
+      http-request => 'set-header X-Forwarded-Proto http if !{ ssl_fc }',
     }
   }
 
-  haproxy::backend { 'glance-registry-vms':
-    options => {
-      'balance' => 'roundrobin',
+  haproxy::balancermember { 'glance_api':
+    listening_service => 'glance_api',
+    server_names      => ['controller-1', 'controller-2', 'controller-3'],
+    ipaddresses       => ["$controller_1", "$controller_2", "$controller_3"],
+    ports             => '9292',
+    options           => 'check fall 5 inter 2000 rise 2',
+  }
+
+  haproxy::listen { 'glance_registry':
+    bind => {
+      "${controller_vip}:9191" => ['transparent']
     }
+    ,
   }
 
-  haproxy::balancermember { 'controller-1-glance-registry':
-    listening_service => 'glance-registry-vms',
-    server_names      => 'controller-1',
-    ipaddresses       => "$controller_1",
-    ports             => '9292',
-    options           => 'check inter 1s',
+  haproxy::balancermember { 'glance_registry':
+    listening_service => 'glance_registry',
+    server_names      => ['controller-1', 'controller-2', 'controller-3'],
+    ipaddresses       => ["$controller_1", "$controller_2", "$controller_3"],
+    ports             => '9191',
+    options           => 'check fall 5 inter 2000 rise 2',
   }
 
-  haproxy::balancermember { 'controller-2-glance-registry':
-    listening_service => 'glance-registry-vms',
-    server_names      => 'controller-2',
-    ipaddresses       => "$controller_2",
-    ports             => '9292',
-    options           => 'check inter 1s',
-  }
-
-  haproxy::balancermember { 'controller-3-glance-registry':
-    listening_service => 'glance-registry-vms',
-    server_names      => 'controller-3',
-    ipaddresses       => "$controller_3",
-    ports             => '9292',
-    options           => 'check inter 1s',
-  }
-
-  haproxy::frontend { 'vip-cinder':
+  haproxy::listen { 'cinder':
     bind    => {
       "${controller_vip}:8776" => ['transparent']
     }
     ,
+    mode    => 'http',
     options => {
-      default_backend => 'cinder-vms',
+      http-request => 'set-header X-Forwarded-Proto https if { ssl_fc }',
+      http-request => 'set-header X-Forwarded-Proto http if !{ ssl_fc }',
     }
   }
 
-  haproxy::backend { 'cinder-vms':
-    options => {
-      'balance' => 'roundrobin',
-    }
-  }
-
-  haproxy::balancermember { 'controller-1-cinder':
-    listening_service => 'cinder-vms',
-    server_names      => 'controller-1',
-    ipaddresses       => "$controller_1",
+  haproxy::balancermember { 'cinder':
+    listening_service => 'cinder',
+    server_names      => ['controller-1', 'controller-2', 'controller-3'],
+    ipaddresses       => ["$controller_1", "$controller_2", "$controller_3"],
     ports             => '8776',
-    options           => 'check inter 1s',
+    options           => 'check fall 5 inter 2000 rise 2',
   }
 
-  haproxy::balancermember { 'controller-2-cinder':
-    listening_service => 'cinder-vms',
-    server_names      => 'controller-2',
-    ipaddresses       => "$controller_2",
-    ports             => '8776',
-    options           => 'check inter 1s',
-  }
-
-  haproxy::balancermember { 'controller-3-cinder':
-    listening_service => 'cinder-vms',
-    server_names      => 'controller-3',
-    ipaddresses       => "$controller_3",
-    ports             => '8776',
-    options           => 'check inter 1s',
-  }
-
-  haproxy::frontend { 'vip-neutron':
+  haproxy::listen { 'neutron':
     bind    => {
       "${controller_vip}:9696" => ['transparent']
     }
     ,
+    mode    => 'http',
     options => {
-      default_backend => 'neutron-vms',
+      http-request => 'set-header X-Forwarded-Proto https if { ssl_fc }',
+      http-request => 'set-header X-Forwarded-Proto http if !{ ssl_fc }',
     }
   }
 
-  haproxy::backend { 'neutron-vms':
-    options => {
-      'balance' => 'roundrobin',
+  haproxy::balancermember { 'neutron':
+    listening_service => 'neutron',
+    server_names      => ['controller-1', 'controller-2', 'controller-3'],
+    ipaddresses       => ["$controller_1", "$controller_2", "$controller_3"],
+    ports             => '9696',
+    options           => 'check fall 5 inter 2000 rise 2',
+  }
+
+  haproxy::listen { 'nova_metadata':
+    bind => {
+      "${controller_vip}:8775" => ['transparent']
     }
+    ,
   }
 
-  haproxy::balancermember { 'controller-1-neutron':
-    listening_service => 'neutron-vms',
-    server_names      => 'controller-1',
-    ipaddresses       => "$controller_1",
-    ports             => '9696',
-    options           => 'check inter 1s',
+  haproxy::balancermember { 'nova_metadata':
+    listening_service => 'nova_metadata',
+    server_names      => ['controller-1', 'controller-2', 'controller-3'],
+    ipaddresses       => ["$controller_1", "$controller_2", "$controller_3"],
+    ports             => '8775',
+    options           => 'check fall 5 inter 2000 rise 2',
   }
 
-  haproxy::balancermember { 'controller-2-neutron':
-    listening_service => 'neutron-vms',
-    server_names      => 'controller-2',
-    ipaddresses       => "$controller_2",
-    ports             => '9696',
-    options           => 'check inter 1s',
-  }
-
-  haproxy::balancermember { 'controller-3-neutron':
-    listening_service => 'neutron-vms',
-    server_names      => 'controller-3',
-    ipaddresses       => "$controller_3",
-    ports             => '9696',
-    options           => 'check inter 1s',
-  }
-
-  haproxy::frontend { 'vip-nova-vnc-novncproxy':
+  haproxy::listen { 'nova_novncproxy':
     bind    => {
       "${controller_vip}:6080" => ['transparent']
     }
     ,
     options => {
-      default_backend => 'nova-vnc-novncproxy-vms',
+      balance => 'source',
+      timeout => 'tunnel 1h',
     }
   }
 
-  haproxy::backend { 'nova-vnc-novncproxy-vms':
-    options => {
-      'balance' => 'roundrobin',
-      'timeout' => 'tunnel 1h',
-    }
-  }
-
-  haproxy::balancermember { 'controller-1-nova-vnc-novncproxy':
-    listening_service => 'nova-vnc-novncproxy-vms',
-    server_names      => 'controller-1',
-    ipaddresses       => "$controller_1",
+  haproxy::balancermember { 'nova_novncproxy':
+    listening_service => 'nova_novncproxy',
+    server_names      => ['controller-1', 'controller-2', 'controller-3'],
+    ipaddresses       => ["$controller_1", "$controller_2", "$controller_3"],
     ports             => '6080',
-    options           => 'check inter 1s',
+    options           => 'check fall 5 inter 2000 rise 2',
   }
 
-  haproxy::balancermember { 'controller-2-nova-vnc-novncproxy':
-    listening_service => 'nova-vnc-novncproxy-vms',
-    server_names      => 'controller-2',
-    ipaddresses       => "$controller_2",
-    ports             => '6080',
-    options           => 'check inter 1s',
-  }
-
-  haproxy::balancermember { 'controller-3-nova-vnc-novncproxy':
-    listening_service => 'nova-vnc-novncproxy-vms',
-    server_names      => 'controller-3',
-    ipaddresses       => "$controller_3",
-    ports             => '6080',
-    options           => 'check inter 1s',
-  }
-
-  haproxy::frontend { 'vip-nova-metadata':
-    bind    => {
-      "${controller_vip}:8775" => ['transparent']
-    }
-    ,
-    options => {
-      default_backend => 'nova-metadata-vms',
-    }
-  }
-
-  haproxy::backend { 'nova-metadata-vms':
-    options => {
-      'balance' => 'roundrobin',
-    }
-  }
-
-  haproxy::balancermember { 'controller-1-nova-metadata':
-    listening_service => 'nova-metadata-vms',
-    server_names      => 'controller-1',
-    ipaddresses       => "$controller_1",
-    ports             => '8775',
-    options           => 'check inter 1s',
-  }
-
-  haproxy::balancermember { 'controller-2-nova-metadata':
-    listening_service => 'nova-metadata-vms',
-    server_names      => 'controller-2',
-    ipaddresses       => "$controller_2",
-    ports             => '8775',
-    options           => 'check inter 1s',
-  }
-
-  haproxy::balancermember { 'controller-3-nova-metadata':
-    listening_service => 'nova-metadata-vms',
-    server_names      => 'controller-3',
-    ipaddresses       => "$controller_3",
-    ports             => '8775',
-    options           => 'check inter 1s',
-  }
-
-  haproxy::frontend { 'vip-nova-api':
+  haproxy::listen { 'nova_osapi':
     bind    => {
       "${controller_vip}:8774" => ['transparent']
     }
     ,
+    mode    => 'http',
     options => {
-      default_backend => 'nova-api-vms',
+      http-request => 'set-header X-Forwarded-Proto https if { ssl_fc }',
+      http-request => 'set-header X-Forwarded-Proto http if !{ ssl_fc }',
     }
   }
 
-  haproxy::backend { 'nova-api-vms':
-    options => {
-      'balance' => 'roundrobin',
-    }
-  }
-
-  haproxy::balancermember { 'controller-1-nova-api':
-    listening_service => 'nova-api-vms',
-    server_names      => 'controller-1',
-    ipaddresses       => "$controller_1",
+  haproxy::balancermember { 'nova_osapi':
+    listening_service => 'nova_osapi',
+    server_names      => ['controller-1', 'controller-2', 'controller-3'],
+    ipaddresses       => ["$controller_1", "$controller_2", "$controller_3"],
     ports             => '8774',
-    options           => 'check inter 1s',
+    options           => 'check fall 5 inter 2000 rise 2',
   }
 
-  haproxy::balancermember { 'controller-2-nova-api':
-    listening_service => 'nova-api-vms',
-    server_names      => 'controller-2',
-    ipaddresses       => "$controller_2",
-    ports             => '8774',
-    options           => 'check inter 1s',
-  }
-
-  haproxy::balancermember { 'controller-3-nova-api':
-    listening_service => 'nova-api-vms',
-    server_names      => 'controller-3',
-    ipaddresses       => "$controller_3",
-    ports             => '8774',
-    options           => 'check inter 1s',
-  }
-
-  haproxy::frontend { 'vip-horizon':
+  haproxy::listen { 'horizon':
     bind    => {
       "${controller_vip}:80"  => ['transparent'],
-      "${controller_vip}:442" => ['transparent'],
+      "${controller_vip}:443" => ['transparent'],
     }
     ,
+    mode    => 'http',
     options => {
-      timeout         => 'client 180s',
-      default_backend => 'horizon-vms',
+      cookie => 'SERVERID insert indirect nocache',
+      option => ['forwardfor'],
     }
   }
 
-  haproxy::backend { 'horizon-vms':
-    options => {
-      'balance' => 'roundrobin',
-      'timeout' => 'server 180s',
-      'mode'    => 'http',
-      'cookie'  => 'SERVERID insert indirect nocache',
-    }
-  }
-
-  haproxy::balancermember { 'controller-1-horizon':
-    listening_service => 'horizon-vms',
-    server_names      => 'controller-1',
-    ipaddresses       => "$controller_1",
+  haproxy::balancermember { 'horizon':
+    listening_service => 'horizon',
+    server_names      => ['controller-1', 'controller-2', 'controller-3'],
+    ipaddresses       => ["$controller_1", "$controller_2", "$controller_3"],
     ports             => ['80', '443'],
-    options           => 'check inter 1s cookie controller-1 on-marked-down shutdown-sessions',
+    options           => "check fall 5 inter 2000 rise 2",
+    define_cookies    => true,
   }
 
-  haproxy::balancermember { 'controller-2-horizon':
-    listening_service => 'horizon-vms',
-    server_names      => 'controller-2',
-    ipaddresses       => "$controller_2",
-    ports             => ['80', '443'],
-    options           => 'check inter 1s cookie controller-2 on-marked-down shutdown-sessions',
-  }
-
-  haproxy::balancermember { 'controller-3-horizon':
-    listening_service => 'horizon-vms',
-    server_names      => 'controller-3',
-    ipaddresses       => "$controller_3",
-    ports             => ['80', '443'],
-    options           => 'check inter 1s cookie controller-3 on-marked-down shutdown-sessions',
-  }
-
-  haproxy::frontend { 'vip-ceilometer':
+  haproxy::listen { 'ceilometer':
     bind    => {
-      "${controller_vip}:8777" => ['transparent'],
+      "${controller_vip}:8777" => ['transparent']
     }
     ,
+    mode    => 'http',
     options => {
-      default_backend => 'ceilometer-vms',
+      http-request => 'set-header X-Forwarded-Proto https if { ssl_fc }',
+      http-request => 'set-header X-Forwarded-Proto http if !{ ssl_fc }',
     }
   }
 
-  haproxy::backend { 'ceilometer-vms':
-    options => {
-      'balance' => 'roundrobin',
-    }
-  }
-
-  haproxy::balancermember { 'controller-1-ceilometer':
-    listening_service => 'ceilometer-vms',
-    server_names      => 'controller-1',
-    ipaddresses       => "$controller_1",
+  haproxy::balancermember { 'ceilometer':
+    listening_service => 'ceilometer',
+    server_names      => ['controller-1', 'controller-2', 'controller-3'],
+    ipaddresses       => ["$controller_1", "$controller_2", "$controller_3"],
     ports             => '8777',
-    options           => 'check inter 1s',
-  }
-
-  haproxy::balancermember { 'controller-2-ceilometer':
-    listening_service => 'ceilometer-vms',
-    server_names      => 'controller-2',
-    ipaddresses       => "$controller_2",
-    ports             => '8777',
-    options           => 'check inter 1s',
-  }
-
-  haproxy::balancermember { 'controller-3-ceilometer':
-    listening_service => 'ceilometer-vms',
-    server_names      => 'controller-3',
-    ipaddresses       => "$controller_3",
-    ports             => '8777',
-    options           => 'check inter 1s',
+    options           => 'check fall 5 inter 2000 rise 2',
   }
 
   if $::hostname == $bootstrap_node {
