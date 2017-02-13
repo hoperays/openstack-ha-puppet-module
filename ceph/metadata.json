@@ -1,6 +1,6 @@
 {
   "name": "openstack-ceph",
-  "version": "2.2.1",
+  "version": "2.3.0",
   "author": "Puppet Ceph community and OpenStack (StackForge) Contributors",
   "summary": "Community Developed Ceph Module",
   "license": "Apache-2.0",
@@ -10,11 +10,11 @@
   "requirements": [
     {
       "name": "pe",
-      "version_requirement": "3.x"
+      "version_requirement": "4.x"
     },
     {
       "name": "puppet",
-      "version_requirement": "3.x"
+      "version_requirement": "4.x"
     }
   ],
   "operatingsystem_support": [

@@ -29,6 +29,20 @@ describe 'ceph::osd' do
         '/srv'
       end
 
+      it { is_expected.to contain_exec('ceph-osd-zap-/srv').with(
+       'command'   => "/bin/true # comment to satisfy puppet syntax requirements
+set -ex
+if [ -b /srv ]; then
+  ceph-disk zap /srv
+fi
+",
+        'unless'    => "/bin/true # comment to satisfy puppet syntax requirements
+set -ex
+! test -b /srv ||
+test $(parted -ms /srv p 2>&1 | egrep -c 'Error.*unrecognised disk label') -eq 0
+",
+        'logoutput' => true,
+      ) }
       it { is_expected.to contain_exec('ceph-osd-check-udev-/srv').with(
         'command'   => "/bin/true # comment to satisfy puppet syntax requirements
 # Before Infernalis the udev rules race causing the activation to fail so we
@@ -51,7 +65,7 @@ if ! test -b /srv ; then
         chown -h ceph:ceph /srv
     fi
 fi
-ceph-disk prepare   /srv 
+ceph-disk prepare --cluster ceph  /srv 
 udevadm settle
 ",
         'unless'    => "/bin/true # comment to satisfy puppet syntax requirements
@@ -100,6 +114,34 @@ ls -ld /var/lib/ceph/osd/ceph-* | grep ' /srv\$'
         }
       end
 
+      it { is_expected.to contain_exec('ceph-osd-zap-/srv/data').with(
+       'command'   => "/bin/true # comment to satisfy puppet syntax requirements
+set -ex
+if [ -b /srv/data ]; then
+  ceph-disk zap /srv/data
+fi
+",
+        'unless'    => "/bin/true # comment to satisfy puppet syntax requirements
+set -ex
+! test -b /srv/data ||
+test $(parted -ms /srv/data p 2>&1 | egrep -c 'Error.*unrecognised disk label') -eq 0
+",
+        'logoutput' => true,
+      ) }
+      it { is_expected.to contain_exec('ceph-osd-zap-/srv/data-/srv/journal').with(
+       'command'   => "/bin/true # comment to satisfy puppet syntax requirements
+set -ex
+if [ -b /srv/journal ]; then
+  ceph-disk zap /srv/journal
+fi
+",
+        'unless'    => "/bin/true # comment to satisfy puppet syntax requirements
+set -ex
+! test -b /srv/journal ||
+test $(parted -ms /srv/journal p 2>&1 | egrep -c 'Error.*unrecognised disk label') -eq 0
+",
+        'logoutput' => true,
+      ) }
       it { is_expected.to contain_exec('ceph-osd-check-udev-/srv/data').with(
         'command'   => "/bin/true # comment to satisfy puppet syntax requirements
 # Before Infernalis the udev rules race causing the activation to fail so we
@@ -193,9 +235,9 @@ if [ \"\$id\" ] ; then
   stop ceph-osd cluster=ceph id=\$id || true
   service ceph stop osd.\$id || true
   systemctl stop ceph-osd@$id || true
-  ceph  osd crush remove osd.\$id
-  ceph  auth del osd.\$id
-  ceph  osd rm \$id
+  ceph --cluster ceph osd crush remove osd.\$id
+  ceph --cluster ceph auth del osd.\$id
+  ceph --cluster ceph osd rm \$id
   rm -fr /var/lib/ceph/osd/ceph-\$id/*
   umount /var/lib/ceph/osd/ceph-\$id || true
   rm -fr /var/lib/ceph/osd/ceph-\$id
@@ -235,25 +277,16 @@ fi
     end
   end
 
-  context 'Debian Family' do
-    let :facts do
-      {
-        :osfamily => 'Debian',
-      }
+  on_supported_os({
+    :supported_os => OSDefaults.get_supported_os
+  }).each do |os,facts|
+    context "on #{os}" do
+      let (:facts) do
+        facts.merge!(OSDefaults.get_facts())
+      end
+
+      it_behaves_like 'ceph osd'
     end
-
-    it_configures 'ceph osd'
-  end
-
-  context 'RedHat Family' do
-
-    let :facts do
-      {
-        :osfamily => 'RedHat',
-      }
-    end
-
-    it_configures 'ceph osd'
   end
 end
 

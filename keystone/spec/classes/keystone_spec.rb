@@ -58,6 +58,7 @@ describe 'keystone' do
       'signing_ca_key'                      => '<SERVICE DEFAULT>',
       'signing_cert_subject'                => '<SERVICE DEFAULT>',
       'signing_key_size'                    => '<SERVICE DEFAULT>',
+      'default_transport_url'               => '<SERVICE DEFAULT>',
       'rabbit_host'                         => '<SERVICE DEFAULT>',
       'rabbit_password'                     => '<SERVICE DEFAULT>',
       'rabbit_userid'                       => '<SERVICE DEFAULT>',
@@ -109,6 +110,7 @@ describe 'keystone' do
       'signing_ca_key'                      => '/etc/keystone/ssl/private/cakey.pem',
       'signing_cert_subject'                => '/C=US/ST=Unset/L=Unset/O=Unset/CN=www.example.com',
       'signing_key_size'                    => 2048,
+      'default_transport_url'               => 'rabbit://user:pass@host:1234/virt',
       'rabbit_host'                         => '127.0.0.1',
       'rabbit_password'                     => 'openstack',
       'rabbit_userid'                       => 'admin',
@@ -228,6 +230,10 @@ describe 'keystone' do
 
     it 'should contain correct rabbit_password' do
       is_expected.to contain_keystone_config('oslo_messaging_rabbit/rabbit_password').with_value(param_hash['rabbit_password']).with_secret(true)
+    end
+
+    it 'should contain correct default transport url' do
+      is_expected.to contain_keystone_config('DEFAULT/transport_url').with_value(params['default_transport_url'])
     end
 
     it 'should contain correct rabbit heartbeat configuration' do
@@ -1049,6 +1055,36 @@ describe 'keystone' do
       ) }
 
     end
+  end
+
+  describe 'when setting fernet_keys parameter' do
+    let :params do
+      default_params.merge({
+        'enable_fernet_setup' => true,
+        'fernet_keys' => {
+          '/etc/keystone/fernet-keys/0' => {
+            'content' => 't-WdduhORSqoyAykuqWAQSYjg2rSRuJYySgI2xh48CI=',
+          },
+          '/etc/keystone/fernet-keys/1' => {
+            'content' => 'GLlnyygEVJP4-H2OMwClXn3sdSQUZsM5F194139Unv8=',
+          },
+        }
+      })
+    end
+
+    it { is_expected.to_not contain_exec('keystone-manage fernet_setup') }
+    it { is_expected.to contain_file('/etc/keystone/fernet-keys/0').with(
+      'content'   => 't-WdduhORSqoyAykuqWAQSYjg2rSRuJYySgI2xh48CI=',
+      'owner'     => 'keystone',
+      'owner'     => 'keystone',
+      'subscribe' => 'Anchor[keystone::install::end]',
+    )}
+    it { is_expected.to contain_file('/etc/keystone/fernet-keys/1').with(
+      'content'   => 'GLlnyygEVJP4-H2OMwClXn3sdSQUZsM5F194139Unv8=',
+      'owner'     => 'keystone',
+      'owner'     => 'keystone',
+      'subscribe' => 'Anchor[keystone::install::end]',
+    )}
   end
 
   shared_examples_for "when configuring default domain" do

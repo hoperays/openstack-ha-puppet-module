@@ -91,6 +91,9 @@
 #   This is useful when not specifying public_network or when there is more than one IP address on
 #   the same network and you want to be specific about the IP to bind the MON on.
 #
+# [*mds_key*] The mds secret key.
+#   Optional but required when using cephx.
+#
 # [*mon_key*] The mon secret key.
 #   Optional. Either mon_key or mon_keyring need to be set when using cephx.
 #
@@ -169,7 +172,22 @@
 #
 # [*rgw_keystone_admin_password*] The password for OpenStack admin user
 #   Required if is 'v3'.
-
+# 
+# [*rbd_mirror_client_name*] Name of the cephx client key used for rbd mirroring
+#   Optional. Default is undef
+#
+# [*fs_name*] The FS name.
+#   Optional but required when using fs.
+#
+# [*fs_metadata_pool*] The FS metadata pool name.
+#   Optional but required when using fs.
+#
+# [*fs_data_pool*] The FS data pool name.
+#   Optional but required when using fs.
+#
+# [*rbd_default_features*] Set RBD features configuration.
+#   Optional. String. Defaults to undef.
+# 
 
 class ceph::profile::params (
   $fsid = undef,
@@ -189,6 +207,7 @@ class ceph::profile::params (
   $cluster_network = undef,
   $public_network = undef,
   $public_addr = undef,
+  $mds_key = undef,
   $mon_key = undef,
   $mon_keyring = undef,
   $client_keys = {},
@@ -211,7 +230,11 @@ class ceph::profile::params (
   $rgw_keystone_admin_project = undef,
   $rgw_keystone_admin_user = undef,
   $rgw_keystone_admin_password = undef,
-
+  $rbd_mirror_client_name = undef,
+  $fs_metadata_pool = undef,
+  $fs_data_pool = undef,
+  $fs_name = undef,
+  $rbd_default_features = undef,
 ) {
   validate_hash($client_keys)
 

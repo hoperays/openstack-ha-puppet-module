@@ -68,7 +68,7 @@ class { '::ntp':
     '127.0.0.1',
     '-6 ::1',
     'ntp1.corp.com nomodify notrap nopeer noquery',
-    'ntp1.corp.com nomodify notrap nopeer noquery'
+    'ntp2.corp.com nomodify notrap nopeer noquery'
   ],
 }
 ```
@@ -109,7 +109,7 @@ class { '::ntp':
   servers         => [ 'ntp1.corp.com', 'ntp2.corp.com' ],
   restrict        => ['127.0.0.1'],
   service_manage  => false,
-  config_template => 'different/module/custom.template.erb',
+  config_epp      => 'different/module/custom.template.epp',
 }
 ```
 
@@ -131,10 +131,6 @@ class { '::ntp':
 
 The following parameters are available in the `::ntp` class:
 
-####`autoupdate`
-
-**Deprecated; replaced by the `package_ensure` parameter**. Tells Puppet whether to keep the ntp module updated to the latest version available. Valid options: true or false. Default value: false
-
 ####`broadcastclient`
 
 Enable reception of broadcast server messages to any local interface.
@@ -154,11 +150,15 @@ Specifies a file mode for the ntp configuration file. Valid options: string cont
 
 ####`config_template`
 
-Specifies a file to act as a template for the config file. Valid options: string containing a path (absolute, or relative to the module path). Default value: 'ntp/ntp.conf.erb'
+Specifies a file to act as a ERB template for the config file. Valid options: string containing a path (absolute, or relative to the module path). Example value: 'ntp/ntp.conf.erb'. Validation error will be thrown if this param is supplied as well as the `config_epp` param.
+
+####`config_epp`
+
+Specifies a file to act as a EPP template for the config file. Valid options: string containing a path (absolute, or relative to the module path). Example value: 'ntp/ntp.conf.epp'. Validation error will be thrown if this param is supplied as well as the `config_template` param.
 
 ####`disable_auth`
 
-Do  not  require cryptographic authentication for broadcast client, multicast 
+Do  not  require cryptographic authentication for broadcast client, multicast
 client and symmetric passive associations.
 
 ####`disable_auth`
@@ -235,10 +235,10 @@ Tells Puppet to use non-standard maximal poll interval of upstream servers. Vali
 ####`ntpsigndsocket`
 
 Tells NTP to sign packets using the socket in the ntpsigndsocket path. NTP must be configured to sign sockets for this to work.
-Valid option: a path to the socket directory; for example, for Samba it would be: 
+Valid option: a path to the socket directory; for example, for Samba it would be:
 
 ~~~~
-ntpsigndsocket = usr/local/samba/var/lib/ntp_signd/ 
+ntpsigndsocket = usr/local/samba/var/lib/ntp_signd/
 ~~~~
 
 Default value: undef.
@@ -253,7 +253,7 @@ Tells Puppet whether to manage the NTP package. Valid options: true or false. De
 
 ####`package_name`
 
-Tells Puppet what NTP package to manage. Valid options: string. Default value: 'ntp' (except on AIX and Solaris)
+Tells Puppet what NTP package to manage. Valid options: Array[string]. Default value: ['ntp'] (except on AIX and Solaris)
 
 ####`panic`
 
@@ -312,6 +312,18 @@ Tells Puppet what NTP service to manage. Valid options: string. Default value: v
 ####`service_provider`
 
 Tells Puppet which service provider to use for NTP. Valid options: string. Default value: 'undef'
+
+####`step_tickers_file`
+
+Location of the step tickers file on the managed system. Default value: varies by operating system
+
+####`step_tickers_template`
+
+Location of the step tickers ERB template file. Default value: varies by operating system. Validation error will be thrown if this is specified as well as the `step_tickers_epp` param.
+
+####`step_tickers_epp`
+
+Location of the step tickers EPP template file. Default value: varies by operating system. Validation error will be thrown if this is specified as well as the `step_tickers_template` param.
 
 ####`stepout`
 

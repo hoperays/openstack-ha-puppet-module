@@ -35,6 +35,7 @@ describe 'firewall::linux::redhat', :type => :class do
           :operatingsystemrelease => osrel,
           :osfamily               => 'RedHat',
           :selinux                => false,
+          :puppetversion          => Puppet.version,
         }}
 
         it { should_not contain_service('firewalld') }
@@ -51,7 +52,37 @@ describe 'firewall::linux::redhat', :type => :class do
           :operatingsystemrelease => osrel,
           :osfamily               => 'RedHat',
           :selinux                => false,
+          :puppetversion          => Puppet.version,
         }}
+
+        it { should contain_service('iptables').with(
+          :ensure   => 'running',
+          :enable   => 'true'
+        )}
+        it { should contain_service('ip6tables').with(
+          :ensure   => 'running',
+          :enable   => 'true'
+        )}
+
+        context 'ensure => stopped' do
+          let(:params) {{ :ensure => 'stopped' }}
+          it { should contain_service('iptables').with(
+            :ensure   => 'stopped'
+          )}
+          it { should contain_service('ip6tables').with(
+            :ensure   => 'stopped'
+          )}
+        end
+
+        context 'enable => false' do
+          let(:params) {{ :enable => 'false' }}
+          it { should contain_service('iptables').with(
+            :enable   => 'false'
+          )}
+          it { should contain_service('ip6tables').with(
+            :enable   => 'false'
+          )}
+        end
 
         it { should contain_service('firewalld').with(
           :ensure => 'stopped',

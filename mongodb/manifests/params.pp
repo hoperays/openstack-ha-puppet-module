@@ -12,6 +12,7 @@ class mongodb::params inherits mongodb::globals {
   $admin_username        = 'admin'
   $store_creds           = false
   $rcfile                = "${::root_home}/.mongorc.js"
+  $dbpath_fix            = true
 
   $mongos_service_manage = pick($mongodb::globals::mongos_service_manage, true)
   $mongos_service_enable = pick($mongodb::globals::mongos_service_enable, true)
@@ -21,6 +22,8 @@ class mongodb::params inherits mongodb::globals {
   $mongos_restart        = true
 
   $manage_package        = pick($mongodb::globals::manage_package, $mongodb::globals::manage_package_repo, false)
+  $pidfilemode           = pick($mongodb::globals::pidfilemode, '0644')
+  $manage_pidfile        = pick($mongodb::globals::manage_pidfile, true)
 
   $version = $::mongodb::globals::version
 

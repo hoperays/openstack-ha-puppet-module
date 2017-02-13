@@ -69,7 +69,7 @@ Therefore, the run order is:
 
 The rules in the `pre` and `post` classes are fairly general. These two classes ensure that you retain connectivity and that you drop unmatched packets appropriately. The rules you define in your manifests are likely specific to the applications you run.
 
-1.) Add the `pre` class to my_fw/manifests/pre.pp. Your pre.pp file should contain any default rules to be applied first. The rules in this class should be added in the order you want them to run.2. 
+1.) Add the `pre` class to my_fw/manifests/pre.pp. Your pre.pp file should contain any default rules to be applied first. The rules in this class should be added in the order you want them to run.2.
   ~~~puppet
   class my_fw::pre {
     Firewall {
@@ -145,7 +145,7 @@ Rules are persisted automatically between reboots, although there are known issu
     purge => true,
   }
   ~~~
-  
+
   **Note** - If there are unmanaged rules in unmanaged chains, it will take two Puppet runs before the firewall chain is purged. This is different than the `purge` parameter available in `firewallchain`.
 
 2.)  Use the following code to set up the default parameters for all of the firewall rules you will establish later. These defaults will ensure that the `pre` and `post` classes are run in the correct order to avoid locking you out of your box during the first Puppet run.
@@ -216,7 +216,7 @@ IPv6 rules can be specified using the _ip6tables_ provider:
 
 ~~~puppet
 firewall { '006 Allow inbound SSH (v6)':
-  dport     => 22,
+  dport    => 22,
   proto    => tcp,
   action   => accept,
   provider => 'ip6tables',
@@ -240,7 +240,7 @@ class profile::apache {
   apache::vhost { 'mysite': ensure => present }
 
   firewall { '100 allow http and https access':
-    dport   => [80, 443],
+    dport  => [80, 443],
     proto  => tcp,
     action => accept,
   }
@@ -387,19 +387,23 @@ Parameter that controls the state of the iptables service on your system, allowi
 
 `ensure` can either be 'running' or 'stopped'. Defaults to 'running'.
 
-#### package
-
-Specify the platform-specific package(s) to install. Defaults defined in `firewall::params`.
-
 #### pkg_ensure
 
 Parameter that controls the state of the iptables package on your system, allowing you to update it if you wish.
 
 `ensure` can either be 'present' or 'latest'. Defaults to 'present'.
 
-#### service
+#### service_name
 
-Specify the platform-specific service(s) to start or stop. Defaults defined in `firewall::params`.
+Specify the name of the IPv4 iptables service. Defaults defined in `firewall::params`.
+
+#### service_name_v6
+
+Specify the name of the IPv6 ip6tables service. Defaults defined in `firewall::params`.
+
+#### package_name
+
+Specify the platform-specific package(s) to install. Defaults defined in `firewall::params`.
 
 ###Type: firewall
 
@@ -410,12 +414,12 @@ This type enables you to manage firewall rules within Puppet.
 
  * `ip6tables`: Ip6tables type provider
     * Required binaries: `ip6tables-save`, `ip6tables`.
-    * Supported features: `address_type`, `connection_limiting`, `dnat`, `hop_limiting`, `icmp_match`, `interface_match`, `iprange`, `ipsec_dir`, `ipsec_policy`, `ipset`, `iptables`, `isfirstfrag`, `ishasmorefrags`, `islastfrag`, `log_level`, `log_prefix`, `log_uid`, `mark`, `mask`, `mss`, `owner`, `pkttype`, `rate_limiting`, `recent_limiting`, `reject_type`, `snat`, `socket`, `state_match`, `tcp_flags`.
+    * Supported features: `address_type`, `connection_limiting`, `dnat`, `hop_limiting`, `icmp_match`, `interface_match`, `iprange`, `ipsec_dir`, `ipsec_policy`, `ipset`, `iptables`, `isfirstfrag`, `ishasmorefrags`, `islastfrag`, `length`, `log_level`, `log_prefix`, `log_uid`, `mark`, `mask`, `mss`, `owner`, `pkttype`, `queue_bypass`, `queue_num`, `rate_limiting`, `recent_limiting`, `reject_type`, `snat`, `socket`, `state_match`, `string_matching`, `tcp_flags`.
 
 * `iptables`: Iptables type provider
     * Required binaries: `iptables-save`, `iptables`.
     * Default for `kernel` == `linux`.
-    * Supported features: `address_type`, `clusterip`, `connection_limiting`, `dnat`, `icmp_match`, `interface_match`, `iprange`, `ipsec_dir`, `ipsec_policy`, `ipset`, `iptables`, `isfragment`, `log_level`, `log_prefix`, `log_uid`, `mark`, `mask`, `mss`, `netmap`, `owner`, `pkttype`, `rate_limiting`, `recent_limiting`, `reject_type`, `snat`, `socket`, `state_match`, `tcp_flags`.
+    * Supported features: `address_type`, `clusterip`, `connection_limiting`, `dnat`, `icmp_match`, `interface_match`, `iprange`, `ipsec_dir`, `ipsec_policy`, `ipset`, `iptables`, `isfragment`, `length`, `log_level`, `log_prefix`, `log_uid`, `mark`, `mask`, `mss`, `netmap`, `owner`, `pkttype`, `queue_bypass`, `queue_num`, `rate_limiting`, `recent_limiting`, `reject_type`, `snat`, `socket`, `state_match`, `string_matching`, `tcp_flags`.
 
 **Autorequires:**
 
@@ -455,6 +459,8 @@ If Puppet is managing the iptables or iptables-persistent packages, and the prov
 
 * `islastfrag`: The ability to match the last fragment of an ipv6 packet.
 
+* `length`: The ability to match the length of the layer-3 payload.
+
 * `log_level`: The ability to control the log level.
 
 * `log_prefix`: The ability to add prefixes to log messages.
@@ -482,6 +488,8 @@ If Puppet is managing the iptables or iptables-persistent packages, and the prov
 * `socket`: The ability to match open sockets.
 
 * `state_match`: The ability to match stateful firewall states.
+
+* `string_matching`: The ability to match a given string by using some pattern matching strategy.
 
 * `tcp_flags`: The ability to match on particular TCP flag settings.
 
@@ -572,7 +580,7 @@ If Puppet is managing the iptables or iptables-persistent packages, and the prov
 
 * `ipsec_policy`: Sets the ipsec policy type. Valid values are 'none', 'ipsec'. Requires the `ipsec_policy` feature.
 
-* `ipset`: Matches IP sets. Value must be 'ipset_name (src|dst|src,dst)' and can be negated by putting ! in front. Requires ipset kernel module.
+* `ipset`: Matches IP sets. Value must be 'ipset_name (src|dst|src,dst)' and can be negated by putting ! in front. Requires ipset kernel module. Will accept a single element or an array.
 
 * `isfirstfrag`: If true, matches when the packet is the first fragment of a fragmented ipv6 packet. Cannot be negated. Supported by ipv6 only. Valid values are 'true', 'false'. Requires the `isfirstfrag` feature.
 
@@ -589,6 +597,8 @@ If Puppet is managing the iptables or iptables-persistent packages, and the prov
   If you set both `accept` and `jump` parameters, you will get an error, because only one of the options should be set. Requires the `iptables` feature.
 
 * `kernel_timezone`: Use the kernel timezone instead of UTC to determine whether a packet meets the time regulations.
+
+* `length`: Set the value for matching the length of the layer-3 payload. Can be a single number or a range using '-' as a separator. Requires the `length` feature.
 
 * `limit`: Rate limiting value for matched packets. The format is: 'rate/[/second/|/minute|/hour|/day]'. Example values are: '50/sec', '40/min', '30/hour', '10/day'. Requires the  `rate_limiting` feature.
 
@@ -634,6 +644,7 @@ firewall { '999 this runs last':
 * `port`: *DEPRECATED* Using the unspecific 'port' parameter can lead to firewall rules that are unexpectedly too lax. It is recommended to always use the specific dport and sport parameters to avoid this ambiguity. The destination or source port to match for this filter (if the protocol supports ports). Will accept a single element or an array. For some firewall providers you can pass a range of ports in the format: 'start number-end number'. For example, '1-1024' would cover ports 1 to 1024.
 
 * `proto`: The specific protocol to match for this rule. This is 'tcp' by default. Valid values are:
+  * 'ip'
   * 'tcp'
   * 'udp'
   * 'icmp'
@@ -647,11 +658,16 @@ firewall { '999 this runs last':
   * 'ipencap'
   * 'ospf'
   * 'gre'
+  * 'pim'
   * 'all'
 
 * `provider`: The specific backend to use for this firewall resource. You will seldom need to specify this --- Puppet will usually discover the appropriate provider for your platform. Available providers are ip6tables and iptables. See the [Providers](#providers) section above for details about these providers.
 
- * `random`: When using a `jump` value of 'MASQUERADE', 'DNAT', 'REDIRECT', or 'SNAT', this boolean will enable randomized port mapping. Valid values are true or false. Requires the `dnat` feature.
+* `queue_bypass`: When using a `jump` value of 'NFQUEUE' this boolean will allow packets to bypass `queue_num`. This is useful when the process in userspace may not be listening on `queue_num` all the time. 
+
+* `queue_num`: When using a `jump` value of 'NFQUEUE' this parameter specifies the queue number to send packets to.
+
+* `random`: When using a `jump` value of 'MASQUERADE', 'DNAT', 'REDIRECT', or 'SNAT', this boolean will enable randomized port mapping. Valid values are true or false. Requires the `dnat` feature.
 
 * `rdest`: If boolean 'true', adds the destination IP address to the list. Valid values are true or false. Requires the `recent_limiting` feature and the `recent` parameter.
 
@@ -740,6 +756,14 @@ firewall { '101 blacklist strange traffic':
 * `stat_probability`: Set the probability from 0 to 1 for a packet to be randomly matched. It works only with `stat_mode => 'random'`.
 
 * `state`: Matches a packet based on its state in the firewall stateful inspection table. Valid values are: 'INVALID', 'ESTABLISHED', 'NEW', 'RELATED'. Requires the `state_match` feature.
+
+* `string`: Set the pattern for string matching. Requires the `string_matching` feature.
+
+* `string_algo`: Used in conjunction with `string`, select the pattern matching strategy. Valid values are: 'bm', 'kmp' (bm = Boyer-Moore, kmp = Knuth-Pratt-Morris). Requires the `string_matching` feature.
+
+* `string_from`: Used in conjunction with `string`, set the offset from which it starts looking for any matching. Requires the `string_matching` feature.
+
+* `string_to`: Used in conjunction with `string`, set the offset up to which should be scanned. Requires the `string_matching` feature.
 
 * `table`: Table to use. Valid values are: 'nat', 'mangle', 'filter', 'raw', 'rawpost'. By default the setting is 'filter'. Requires the `iptables` feature.
 
@@ -861,7 +885,7 @@ As Puppet Enterprise itself does not yet support Debian 8, use of this module wi
 system should be regarded as experimental.
 
 ### Known Issues
- 
+
 #### MCollective causes PE to reverse firewall rule order
 
 Firewall rules appear in reverse order if you use MCollective to run Puppet in Puppet Enterprise 2016.1, 2015.3, 2015.2, or 3.8.x.

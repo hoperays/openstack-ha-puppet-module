@@ -18,8 +18,8 @@ class memcached (
   $item_size       = false,
   $lock_memory     = false,
   $listen_ip       = '0.0.0.0',
-  $tcp_port        = '11211',
-  $udp_port        = '11211',
+  $tcp_port        = 11211,
+  $udp_port        = 11211,
   $user            = $::memcached::params::user,
   $max_connections = '8192',
   $verbosity       = undef,
@@ -31,10 +31,7 @@ class memcached (
   $use_sasl        = false,
   $use_registry    = $::memcached::params::use_registry,
   $registry_key    = 'HKLM\System\CurrentControlSet\services\memcached\ImagePath',
-  $large_mem_pages = false,
-  $use_svcprop     = $::memcached::params::use_svcprop,
-  $svcprop_fmri    = 'memcached:default',
-  $svcprop_key     = 'memcached/options'
+  $large_mem_pages = false
 ) inherits memcached::params {
 
   # validate type and convert string to boolean if necessary
@@ -77,13 +74,13 @@ class memcached (
 
   if $manage_firewall_bool == true {
     firewall { "100_tcp_${tcp_port}_for_memcached":
-      dport  => $tcp_port,
+      port   => $tcp_port,
       proto  => 'tcp',
       action => 'accept',
     }
 
     firewall { "100_udp_${udp_port}_for_memcached":
-      dport  => $udp_port,
+      port   => $udp_port,
       proto  => 'udp',
       action => 'accept',
     }
@@ -121,15 +118,6 @@ class memcached (
       type   => 'string',
       data   => template($memcached::params::config_tmpl),
       notify => $service_notify_real,
-    }
-  }
-
-  if $use_svcprop {
-    svcprop { $svcprop_key:
-      fmri     => $svcprop_fmri,
-      property => $svcprop_key,
-      value    => template($memcached::params::config_tmpl),
-      notify   => $service_notify_real
     }
   }
 }

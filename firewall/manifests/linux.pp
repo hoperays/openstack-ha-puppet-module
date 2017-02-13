@@ -12,10 +12,11 @@
 #   Default: running
 #
 class firewall::linux (
-  $ensure       = running,
-  $pkg_ensure   = present,
-  $service_name = $::firewall::params::service_name,
-  $package_name = $::firewall::params::package_name,
+  $ensure          = running,
+  $pkg_ensure      = present,
+  $service_name    = $::firewall::params::service_name,
+  $service_name_v6 = $::firewall::params::service_name_v6,
+  $package_name    = $::firewall::params::package_name,
 ) inherits ::firewall::params {
   $enable = $ensure ? {
     running => true,
@@ -28,13 +29,15 @@ class firewall::linux (
 
   case $::operatingsystem {
     'RedHat', 'CentOS', 'Fedora', 'Scientific', 'SL', 'SLC', 'Ascendos',
-    'CloudLinux', 'PSBM', 'OracleLinux', 'OVS', 'OEL', 'Amazon', 'XenServer': {
+    'CloudLinux', 'PSBM', 'OracleLinux', 'OVS', 'OEL', 'Amazon', 'XenServer',
+    'VirtuozzoLinux': {
       class { "${title}::redhat":
-        ensure       => $ensure,
-        enable       => $enable,
-        package_name => $package_name,
-        service_name => $service_name,
-        require      => Package['iptables'],
+        ensure          => $ensure,
+        enable          => $enable,
+        package_name    => $package_name,
+        service_name    => $service_name,
+        service_name_v6 => $service_name_v6,
+        require         => Package['iptables'],
       }
     }
     'Debian', 'Ubuntu': {
