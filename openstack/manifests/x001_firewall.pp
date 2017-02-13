@@ -72,7 +72,7 @@ class openstack::x001_firewall {
     provider => 'iptables',
   } ->
   firewall { '012 allow inbound haproxy monitor':
-    dport    => 9300,
+    dport    => 1993,
     proto    => 'tcp',
     action   => 'accept',
     provider => 'iptables',
@@ -254,4 +254,3 @@ class openstack::x001_firewall {
     action => 'drop',
   }
 }
-
