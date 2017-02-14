@@ -8,6 +8,7 @@ class openstack::y002_glance (
   $controller_2    = '192.168.0.132',
   $controller_3    = '192.168.0.133',) {
   if $::hostname == $bootstrap_node {
+    Exec['galera-ready'] ->
     class { '::glance::db::mysql':
       password      => $glance_password,
       host          => 'localhost',

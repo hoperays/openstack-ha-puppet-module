@@ -14,6 +14,7 @@ class openstack::y005_nova (
   $rbd_secret_uuid   = '2ad6a20f-ffdd-460d-afba-04ab286f365f',
   $openstack_key     = 'AQB+RUpYfv+aIRAA4AbRb+XICXx+x+shF5AeZQ==',) {
   if $::hostname == $bootstrap_node {
+    Exec['galera-ready'] ->
     class { '::nova::db::mysql':
       password      => $nova_password,
       host          => 'localhost',

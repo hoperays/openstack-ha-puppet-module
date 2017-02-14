@@ -9,6 +9,7 @@ class openstack::y003_cinder (
   $controller_3    = '192.168.0.133',
   $rbd_secret_uuid = '2ad6a20f-ffdd-460d-afba-04ab286f365f',) {
   if $::hostname == $bootstrap_node {
+    Exec['galera-ready'] ->
     class { '::cinder::db::mysql':
       password      => $cinder_password,
       host          => 'localhost',

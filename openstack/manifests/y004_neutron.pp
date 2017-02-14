@@ -10,6 +10,7 @@ class openstack::y004_neutron (
   $controller_3     = '192.168.0.133',
   $metadata_secret  = 'metadata1234',) {
   if $::hostname == $bootstrap_node {
+    Exec['galera-ready'] ->
     class { '::neutron::db::mysql':
       password      => $neutron_password,
       host          => 'localhost',
