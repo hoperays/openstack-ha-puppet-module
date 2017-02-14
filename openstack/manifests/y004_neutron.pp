@@ -264,6 +264,13 @@ ONBOOT=yes
     command   => "/usr/bin/ovs-vsctl add-br br-ex",
     unless    => "/usr/bin/ovs-vsctl list-ports br-ex",
   } ->
+  exec { 'ip link set br-ex up':
+    timeout   => '3600',
+    tries     => '360',
+    try_sleep => '10',
+    command   => "/usr/sbin/ip link set br-ex up",
+    unless    => "/usr/sbin/ip link show br-ex | /usr/bin/grep 'UP'",
+  } ->
   exec { 'ovs-vsctl add-port br-ex eth1':
     timeout   => '3600',
     tries     => '360',
@@ -277,6 +284,13 @@ ONBOOT=yes
     try_sleep => '10',
     command   => "/usr/bin/ovs-vsctl add-br br-eth2",
     unless    => "/usr/bin/ovs-vsctl list-ports br-eth2",
+  } ->
+  exec { 'ip link set br-eth2 up':
+    timeout   => '3600',
+    tries     => '360',
+    try_sleep => '10',
+    command   => "/usr/sbin/ip link set br-eth2 up",
+    unless    => "/usr/sbin/ip link show br-eth2 | /usr/bin/grep 'UP'",
   } ->
   exec { 'ovs-vsctl add-port br-eth2 eth2':
     timeout   => '3600',
