@@ -1,9 +1,9 @@
 class openstack::x004_ceph (
   $bootstrap_node              = 'controller-1',
   # uuidgen
-  $fsid      = '9dfaa171-db9e-48c5-af8c-c618cc3bfec4',
+  $fsid                        = '9dfaa171-db9e-48c5-af8c-c618cc3bfec4',
   $mon_initial_members         = 'controller-1,controller-2,controller-3',
-  $mon_host  = '192.168.104.131,192.168.104.132,192.168.104.133',
+  $mon_host                    = '192.168.104.131,192.168.104.132,192.168.104.133',
   $authentication_type         = 'cephx',
   $public_network              = '192.168.104.0/24',
   $cluster_network             = '192.168.105.0/24',
@@ -18,8 +18,8 @@ class openstack::x004_ceph (
   $osd_mount_options_xfs       = 'rw,noatime,inode64,logbsize=256k,delaylog',
   $osd_crush_chooseleaf_type   = '1',
   # ceph-authtool --gen-print-key
-  $admin_key = 'AQDtZ+xX3678NxAAnWIyLVy2dVQ0wZePqWG09Q==',
-  $mon_key   = 'AQDuZ+xXWjN8JhAAEBD7j3EaFVhXQBJzjLdf2Q==',
+  $admin_key                   = 'AQDtZ+xX3678NxAAnWIyLVy2dVQ0wZePqWG09Q==',
+  $mon_key                     = 'AQDuZ+xXWjN8JhAAEBD7j3EaFVhXQBJzjLdf2Q==',
   $bootstrap_mds_key           = 'AQAyGSxY9+bgNRAAdMFl/EjA6KM5hP1wBcDZog==',
   $bootstrap_osd_key           = 'AQBMdOxXzLkwHxAA8TeFuJyvG6/NHziVyb06bg==',
   $bootstrap_rgw_key           = 'AQClPkpYRsB1CxAAZ9hhExzByrXKbPiV1kDu5Q==',
@@ -94,7 +94,7 @@ class openstack::x004_ceph (
     ceph::key { 'client.openstack':
       secret  => $openstack_key,
       cap_mon => 'allow r',
-      cap_osd => 'allow class-read object_prefix rbd_children, allow rwx pool=volumes, allow rwx pool=backups, allow rwx pool=vms, allow rwx pool=images',
+      cap_osd => 'allow class-read object_prefix rbd_children, allow rwx pool=volumes, allow rwx pool=backups, allow rwx pool=vms, allow rwx pool=images, allow rwx pool=metrics',
       mode    => '0644',
     }
 
