@@ -19,14 +19,12 @@ class openstack::y005_nova (
       password      => $nova_password,
       host          => 'localhost',
       allowed_hosts => $allowed_hosts,
-    }
-
+    } ->
     class { '::nova::db::mysql_api':
       password      => $nova_api_password,
       host          => 'localhost',
       allowed_hosts => $allowed_hosts,
     }
-
     $sync_db = true
     $sync_db_api = true
   } else {
@@ -46,7 +44,6 @@ class openstack::y005_nova (
       unless    => "/usr/bin/mysql -e 'select user,host,password from mysql.user where user=\"${username2}\";' | /usr/bin/grep \"${username2}\"",
     } ->
     Anchor['nova::service::begin']
-
     $sync_db = false
     $sync_db_api = false
   }
