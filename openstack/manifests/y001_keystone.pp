@@ -23,7 +23,8 @@ class openstack::y001_keystone (
       try_sleep => '10',
       command   => "/usr/bin/mysql -e 'select user,host,password from mysql.user where user=\"${username}\";' | /usr/bin/grep \"${username}\"",
       unless    => "/usr/bin/mysql -e 'select user,host,password from mysql.user where user=\"${username}\";' | /usr/bin/grep \"${username}\"",
-    }
+    } ->
+    Anchor['::keystone::service::begin']
     $sync_db = false
   }
 

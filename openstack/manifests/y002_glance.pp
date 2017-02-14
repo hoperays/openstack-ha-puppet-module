@@ -21,7 +21,8 @@ class openstack::y002_glance (
       try_sleep => '10',
       command   => "/usr/bin/mysql -e 'select user,host,password from mysql.user where user=\"${username}\";' | /usr/bin/grep \"${username}\"",
       unless    => "/usr/bin/mysql -e 'select user,host,password from mysql.user where user=\"${username}\";' | /usr/bin/grep \"${username}\"",
-    }
+    } ->
+    Anchor['::glance::service::begin']
     $sync_db = false
   }
 
