@@ -42,7 +42,7 @@ class openstack::x006_haproxy (
     ,
   }
 
-  haproxy::listen { 'monitor':
+  haproxy::listen { 'stats':
     bind    => {
       "${controller_vip}:1993" => ['transparent']
     }
@@ -311,6 +311,44 @@ class openstack::x006_haproxy (
     server_names      => ['controller-1', 'controller-2', 'controller-3'],
     ipaddresses       => [$controller_1, $controller_2, $controller_3],
     ports             => '8777',
+    options           => 'check fall 5 inter 2000 rise 2',
+  }
+
+  haproxy::listen { 'gnocchi':
+    bind    => {
+      "${controller_vip}:8041" => ['transparent']
+    }
+    ,
+    mode    => 'http',
+    options => {
+      http-request => ['set-header X-Forwarded-Proto https if { ssl_fc }', 'set-header X-Forwarded-Proto http if !{ ssl_fc }'],
+    }
+  }
+
+  haproxy::balancermember { 'gnocchi':
+    listening_service => 'gnocchi',
+    server_names      => ['controller-1', 'controller-2', 'controller-3'],
+    ipaddresses       => [$controller_1, $controller_2, $controller_3],
+    ports             => '8041',
+    options           => 'check fall 5 inter 2000 rise 2',
+  }
+
+  haproxy::listen { 'aodh':
+    bind    => {
+      "${controller_vip}:8042" => ['transparent']
+    }
+    ,
+    mode    => 'http',
+    options => {
+      http-request => ['set-header X-Forwarded-Proto https if { ssl_fc }', 'set-header X-Forwarded-Proto http if !{ ssl_fc }'],
+    }
+  }
+
+  haproxy::balancermember { 'aodh':
+    listening_service => 'aodh',
+    server_names      => ['controller-1', 'controller-2', 'controller-3'],
+    ipaddresses       => [$controller_1, $controller_2, $controller_3],
+    ports             => '8042',
     options           => 'check fall 5 inter 2000 rise 2',
   }
 

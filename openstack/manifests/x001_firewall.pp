@@ -24,224 +24,192 @@ class openstack::x001_firewall {
     action => 'accept',
   } ->
   firewall { '004 allow inbound ssh':
-    dport    => 22,
+    dport    => ['22'],
     proto    => 'tcp',
     action   => 'accept',
     provider => 'iptables',
   } ->
-  firewall { '005 allow inbound ntp':
-    dport    => 123,
+  firewall { '100 allow inbound ntp':
+    dport    => ['123'],
     proto    => 'udp',
     action   => 'accept',
     provider => 'iptables',
   } ->
-  firewall { '006 allow inbound ceph monitor':
-    dport    => 6789,
+  firewall { '101 allow inbound ceph monitor':
+    dport    => ['6789'],
     proto    => 'tcp',
     action   => 'accept',
     provider => 'iptables',
   } ->
-  firewall { '007 allow inbound ceph osd':
-    dport    => 6800-7300,
+  firewall { '101 allow inbound ceph osd':
+    dport    => ['6800-7300'],
     proto    => 'tcp',
     action   => 'accept',
     provider => 'iptables',
   } ->
-  firewall { '008 allow inbound pacemaker web':
-    dport    => 2224,
+  firewall { '102 allow inbound pacemaker':
+    dport    => ['2224', '3121', '21064'],
     proto    => 'tcp',
     action   => 'accept',
     provider => 'iptables',
   } ->
-  firewall { '009 allow inbound pacemaker remote':
-    dport    => 3121,
-    proto    => 'tcp',
-    action   => 'accept',
-    provider => 'iptables',
-  } ->
-  firewall { '010 allow inbound pacemaker dlm':
-    dport    => 21064,
-    proto    => 'tcp',
-    action   => 'accept',
-    provider => 'iptables',
-  } ->
-  firewall { '011 allow inbound corosync':
-    dport    => [5404, 5405],
+  firewall { '102 allow inbound corosync':
+    dport    => ['5404', '5405'],
     proto    => 'udp',
     action   => 'accept',
     provider => 'iptables',
   } ->
-  firewall { '012 allow inbound haproxy monitor':
-    dport    => 1993,
+  firewall { '103 allow inbound haproxy stats':
+    dport    => ['1993'],
     proto    => 'tcp',
     action   => 'accept',
     provider => 'iptables',
   } ->
-  firewall { '013 allow inbound mysql and mysqldump':
-    dport    => 3306,
+  firewall { '104 allow inbound mysql galera':
+    dport    => ['873', '3306', '4444', '4567', '4568', '9200'],
     proto    => 'tcp',
     action   => 'accept',
     provider => 'iptables',
   } ->
-  firewall { '014 allow inbound galera state snapshot transfer':
-    dport    => 4444,
+  firewall { '105 allow inbound rabbitmq':
+    dport    => ['4369', '5671', '5672', '15672', '25672'],
     proto    => 'tcp',
     action   => 'accept',
     provider => 'iptables',
   } ->
-  firewall { '015 allow inbound galera cluster replication tcp':
-    dport    => 4567,
+  firewall { '106 allow inbound memcached':
+    dport    => ['11211'],
     proto    => 'tcp',
     action   => 'accept',
     provider => 'iptables',
   } ->
-  firewall { '016 allow inbound galera cluster replication udp':
-    dport    => 4567,
+  firewall { '107 allow inbound mongodb':
+    dport    => ['27017', '27018', '27019'],
+    proto    => 'tcp',
+    action   => 'accept',
+    provider => 'iptables',
+  } ->
+  firewall { '108 allow inbound redis':
+    dport    => ['6379', '26379'],
+    proto    => 'tcp',
+    action   => 'accept',
+    provider => 'iptables',
+  } ->
+  firewall { '200 allow inbound keystone api':
+    dport    => ['5000', '13000', '35357', '13357'],
+    proto    => 'tcp',
+    action   => 'accept',
+    provider => 'iptables',
+  } ->
+  firewall { '201 allow inbound glance api':
+    dport    => ['9292', '13292'],
+    proto    => 'tcp',
+    action   => 'accept',
+    provider => 'iptables',
+  } ->
+  firewall { '201 allow inbound glance registory':
+    dport    => ['9191'],
+    proto    => 'tcp',
+    action   => 'accept',
+    provider => 'iptables',
+  } ->
+  firewall { '202 allow inbound cinder api':
+    dport    => ['8776', '13776'],
+    proto    => 'tcp',
+    action   => 'accept',
+    provider => 'iptables',
+  } ->
+  firewall { '203 allow inbound neutron api':
+    dport    => ['9696', '13696'],
+    proto    => 'tcp',
+    action   => 'accept',
+    provider => 'iptables',
+  } ->
+  firewall { '203 allow inbound neutron dhcp':
+    dport    => ['67'],
     proto    => 'udp',
     action   => 'accept',
     provider => 'iptables',
   } ->
-  firewall { '017 allow inbound galera incremental state transfer':
-    dport    => 4568,
-    proto    => 'tcp',
-    action   => 'accept',
-    provider => 'iptables',
-  } ->
-  firewall { '018 allow inbound galera monitor':
-    dport    => 9200,
-    proto    => 'tcp',
-    action   => 'accept',
-    provider => 'iptables',
-  } ->
-  firewall { '019 allow inbound rabbitmq epmd':
-    dport    => 4369,
-    proto    => 'tcp',
-    action   => 'accept',
-    provider => 'iptables',
-  } ->
-  firewall { '020 allow inbound rabbitmq amqp 0-9-1 with and without tls':
-    dport    => [5671, 5672],
-    proto    => 'tcp',
-    action   => 'accept',
-    provider => 'iptables',
-  } ->
-  firewall { '021 allow inbound rabbitmq management plugin':
-    dport    => 15672,
-    proto    => 'tcp',
-    action   => 'accept',
-    provider => 'iptables',
-  } ->
-  firewall { '022 allow inbound rabbitmq erlang distribution':
-    dport    => 25672,
-    proto    => 'tcp',
-    action   => 'accept',
-    provider => 'iptables',
-  } ->
-  firewall { '023 allow inbound memcached':
-    dport    => 11211,
-    proto    => 'tcp',
-    action   => 'accept',
-    provider => 'iptables',
-  } ->
-  firewall { '024 allow inbound mongodb':
-    dport    => 27017,
-    proto    => 'tcp',
-    action   => 'accept',
-    provider => 'iptables',
-  } ->
-  firewall { '025 allow inbound redis':
-    dport    => 6379,
-    proto    => 'tcp',
-    action   => 'accept',
-    provider => 'iptables',
-  } ->
-  firewall { '026 allow inbound redis sentinel':
-    dport    => 26379,
-    proto    => 'tcp',
-    action   => 'accept',
-    provider => 'iptables',
-  } ->
-  firewall { '027 allow inbound keystone admin':
-    dport    => 35357,
-    proto    => 'tcp',
-    action   => 'accept',
-    provider => 'iptables',
-  } ->
-  firewall { '028 allow inbound keystone public':
-    dport    => 5000,
-    proto    => 'tcp',
-    action   => 'accept',
-    provider => 'iptables',
-  } ->
-  firewall { '029 allow inbound glance api':
-    dport    => 9292,
-    proto    => 'tcp',
-    action   => 'accept',
-    provider => 'iptables',
-  } ->
-  firewall { '030 allow inbound glance registry':
-    dport    => 9191,
-    proto    => 'tcp',
-    action   => 'accept',
-    provider => 'iptables',
-  } ->
-  firewall { '031 allow inbound cinder api':
-    dport    => 8776,
-    proto    => 'tcp',
-    action   => 'accept',
-    provider => 'iptables',
-  } ->
-  firewall { '032 allow inbound neutron server':
-    dport    => 9696,
-    proto    => 'tcp',
-    action   => 'accept',
-    provider => 'iptables',
-  } ->
-  firewall { '033 allow inbound neutron tunnel':
-    dport    => 4789,
+  firewall { '203 allow inbound neutron vxlan':
+    dport    => ['4789'],
     proto    => 'udp',
     action   => 'accept',
     provider => 'iptables',
   } ->
-  firewall { '034 allow inbound nova api':
-    dport    => [8773, 8774, 8775],
+  firewall { '203 allow inbound neutron gre':
+    proto    => 'gre',
+    action   => 'accept',
+    provider => 'iptables',
+  } ->
+  firewall { '203 allow inbound neutron vrrp':
+    proto    => 'vrrp',
+    action   => 'accept',
+    provider => 'iptables',
+  } ->
+  firewall { '204 allow inbound nova api':
+    dport    => ['8773', '3773', '8774', '13774', '8775', '13775'],
     proto    => 'tcp',
     action   => 'accept',
     provider => 'iptables',
   } ->
-  firewall { '035 allow inbound nova novncproxy':
-    dport    => 6080,
+  firewall { '204 allow inbound nova novncproxy':
+    dport    => ['6080', '13080'],
     proto    => 'tcp',
     action   => 'accept',
     provider => 'iptables',
   } ->
-  firewall { '036 allow inbound ceilometer api':
-    dport    => 8777,
+  firewall { '204 allow inbound nova compute':
+    dport    => ['5900-5999', '16509', '16514', '49152-49215'],
     proto    => 'tcp',
     action   => 'accept',
     provider => 'iptables',
   } ->
-  firewall { '037 allow inbound ceilometer collector':
-    dport    => 4952,
+  firewall { '205 allow inbound horizon':
+    dport    => ['80', '443'],
+    proto    => 'tcp',
+    action   => 'accept',
+    provider => 'iptables',
+  } ->
+  firewall { '206 allow inbound ceilometer api':
+    dport    => ['8777', '13777'],
+    proto    => 'tcp',
+    action   => 'accept',
+    provider => 'iptables',
+  } ->
+  firewall { '207 allow inbound gnocchi api':
+    dport    => ['8041', '13041'],
+    proto    => 'tcp',
+    action   => 'accept',
+    provider => 'iptables',
+  } ->
+  firewall { '207 allow inbound gnocchi statsd':
+    dport    => ['8125'],
     proto    => 'udp',
     action   => 'accept',
     provider => 'iptables',
   } ->
-  firewall { '038 allow inbound horizon':
-    dport    => [80, 443],
+  firewall { '208 allow inbound aodh api':
+    dport    => ['8042', '13042'],
     proto    => 'tcp',
     action   => 'accept',
     provider => 'iptables',
   } ->
-  firewall { '039 allow inbound nova compute':
-    dport    => 5900-5999,
+  firewall { '300 allow inbound zabbix server':
+    dport    => ['10051'],
     proto    => 'tcp',
     action   => 'accept',
     provider => 'iptables',
   } ->
-  firewall { '040 allow inbound nova qemu migration':
-    dport    => [16509, 49152-49215],
+  firewall { '300 allow inbound zabbix agent':
+    dport    => ['10050'],
     proto    => 'tcp',
+    action   => 'accept',
+    provider => 'iptables',
+  } ->
+  firewall { '300 allow inbound zabbix snmp':
+    dport    => ['127'],
+    proto    => 'udp',
     action   => 'accept',
     provider => 'iptables',
   } ->
