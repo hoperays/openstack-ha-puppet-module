@@ -12,10 +12,7 @@ class openstack::x005_pacemaker (
   }
 
   if $::hostname =~ /^controller-\d+$/ {
-    anchor { '::pacemaker::begin': } ->
     class { '::pacemaker': hacluster_pwd => $hacluster_pwd, } ->
-    anchor { '::pacemaker::end': } ->
-    anchor { '::pacemaker::corosync::begin': } ->
     class { '::pacemaker::corosync':
       cluster_members => $cluster_members,
       cluster_name    => $cluster_name,
@@ -23,8 +20,7 @@ class openstack::x005_pacemaker (
       manage_fw       => $manage_fw,
       remote_authkey  => $remote_authkey,
       setup_cluster   => $setup_cluster,
-    } ->
-    anchor { '::pacemaker::corosync::end': }
+    }
   } elsif $::hostname =~ /^compute-\d+$/ {
     package { 'pacemaker-remote': } ->
     file { '/etc/pacemaker':

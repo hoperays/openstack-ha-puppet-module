@@ -8,11 +8,6 @@ unless ENV['RS_PROVISION'] == 'no' or ENV['BEAKER_provision'] == 'no'
   run_puppet_install_helper
 
   hosts.each do |host|
-    # for now we have to use unreleased versions of stdlib and tea for testing
-    apply_manifest_on(host, 'package { "git": }')
-    environmentpath = host.puppet['environmentpath']
-    environmentpath = environmentpath.split(':').first if environmentpath
-
     # Solaris 11 doesn't ship the SSL CA root for the forgeapi server
     # therefore we need to use a different way to deploy the module to
     # the host
@@ -26,7 +21,7 @@ unless ENV['RS_PROVISION'] == 'no' or ENV['BEAKER_provision'] == 'no'
       environmentpath = environmentpath.split(':').first if environmentpath
 
       destdir = modulepath || "#{environmentpath}/production/modules"
-      on host, "git clone -b 4.13.0 https://github.com/puppetlabs/puppetlabs-stdlib #{destdir}/stdlib"
+      on host, "git clone -b 4.6.0 https://github.com/puppetlabs/puppetlabs-stdlib #{destdir}/stdlib"
     else
       on host, puppet('module install puppetlabs-stdlib')
     end
@@ -51,7 +46,10 @@ RSpec.configure do |c|
   # Configure all nodes in nodeset
   c.before :suite do
     hosts.each do |host|
-      copy_module_to(host, :source => proj_root, :module_name => 'ntp')
+      on host, "mkdir -p #{host['distmoduledir']}/ntp"
+      %w(lib manifests templates metadata.json).each do |file|
+        scp_to host, "#{proj_root}/#{file}", "#{host['distmoduledir']}/ntp"
+      end
     end
   end
 end

@@ -7,7 +7,7 @@ else
 end
 
 describe "ntp class with disable_monitor:", :unless => UNSUPPORTED_PLATFORMS.include?(fact('osfamily')) do
-  context 'should disable' do
+  context 'should run successfully' do
     pp = "class { 'ntp': disable_monitor => true }"
 
     it 'runs twice' do
@@ -20,7 +20,7 @@ describe "ntp class with disable_monitor:", :unless => UNSUPPORTED_PLATFORMS.inc
     end
   end
 
-  context 'should not disable' do
+  context 'should run successfully' do
     pp = "class { 'ntp': disable_monitor => false }"
 
     it 'runs twice' do
