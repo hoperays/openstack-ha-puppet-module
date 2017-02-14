@@ -355,7 +355,7 @@ class openstack::x006_haproxy (
   if $::hostname == $bootstrap_node {
     pacemaker::resource::ip { "ip-${controller_vip}":
       ip_address => $controller_vip,
-      require    => Class['haproxy'],
+      require    => [Haproxy::Listen <| |>, Haproxy::Balancermember <| |>],
     } ->
     pacemaker::resource::service { 'haproxy':
       op_params    => 'start timeout=200s stop timeout=200s',
