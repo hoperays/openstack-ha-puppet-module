@@ -15,14 +15,15 @@ class openstack::y002_glance (
     }
     $sync_db = true
   } else {
-    exec { "${username}-ready":
+    Anchor['glance::config::end'] ->
+    exec { "${username}-user-ready":
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
       command   => "/usr/bin/mysql -e 'select user,host,password from mysql.user where user=\"${username}\";' | /usr/bin/grep \"${username}\"",
       unless    => "/usr/bin/mysql -e 'select user,host,password from mysql.user where user=\"${username}\";' | /usr/bin/grep \"${username}\"",
     } ->
-    Anchor['::glance::service::begin']
+    Anchor['glance::service::begin']
     $sync_db = false
   }
 

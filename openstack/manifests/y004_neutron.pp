@@ -17,14 +17,15 @@ class openstack::y004_neutron (
     }
     $sync_db = true
   } else {
-    exec { "${username}-ready":
+    Anchor['neutron::config::end'] ->
+    exec { "${username}-user-ready":
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
       command   => "/usr/bin/mysql -e 'select user,host,password from mysql.user where user=\"${username}\";' | /usr/bin/grep \"${username}\"",
       unless    => "/usr/bin/mysql -e 'select user,host,password from mysql.user where user=\"${username}\";' | /usr/bin/grep \"${username}\"",
     } ->
-    Anchor['::neutron::service::begin']
+    Anchor['neutron::service::begin']
     $sync_db = false
   }
 

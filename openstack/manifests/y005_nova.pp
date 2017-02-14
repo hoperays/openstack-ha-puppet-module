@@ -29,22 +29,22 @@ class openstack::y005_nova (
     $sync_db = true
     $sync_db_api = true
   } else {
-    exec { "${username1}-ready":
+    Anchor['nova::config::end'] ->
+    exec { "${username1}-user-ready":
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
       command   => "/usr/bin/mysql -e 'select user,host,password from mysql.user where user=\"${username1}\";' | /usr/bin/grep \"${username1}\"",
       unless    => "/usr/bin/mysql -e 'select user,host,password from mysql.user where user=\"${username1}\";' | /usr/bin/grep \"${username1}\"",
     } ->
-    Anchor['::nova::service::begin']
-    exec { "${username2}-ready":
+    exec { "${username2}-user-ready":
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
       command   => "/usr/bin/mysql -e 'select user,host,password from mysql.user where user=\"${username2}\";' | /usr/bin/grep \"${username2}\"",
       unless    => "/usr/bin/mysql -e 'select user,host,password from mysql.user where user=\"${username2}\";' | /usr/bin/grep \"${username2}\"",
     } ->
-    Anchor['::nova::service::begin']
+    Anchor['nova::service::begin']
 
     $sync_db = false
     $sync_db_api = false

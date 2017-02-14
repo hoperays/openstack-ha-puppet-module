@@ -17,7 +17,7 @@ class openstack::y001_keystone (
     }
     $sync_db = true
   } else {
-    Anchor['::keystone::config::end'] ->
+    Anchor['keystone::config::end'] ->
     exec { "${username}-user-ready":
       timeout   => '3600',
       tries     => '360',
@@ -25,7 +25,7 @@ class openstack::y001_keystone (
       command   => "/usr/bin/mysql -e 'select user,host,password from mysql.user where user=\"${username}\";' | /usr/bin/grep \"${username}\"",
       unless    => "/usr/bin/mysql -e 'select user,host,password from mysql.user where user=\"${username}\";' | /usr/bin/grep \"${username}\"",
     } ->
-    Anchor['::keystone::service::begin']
+    Anchor['keystone::service::begin']
     $sync_db = false
   }
 

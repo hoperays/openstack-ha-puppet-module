@@ -16,14 +16,15 @@ class openstack::y003_cinder (
     }
     $sync_db = true
   } else {
-    exec { "${username}-ready":
+    Anchor['cinder::config::end'] ->
+    exec { "${username}-user-ready":
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
       command   => "/usr/bin/mysql -e 'select user,host,password from mysql.user where user=\"${username}\";' | /usr/bin/grep \"${username}\"",
       unless    => "/usr/bin/mysql -e 'select user,host,password from mysql.user where user=\"${username}\";' | /usr/bin/grep \"${username}\"",
     } ->
-    Anchor['::cinder::service::begin']
+    Anchor['cinder::service::begin']
     $sync_db = false
   }
 
