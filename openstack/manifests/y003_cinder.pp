@@ -22,8 +22,8 @@ class openstack::y003_cinder (
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/usr/bin/mysql -e 'select user,host,password from mysql.user where user=\"${username}\";' | /usr/bin/grep \"${username}\"",
-      unless    => "/usr/bin/mysql -e 'select user,host,password from mysql.user where user=\"${username}\";' | /usr/bin/grep \"${username}\"",
+      command   => "/usr/bin/mysql -e 'select user from mysql.user where user=\"${username}\";' | /usr/bin/grep \"${username}\"",
+      unless    => "/usr/bin/mysql -e 'select user from mysql.user where user=\"${username}\";' | /usr/bin/grep \"${username}\"",
     } ->
     Anchor['cinder::service::begin']
     $sync_db = false

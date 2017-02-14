@@ -33,15 +33,15 @@ class openstack::y005_nova (
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/usr/bin/mysql -e 'select user,host,password from mysql.user where user=\"${username1}\";' | /usr/bin/grep \"${username1}\"",
-      unless    => "/usr/bin/mysql -e 'select user,host,password from mysql.user where user=\"${username1}\";' | /usr/bin/grep \"${username1}\"",
+      command   => "/usr/bin/mysql -e 'select user from mysql.user where user=\"${username}\";' | /usr/bin/grep \"${username}\"",
+      unless    => "/usr/bin/mysql -e 'select user from mysql.user where user=\"${username}\";' | /usr/bin/grep \"${username}\"",
     } ->
     exec { "${username2}-user-ready":
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/usr/bin/mysql -e 'select user,host,password from mysql.user where user=\"${username2}\";' | /usr/bin/grep \"${username2}\"",
-      unless    => "/usr/bin/mysql -e 'select user,host,password from mysql.user where user=\"${username2}\";' | /usr/bin/grep \"${username2}\"",
+      command   => "/usr/bin/mysql -e 'select user from mysql.user where user=\"${username}\";' | /usr/bin/grep \"${username}\"",
+      unless    => "/usr/bin/mysql -e 'select user from mysql.user where user=\"${username}\";' | /usr/bin/grep \"${username}\"",
     } ->
     Anchor['nova::service::begin']
     $sync_db = false

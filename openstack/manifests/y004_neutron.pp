@@ -23,8 +23,8 @@ class openstack::y004_neutron (
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/usr/bin/mysql -e 'select user,host,password from mysql.user where user=\"${username}\";' | /usr/bin/grep \"${username}\"",
-      unless    => "/usr/bin/mysql -e 'select user,host,password from mysql.user where user=\"${username}\";' | /usr/bin/grep \"${username}\"",
+      command   => "/usr/bin/mysql -e 'select user from mysql.user where user=\"${username}\";' | /usr/bin/grep \"${username}\"",
+      unless    => "/usr/bin/mysql -e 'select user from mysql.user where user=\"${username}\";' | /usr/bin/grep \"${username}\"",
     } ->
     Anchor['neutron::service::begin']
     $sync_db = false
@@ -43,7 +43,7 @@ class openstack::y004_neutron (
       'neutron_lbaas.services.loadbalancer.plugin.LoadBalancerPluginv2'],
     allow_overlapping_ips   => true,
     host                    => $::hostname,
-    global_physnet_mtu      => '1450',
+    global_physnet_mtu      => '1500',
     log_dir                 => '/var/log/neutron',
     rpc_backend             => 'rabbit',
     control_exchange        => 'neutron',
