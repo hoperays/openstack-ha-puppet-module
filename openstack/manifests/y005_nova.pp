@@ -4,6 +4,8 @@ class openstack::y005_nova (
   $nova_api_password = 'nova_api1234',
   $neutron_password  = 'neutron1234',
   $allowed_hosts     = ['%'],
+  $username1         = 'nova',
+  $username2         = 'nova_api',
   $controller_vip    = '192.168.0.130',
   $controller_1      = '192.168.0.131',
   $controller_2      = '192.168.0.132',
@@ -27,6 +29,22 @@ class openstack::y005_nova (
     $sync_db = true
     $sync_db_api = true
   } else {
+    exec { "${username1}-ready":
+      timeout   => '3600',
+      tries     => '360',
+      try_sleep => '10',
+      command   => "/usr/bin/mysql -e 'select user,host,password from mysql.user where user=\"${username1}\";' | /usr/bin/grep \"${username1}\"",
+      unless    => "/usr/bin/mysql -e 'select user,host,password from mysql.user where user=\"${username1}\";' | /usr/bin/grep \"${username1}\"",
+    }
+
+    exec { "${username2}-ready":
+      timeout   => '3600',
+      tries     => '360',
+      try_sleep => '10',
+      command   => "/usr/bin/mysql -e 'select user,host,password from mysql.user where user=\"${username2}\";' | /usr/bin/grep \"${username2}\"",
+      unless    => "/usr/bin/mysql -e 'select user,host,password from mysql.user where user=\"${username2}\";' | /usr/bin/grep \"${username2}\"",
+    }
+
     $sync_db = false
     $sync_db_api = false
   }

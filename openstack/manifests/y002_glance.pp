@@ -2,6 +2,7 @@ class openstack::y002_glance (
   $bootstrap_node  = 'controller-1',
   $glance_password = 'glance1234',
   $allowed_hosts   = ['%'],
+  $username        = 'glance',
   $controller_vip  = '192.168.0.130',
   $controller_1    = '192.168.0.131',
   $controller_2    = '192.168.0.132',
@@ -14,6 +15,13 @@ class openstack::y002_glance (
     }
     $sync_db = true
   } else {
+    exec { "${username}-ready":
+      timeout   => '3600',
+      tries     => '360',
+      try_sleep => '10',
+      command   => "/usr/bin/mysql -e 'select user,host,password from mysql.user where user=\"${username}\";' | /usr/bin/grep \"${username}\"",
+      unless    => "/usr/bin/mysql -e 'select user,host,password from mysql.user where user=\"${username}\";' | /usr/bin/grep \"${username}\"",
+    }
     $sync_db = false
   }
 
