@@ -17,7 +17,8 @@ class openstack::y001_keystone (
     }
     $sync_db = true
   } else {
-    exec { "${username}-ready":
+    Anchor['::keystone::config::end'] ->
+    exec { "${username}-user-ready":
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
