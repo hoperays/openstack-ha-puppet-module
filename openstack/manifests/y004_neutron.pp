@@ -27,6 +27,13 @@ class openstack::y004_neutron (
       command   => "/usr/bin/mysql -e 'show tables from ${username}'",
       unless    => "/usr/bin/mysql -e 'show tables from ${username}'",
     } ->
+    exec { "${username}-user-ready":
+      timeout   => '3600',
+      tries     => '360',
+      try_sleep => '10',
+      command   => "/usr/bin/mysql -e 'select user from mysql.user where user=\"${username}\";' | grep \"${username}\"",
+      unless    => "/usr/bin/mysql -e 'select user from mysql.user where user=\"${username}\";' | grep \"${username}\"",
+    } ->
     Anchor['neutron::service::begin']
     $sync_db = false
     $bridge_mappings = ['physnet1:br-eth2', 'extnet:br-ex']

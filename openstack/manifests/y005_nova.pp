@@ -37,12 +37,26 @@ class openstack::y005_nova (
       command   => "/usr/bin/mysql -e 'show tables from ${username1}'",
       unless    => "/usr/bin/mysql -e 'show tables from ${username1}'",
     } ->
+    exec { "${username1}-user-ready":
+      timeout   => '3600',
+      tries     => '360',
+      try_sleep => '10',
+      command   => "/usr/bin/mysql -e 'select user from mysql.user where user=\"${username1}\";' | grep \"${username1}\"",
+      unless    => "/usr/bin/mysql -e 'select user from mysql.user where user=\"${username1}\";' | grep \"${username1}\"",
+    } ->
     exec { "${username2}-db-ready":
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
       command   => "/usr/bin/mysql -e 'show tables from ${username2}'",
       unless    => "/usr/bin/mysql -e 'show tables from ${username2}'",
+    } ->
+    exec { "${username2}-user-ready":
+      timeout   => '3600',
+      tries     => '360',
+      try_sleep => '10',
+      command   => "/usr/bin/mysql -e 'select user from mysql.user where user=\"${username2}\";' | grep \"${username2}\"",
+      unless    => "/usr/bin/mysql -e 'select user from mysql.user where user=\"${username2}\";' | grep \"${username2}\"",
     } ->
     Anchor['nova::service::begin']
     $sync_db = false

@@ -25,6 +25,13 @@ class openstack::y003_cinder (
       command   => "/usr/bin/mysql -e 'show tables from ${username}'",
       unless    => "/usr/bin/mysql -e 'show tables from ${username}'",
     } ->
+    exec { "${username}-user-ready":
+      timeout   => '3600',
+      tries     => '360',
+      try_sleep => '10',
+      command   => "/usr/bin/mysql -e 'select user from mysql.user where user=\"${username}\";' | grep \"${username}\"",
+      unless    => "/usr/bin/mysql -e 'select user from mysql.user where user=\"${username}\";' | grep \"${username}\"",
+    } ->
     Anchor['cinder::service::begin']
     $sync_db = false
   }
@@ -87,7 +94,7 @@ class openstack::y003_cinder (
     glance_api_version => '2',
   }
 
-  ::cinder::backend::rbd { 'rbd':
+  cinder::backend::rbd { 'rbd':
     rbd_pool              => 'volumes',
     backend_host          => 'hostgroup',
     rbd_secret_uuid       => $rbd_secret_uuid,
@@ -174,6 +181,7 @@ class openstack::y003_cinder (
       service_description_v3 => 'Cinder Service v3',
       region                 => 'RegionOne',
     } ->
+    Cinder::Backend::Rbd['rbd'] ->
     exec { 'cinder-ready':
       timeout   => '3600',
       tries     => '360',
