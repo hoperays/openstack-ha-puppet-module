@@ -131,6 +131,8 @@ class openstack::y001_keystone (
       default_domain => undef,
       version        => 'v3',
     }
+
+    keystone_role { '_member_': ensure => present, }
   }
 
   file { '/root/keystonerc_admin':
