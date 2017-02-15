@@ -361,10 +361,10 @@ class openstack::x006_haproxy (
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/usr/bin/scp controller-2:/etc/haproxy/haproxy.cfg /tmp/haproxy.cfg2 && diff haproxy.cfg /tmp/haproxy.cfg2 && \
-                    /usr/bin/scp controller-3:/etc/haproxy/haproxy.cfg /tmp/haproxy.cfg3 && diff haproxy.cfg /tmp/haproxy.cfg3",
-      unless    => "/usr/bin/scp controller-2:/etc/haproxy/haproxy.cfg /tmp/haproxy.cfg2 && diff haproxy.cfg /tmp/haproxy.cfg2 && \
-                    /usr/bin/scp controller-3:/etc/haproxy/haproxy.cfg /tmp/haproxy.cfg3 && diff haproxy.cfg /tmp/haproxy.cfg3",
+      command   => "/usr/bin/scp controller-2:/etc/haproxy/haproxy.cfg /tmp/haproxy.cfg2 && diff /etc/haproxy/haproxy.cfg /tmp/haproxy.cfg2 && \
+                    /usr/bin/scp controller-3:/etc/haproxy/haproxy.cfg /tmp/haproxy.cfg3 && diff /etc/haproxy/haproxy.cfg /tmp/haproxy.cfg3",
+      unless    => "/usr/bin/scp controller-2:/etc/haproxy/haproxy.cfg /tmp/haproxy.cfg2 && diff /etc/haproxy/haproxy.cfg /tmp/haproxy.cfg2 && \
+                    /usr/bin/scp controller-3:/etc/haproxy/haproxy.cfg /tmp/haproxy.cfg3 && diff /etc/haproxy/haproxy.cfg /tmp/haproxy.cfg3",
     } ->
     pacemaker::resource::service { 'haproxy':
       op_params    => 'start timeout=200s stop timeout=200s',
