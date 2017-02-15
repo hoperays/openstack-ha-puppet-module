@@ -191,6 +191,7 @@ class openstack::y003_cinder (
       service_description_v3 => 'Cinder Service v3',
       region                 => 'RegionOne',
     } ->
+    Anchor['cinder::dbsync::end'] ->
     pacemaker::resource::service { 'openstack-cinder-volume': op_params => 'start timeout=200s stop timeout=200s', } ->
     pacemaker::resource::service { 'openstack-cinder-backup': op_params => 'start timeout=200s stop timeout=200s', } ->
     cinder_type { 'rbd':

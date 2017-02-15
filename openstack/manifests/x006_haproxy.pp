@@ -382,6 +382,15 @@ class openstack::x006_haproxy (
       source => "ip-${controller_vip}",
       target => 'haproxy-clone',
       score  => 'INFINITY',
+    } ->
+    exec { 'haproxy-ready-rm':
+      timeout   => '3600',
+      tries     => '360',
+      try_sleep => '10',
+      command   => "/usr/bin/rm -f /tmp/haproxy.cfg2 && \
+                    /usr/bin/rm -f /tmp/haproxy.cfg3",
+      unless    => "/usr/bin/rm -f /tmp/haproxy.cfg2 && \
+                    /usr/bin/rm -f /tmp/haproxy.cfg3",
     }
   }
 }
