@@ -11,6 +11,7 @@ class openstack::y005_nova (
   $controller_2      = '192.168.0.132',
   $controller_3      = '192.168.0.133',
   $metadata_secret   = 'metadata1234',
+  $remote_authkey    = 'remote1234',
   $rbd_secret_uuid   = '2ad6a20f-ffdd-460d-afba-04ab286f365f',
   $openstack_key     = 'AQB+RUpYfv+aIRAA4AbRb+XICXx+x+shF5AeZQ==',) {
   if $::hostname == $bootstrap_node {
@@ -27,7 +28,7 @@ class openstack::y005_nova (
     }
     $sync_db = true
     $sync_db_api = true
-  } else {
+  } elsif $::hostname =~ /^controller-\d+$/ {
     Anchor['nova::config::end'] ->
     exec { "${username1}-user-ready":
       timeout   => '3600',
@@ -81,17 +82,10 @@ class openstack::y005_nova (
     purge_config      => true,
   }
 
-  class { '::nova::keystone::authtoken':
-    auth_uri            => "http://${controller_vip}:5000/",
-    auth_url            => "http://${controller_vip}:35357/",
-    memcached_servers   => ["${controller_1}:11211", "${controller_2}:11211", "${controller_3}:11211"],
-    auth_type           => 'password',
-    project_domain_name => 'default',
-    user_domain_name    => 'default',
-    region_name         => 'RegionOne',
-    project_name        => 'services',
-    username            => 'nova',
-    password            => $nova_password,
+  class { '::nova::cache':
+    enabled          => true,
+    backend          => 'oslo_cache.memcache_pool',
+    memcache_servers => ["${controller_1}:11211", "${controller_2}:11211", "${controller_3}:11211"],
   }
 
   class { '::nova::network::neutron':
@@ -115,43 +109,92 @@ class openstack::y005_nova (
     dhcp_domain                     => 'novalocal',
   }
 
-  class { '::nova::api':
-    api_bind_address       => $ipaddress_eth0,
-    osapi_compute_listen_port            => '8774',
-    metadata_listen        => $ipaddress_eth0,
-    metadata_listen_port   => '8775',
-    enabled_apis           => ['osapi_compute', 'metadata'],
-    neutron_metadata_proxy_shared_secret => $metadata_secret,
-    instance_name_template => 'instance-%08x',
-    default_floating_pool  => 'public',
-    use_forwarded_for      => 'false',
-    # osapi_compute_workers              => $::processorcount,
-    # metadata_workers                   => $::processorcount,
-    fping_path             => '/usr/sbin/fping',
-    enable_proxy_headers_parsing         => true,
-    #
-    sync_db                => $sync_db,
-    sync_db_api            => $sync_db_api,
-  }
+  if $::hostname =~ /^controller-\d+$/ {
+    class { '::nova::keystone::authtoken':
+      auth_uri            => "http://${controller_vip}:5000/",
+      auth_url            => "http://${controller_vip}:35357/",
+      memcached_servers   => ["${controller_1}:11211", "${controller_2}:11211", "${controller_3}:11211"],
+      auth_type           => 'password',
+      project_domain_name => 'default',
+      user_domain_name    => 'default',
+      region_name         => 'RegionOne',
+      project_name        => 'services',
+      username            => 'nova',
+      password            => $nova_password,
+    }
 
-  class { '::nova::cache':
-    enabled          => true,
-    backend          => 'oslo_cache.memcache_pool',
-    memcache_servers => ["${controller_1}:11211", "${controller_2}:11211", "${controller_3}:11211"],
-  }
+    class { '::nova::api':
+      api_bind_address       => $ipaddress_eth0,
+      osapi_compute_listen_port            => '8774',
+      metadata_listen        => $ipaddress_eth0,
+      metadata_listen_port   => '8775',
+      enabled_apis           => ['osapi_compute', 'metadata'],
+      neutron_metadata_proxy_shared_secret => $metadata_secret,
+      instance_name_template => 'instance-%08x',
+      default_floating_pool  => 'public',
+      use_forwarded_for      => 'false',
+      # osapi_compute_workers              => $::processorcount,
+      # metadata_workers                   => $::processorcount,
+      fping_path             => '/usr/sbin/fping',
+      enable_proxy_headers_parsing         => true,
+      #
+      sync_db                => $sync_db,
+      sync_db_api            => $sync_db_api,
+    }
 
-  class { '::nova::conductor':
-  }
+    class { '::nova::conductor':
+    }
 
-  class { '::nova::consoleauth':
-  }
+    class { '::nova::consoleauth':
+    }
 
-  class { '::nova::scheduler':
-  }
+    class { '::nova::scheduler':
+    }
 
-  class { '::nova::vncproxy':
-    host => $::ipaddress_eth0,
-    port => '6080',
+    class { '::nova::vncproxy':
+      host => $::ipaddress_eth0,
+      port => '6080',
+    }
+  } elsif $::hostname =~ /^compute-\d+$/ {
+    class { '::nova::compute':
+      vnc_enabled          => true,
+      vncserver_proxyclient_address     => $ipaddress_eth0,
+      vncproxy_host        => $controller_vip,
+      vncproxy_protocol    => 'http',
+      vncproxy_port        => '6080',
+      vncproxy_path        => '/vnc_auto.html',
+      vnc_keymap           => 'en-us',
+      reserved_host_memory => '2048', # MB
+      heal_instance_info_cache_interval => '60',
+      allow_resize_to_same_host         => true,
+      resume_guests_state_on_host_boot  => true,
+    }
+
+    class { '::nova::compute::libvirt':
+      libvirt_virt_type        => 'kvm',
+      vncserver_listen         => '0.0.0.0',
+      migration_support        => true,
+      libvirt_cpu_mode         => 'host-model', # 'custom'
+      libvirt_cpu_model        => undef, # 'core2duo'
+      libvirt_disk_cachemodes  => ['network=writeback'],
+      libvirt_hw_disk_discard  => 'unmap',
+      libvirt_inject_password  => false,
+      libvirt_inject_key       => false,
+      libvirt_inject_partition => -2,
+      #
+      manage_libvirt_services  => true,
+    }
+
+    class { '::nova::compute::rbd':
+      libvirt_rbd_user             => 'openstack',
+      libvirt_rbd_secret_uuid      => $rbd_secret_uuid,
+      libvirt_rbd_secret_key       => $openstack_key,
+      libvirt_images_rbd_pool      => 'vms',
+      libvirt_images_rbd_ceph_conf => '/etc/ceph/ceph.conf',
+      rbd_keyring                  => 'client.openstack',
+      ephemeral_storage            => true,
+      manage_ceph_client           => false,
+    }
   }
 
   if $::hostname == $bootstrap_node {

@@ -7,7 +7,7 @@ class openstack::x006_haproxy (
   $controller_3     = '192.168.0.133',
   $bootstrap_node   = 'controller-1',
   $manage_resources = false,) {
-  class { 'haproxy':
+  class { '::haproxy':
     service_ensure   => $manage_resources,
     service_manage   => $manage_resources,
     global_options   => {
@@ -353,9 +353,11 @@ class openstack::x006_haproxy (
   }
 
   if $::hostname == $bootstrap_node {
+    Haproxy::Listen <| |> ->
+    Haproxy::Balancermember <| |> ->
     pacemaker::resource::ip { "ip-${controller_vip}":
       ip_address => $controller_vip,
-      require    => Class['haproxy'],
+      require    => Class['::haproxy'],
     } ->
     pacemaker::resource::service { 'haproxy':
       op_params    => 'start timeout=200s stop timeout=200s',
@@ -374,9 +376,5 @@ class openstack::x006_haproxy (
       target => 'haproxy-clone',
       score  => 'INFINITY',
     }
-    Haproxy::Listen <| |> ->
-    Pacemaker::Resource::Ip <| name == "ip-${controller_vip}" |>
-    Haproxy::Balancermember <| |> ->
-    Pacemaker::Resource::Ip <| name == "ip-${controller_vip}" |>
   }
 }

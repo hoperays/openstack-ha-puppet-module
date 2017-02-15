@@ -17,7 +17,8 @@ class openstack::y004_neutron (
       allowed_hosts => $allowed_hosts,
     }
     $sync_db = true
-  } else {
+    $bridge_mappings = ['physnet1:br-eth2', 'extnet:br-ex']
+  } elsif $::hostname =~ /^controller-\d+$/ {
     Anchor['neutron::config::end'] ->
     exec { "${username}-user-ready":
       timeout   => '3600',
@@ -28,6 +29,9 @@ class openstack::y004_neutron (
     } ->
     Anchor['neutron::service::begin']
     $sync_db = false
+    $bridge_mappings = ['physnet1:br-eth2', 'extnet:br-ex']
+  } elsif $::hostname =~ /^compute-\d+$/ {
+    $bridge_mappings = ['physnet1:br-eth2']
   }
 
   class { '::neutron':
@@ -61,83 +65,6 @@ class openstack::y004_neutron (
     purge_config            => true,
   }
 
-  class { '::neutron::keystone::authtoken':
-    auth_uri            => "http://${controller_vip}:5000/",
-    auth_url            => "http://${controller_vip}:35357/",
-    memcached_servers   => ["${controller_1}:11211", "${controller_2}:11211", "${controller_3}:11211"],
-    auth_type           => 'password',
-    project_domain_name => 'default',
-    user_domain_name    => 'default',
-    region_name         => 'RegionOne',
-    project_name        => 'services',
-    username            => 'neutron',
-    password            => $neutron_password,
-  }
-
-  class { '::neutron::server':
-    database_connection          => "mysql+pymysql://neutron:${neutron_password}@${controller_vip}/neutron",
-    database_max_retries         => '-1',
-    # db_max_retries             => '-1',
-    service_providers            => [
-      'LOADBALANCERV2:Octavia:neutron_lbaas.drivers.octavia.driver.OctaviaDriver:default',
-      'LOADBALANCER:Haproxy:neutron_lbaas.services.loadbalancer.drivers.haproxy.plugin_driver.HaproxyOnHostPluginDriver',
-      'VPN:openswan:neutron_vpnaas.services.vpn.service_drivers.ipsec.IPsecVPNDriver:default'],
-    auth_strategy => false,
-    enable_proxy_headers_parsing => true,
-    #
-    router_distributed           => false,
-    router_scheduler_driver      => 'neutron.scheduler.l3_agent_scheduler.ChanceScheduler',
-    #
-    api_workers   => '2',
-    rpc_workers   => '2',
-    l3_ha         => true,
-    max_l3_agents_per_router     => '3',
-    #
-    sync_db       => $sync_db,
-  }
-
-  class { '::neutron::server::notifications':
-    auth_url          => "http://${controller_vip}:35357/v3",
-    auth_type         => 'password',
-    project_domain_id => 'default',
-    user_domain_id    => 'default',
-    region_name       => 'RegionOne',
-    project_name      => 'services',
-    username          => 'nova',
-    password          => $nova_password,
-    #
-    nova_url          => "http://${controller_vip}:8774/v2.1",
-    notify_nova_on_port_status_changes => true,
-    notify_nova_on_port_data_changes   => true,
-  }
-
-  class { '::neutron::plugins::ml2':
-    type_drivers         => ['local', 'flat', 'vlan', 'gre', 'vxlan'],
-    tenant_network_types => ['vlan', 'vxlan'],
-    mechanism_drivers    => ['openvswitch'],
-    extension_drivers    => ['qos', 'port_security'],
-    flat_networks        => '*',
-    network_vlan_ranges  => 'physnet1:1:4094',
-    tunnel_id_ranges     => '1:4094',
-    vxlan_group          => '224.0.0.1',
-    vni_ranges           => '1:4094',
-    #
-    purge_config         => true,
-  }
-
-  class { '::neutron::services::fwaas':
-    enabled              => true,
-    driver               => 'openvswitch',
-    vpnaas_agent_package => false,
-    purge_config         => true,
-  }
-
-  class { '::neutron::services::lbaas':
-  }
-
-  class { '::neutron::services::vpnaas':
-  }
-
   class { '::neutron::agents::ml2::ovs':
     tunnel_types               => ['vxlan'],
     vxlan_udp_port             => '4789',
@@ -149,86 +76,12 @@ class openstack::y004_neutron (
     integration_bridge         => 'br-int',
     tunnel_bridge              => 'br-tun',
     local_ip                   => $::ipaddress_eth3,
-    bridge_mappings            => ['physnet1:br-eth2', 'extnet:br-ex'],
+    bridge_mappings            => $bridge_mappings,
     firewall_driver            => 'neutron.agent.linux.iptables_firewall.OVSHybridIptablesFirewallDriver',
     #
     purge_config               => true,
   }
 
-  class { '::neutron::agents::dhcp':
-    resync_interval          => '30',
-    interface_driver         => 'neutron.agent.linux.interface.OVSInterfaceDriver',
-    dhcp_driver              => 'neutron.agent.linux.dhcp.Dnsmasq',
-    root_helper              => 'sudo neutron-rootwrap /etc/neutron/rootwrap.conf',
-    # dnsmasq_config_file      => '/etc/neutron/dnsmasq-neutron.conf',
-    enable_force_metadata    => true,
-    enable_isolated_metadata => true,
-    enable_metadata_network  => true,
-    #
-    purge_config             => true,
-  }
-
-  class { '::neutron::agents::l3':
-    interface_driver   => 'neutron.agent.linux.interface.OVSInterfaceDriver',
-    agent_mode         => 'legacy',
-    debug              => false,
-    #
-    ha_vrrp_advert_int => '3',
-    #
-    purge_config       => true,
-  }
-
-  class { '::neutron::agents::metadata':
-    metadata_ip   => $controller_vip,
-    shared_secret => $metadata_secret,
-    #
-    purge_config  => true,
-  }
-
-  class { '::neutron::agents::lbaas':
-    interface_driver       => 'neutron.agent.linux.interface.OVSInterfaceDriver',
-    device_driver          => 'neutron_lbaas.drivers.haproxy.namespace_driver.HaproxyNSDriver',
-    manage_haproxy_package => false,
-    #
-    purge_config           => true,
-  }
-
-  class { '::neutron::agents::vpnaas':
-    vpn_device_driver           => 'neutron.services.vpn.device_drivers.ipsec.OpenSwanDriver',
-    interface_driver            => 'neutron.agent.linux.interface.OVSInterfaceDriver',
-    ipsec_status_check_interval => '30',
-    #
-    purge_config                => true,
-  }
-
-  file { '/etc/sysconfig/network-scripts/ifcfg-eth1':
-    ensure  => file,
-    mode    => '0644',
-    owner   => 'root',
-    group   => 'root',
-    content => "NAME=eth1
-DEVICE=eth1
-TYPE=OVSPort
-DEVICETYPE=ovs
-OVS_BRIDGE=br-ex
-BOOTPROTO=none
-ONBOOT=yes
-",
-  } ->
-  file { '/etc/sysconfig/network-scripts/ifcfg-br-ex':
-    ensure  => file,
-    mode    => '0644',
-    owner   => 'root',
-    group   => 'root',
-    content => "NAME=br-ex
-DEVICE=br-ex
-DEVICETYPE=ovs
-OVSBOOTPROTO=none
-TYPE=OVSBridge
-BOOTPROTO=none
-ONBOOT=yes
-",
-  } ->
   file { '/etc/sysconfig/network-scripts/ifcfg-eth2':
     ensure  => file,
     mode    => '0644',
@@ -257,27 +110,6 @@ BOOTPROTO=none
 ONBOOT=yes
 ",
   } ->
-  exec { 'ovs-vsctl add-br br-ex':
-    timeout   => '3600',
-    tries     => '360',
-    try_sleep => '10',
-    command   => "/usr/bin/ovs-vsctl add-br br-ex",
-    unless    => "/usr/bin/ovs-vsctl list-ports br-ex",
-  } ->
-  exec { 'ip link set br-ex up':
-    timeout   => '3600',
-    tries     => '360',
-    try_sleep => '10',
-    command   => "/usr/sbin/ip link set br-ex up",
-    unless    => "/usr/sbin/ip link show br-ex | /usr/bin/grep 'UP'",
-  } ->
-  exec { 'ovs-vsctl add-port br-ex eth1':
-    timeout   => '3600',
-    tries     => '360',
-    try_sleep => '10',
-    command   => "/usr/bin/ovs-vsctl add-port br-ex eth1",
-    unless    => "/usr/bin/ovs-vsctl list-ports br-ex | /usr/bin/grep ^eth1",
-  } ->
   exec { 'ovs-vsctl add-br br-eth2':
     timeout   => '3600',
     tries     => '360',
@@ -298,6 +130,181 @@ ONBOOT=yes
     try_sleep => '10',
     command   => "/usr/bin/ovs-vsctl add-port br-eth2 eth2",
     unless    => "/usr/bin/ovs-vsctl list-ports br-eth2 | /usr/bin/grep ^eth2",
+  }
+
+  if $::hostname =~ /^controller-\d+$/ {
+    class { '::neutron::keystone::authtoken':
+      auth_uri            => "http://${controller_vip}:5000/",
+      auth_url            => "http://${controller_vip}:35357/",
+      memcached_servers   => ["${controller_1}:11211", "${controller_2}:11211", "${controller_3}:11211"],
+      auth_type           => 'password',
+      project_domain_name => 'default',
+      user_domain_name    => 'default',
+      region_name         => 'RegionOne',
+      project_name        => 'services',
+      username            => 'neutron',
+      password            => $neutron_password,
+    }
+
+    class { '::neutron::server':
+      database_connection          => "mysql+pymysql://neutron:${neutron_password}@${controller_vip}/neutron",
+      database_max_retries         => '-1',
+      # db_max_retries             => '-1',
+      service_providers            => [
+        'LOADBALANCERV2:Octavia:neutron_lbaas.drivers.octavia.driver.OctaviaDriver:default',
+        'LOADBALANCER:Haproxy:neutron_lbaas.services.loadbalancer.drivers.haproxy.plugin_driver.HaproxyOnHostPluginDriver',
+        'VPN:openswan:neutron_vpnaas.services.vpn.service_drivers.ipsec.IPsecVPNDriver:default'],
+      auth_strategy => false,
+      enable_proxy_headers_parsing => true,
+      #
+      router_distributed           => false,
+      router_scheduler_driver      => 'neutron.scheduler.l3_agent_scheduler.ChanceScheduler',
+      #
+      api_workers   => '2',
+      rpc_workers   => '2',
+      l3_ha         => true,
+      max_l3_agents_per_router     => '3',
+      #
+      sync_db       => $sync_db,
+    }
+
+    class { '::neutron::server::notifications':
+      auth_url          => "http://${controller_vip}:35357/v3",
+      auth_type         => 'password',
+      project_domain_id => 'default',
+      user_domain_id    => 'default',
+      region_name       => 'RegionOne',
+      project_name      => 'services',
+      username          => 'nova',
+      password          => $nova_password,
+      #
+      nova_url          => "http://${controller_vip}:8774/v2.1",
+      notify_nova_on_port_status_changes => true,
+      notify_nova_on_port_data_changes   => true,
+    }
+
+    class { '::neutron::plugins::ml2':
+      type_drivers         => ['local', 'flat', 'vlan', 'gre', 'vxlan'],
+      tenant_network_types => ['vlan', 'vxlan'],
+      mechanism_drivers    => ['openvswitch'],
+      extension_drivers    => ['qos', 'port_security'],
+      flat_networks        => '*',
+      network_vlan_ranges  => 'physnet1:1:4094',
+      tunnel_id_ranges     => '1:4094',
+      vxlan_group          => '224.0.0.1',
+      vni_ranges           => '1:4094',
+      #
+      purge_config         => true,
+    }
+
+    class { '::neutron::services::fwaas':
+      enabled              => true,
+      driver               => 'openvswitch',
+      vpnaas_agent_package => false,
+      purge_config         => true,
+    }
+
+    class { '::neutron::services::lbaas':
+    }
+
+    class { '::neutron::services::vpnaas':
+    }
+
+    class { '::neutron::agents::dhcp':
+      resync_interval          => '30',
+      interface_driver         => 'neutron.agent.linux.interface.OVSInterfaceDriver',
+      dhcp_driver              => 'neutron.agent.linux.dhcp.Dnsmasq',
+      root_helper              => 'sudo neutron-rootwrap /etc/neutron/rootwrap.conf',
+      # dnsmasq_config_file      => '/etc/neutron/dnsmasq-neutron.conf',
+      enable_force_metadata    => true,
+      enable_isolated_metadata => true,
+      enable_metadata_network  => true,
+      #
+      purge_config             => true,
+    }
+
+    class { '::neutron::agents::l3':
+      interface_driver   => 'neutron.agent.linux.interface.OVSInterfaceDriver',
+      agent_mode         => 'legacy',
+      debug              => false,
+      #
+      ha_vrrp_advert_int => '3',
+      #
+      purge_config       => true,
+    }
+
+    class { '::neutron::agents::metadata':
+      metadata_ip   => $controller_vip,
+      shared_secret => $metadata_secret,
+      #
+      purge_config  => true,
+    }
+
+    class { '::neutron::agents::lbaas':
+      interface_driver       => 'neutron.agent.linux.interface.OVSInterfaceDriver',
+      device_driver          => 'neutron_lbaas.drivers.haproxy.namespace_driver.HaproxyNSDriver',
+      manage_haproxy_package => false,
+      #
+      purge_config           => true,
+    }
+
+    class { '::neutron::agents::vpnaas':
+      vpn_device_driver           => 'neutron.services.vpn.device_drivers.ipsec.OpenSwanDriver',
+      interface_driver            => 'neutron.agent.linux.interface.OVSInterfaceDriver',
+      ipsec_status_check_interval => '30',
+      #
+      purge_config                => true,
+    }
+
+    file { '/etc/sysconfig/network-scripts/ifcfg-eth1':
+      ensure  => file,
+      mode    => '0644',
+      owner   => 'root',
+      group   => 'root',
+      content => "NAME=eth1
+DEVICE=eth1
+TYPE=OVSPort
+DEVICETYPE=ovs
+OVS_BRIDGE=br-ex
+BOOTPROTO=none
+ONBOOT=yes
+",
+    } ->
+    file { '/etc/sysconfig/network-scripts/ifcfg-br-ex':
+      ensure  => file,
+      mode    => '0644',
+      owner   => 'root',
+      group   => 'root',
+      content => "NAME=br-ex
+DEVICE=br-ex
+DEVICETYPE=ovs
+OVSBOOTPROTO=none
+TYPE=OVSBridge
+BOOTPROTO=none
+ONBOOT=yes
+",
+    } ->
+    exec { 'ovs-vsctl add-br br-ex':
+      timeout   => '3600',
+      tries     => '360',
+      try_sleep => '10',
+      command   => "/usr/bin/ovs-vsctl add-br br-ex",
+      unless    => "/usr/bin/ovs-vsctl list-ports br-ex",
+    } ->
+    exec { 'ip link set br-ex up':
+      timeout   => '3600',
+      tries     => '360',
+      try_sleep => '10',
+      command   => "/usr/sbin/ip link set br-ex up",
+      unless    => "/usr/sbin/ip link show br-ex | /usr/bin/grep 'UP'",
+    } ->
+    exec { 'ovs-vsctl add-port br-ex eth1':
+      timeout   => '3600',
+      tries     => '360',
+      try_sleep => '10',
+      command   => "/usr/bin/ovs-vsctl add-port br-ex eth1",
+      unless    => "/usr/bin/ovs-vsctl list-ports br-ex | /usr/bin/grep ^eth1",
+    }
   }
 
   if $::hostname == $bootstrap_node {
