@@ -174,6 +174,15 @@ class openstack::y003_cinder (
       service_description_v3 => 'Cinder Service v3',
       region                 => 'RegionOne',
     } ->
+    exec { 'cinder-ready':
+      timeout   => '3600',
+      tries     => '360',
+      try_sleep => '10',
+      command   => "/usr/bin/scp controller-2:/etc/cinder/cinder.conf /tmp/cinder.conf2 && diff /etc/cinder/cinder.conf /tmp/cinder.conf2 | grep -v osapi_volume_listen | wc -l | grep 2 && \
+                    /usr/bin/scp controller-3:/etc/cinder/cinder.conf /tmp/cinder.conf3 && diff /etc/cinder/cinder.conf /tmp/cinder.conf3 | grep -v osapi_volume_listen | wc -l | grep 2",
+      unless    => "/usr/bin/scp controller-2:/etc/cinder/cinder.conf /tmp/cinder.conf2 && diff /etc/cinder/cinder.conf /tmp/cinder.conf2 | grep -v osapi_volume_listen | wc -l | grep 2 && \
+                    /usr/bin/scp controller-3:/etc/cinder/cinder.conf /tmp/cinder.conf3 && diff /etc/cinder/cinder.conf /tmp/cinder.conf3 | grep -v osapi_volume_listen | wc -l | grep 2",
+    } ->
     pacemaker::resource::service { 'openstack-cinder-volume': op_params => 'start timeout=200s stop timeout=200s', } ->
     pacemaker::resource::service { 'openstack-cinder-backup': op_params => 'start timeout=200s stop timeout=200s', } ->
     cinder_type { 'rbd':
