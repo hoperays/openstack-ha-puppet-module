@@ -17,24 +17,34 @@ class openstack::y001_keystone (
       allowed_hosts => $allowed_hosts,
     }
     $sync_db = true
+    Anchor['keystone::dbsync::end'] ->
+    exec { "${username}-db-ready-echo":
+      timeout   => '3600',
+      tries     => '360',
+      try_sleep => '10',
+      command   => "/usr/bin/ssh controller-2 'echo ok > /tmp/${username}-db-ready' && \
+                    /usr/bin/ssh controller-3 'echo ok > /tmp/${username}-db-ready'",
+      unless    => "/usr/bin/ssh controller-2 'echo ok > /tmp/${username}-db-ready' && \
+                    /usr/bin/ssh controller-3 'echo ok > /tmp/${username}-db-ready'",
+    }
   } else {
+    $sync_db = false
     Anchor['keystone::config::end'] ->
     exec { "${username}-db-ready":
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/usr/bin/mysql -e 'show tables from ${username}'",
-      unless    => "/usr/bin/mysql -e 'show tables from ${username}'",
+      command   => "/usr/bin/cat /tmp/${username}-db-ready | grep ok",
+      unless    => "/usr/bin/cat /tmp/${username}-db-ready | grep ok",
     } ->
-    exec { "${username}-user-ready":
+    Anchor['keystone::service::begin'] ->
+    exec { "${username}-db-ready-rm":
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/usr/bin/mysql -e 'select user from mysql.user where user=\"${username}\";' | grep \"${username}\"",
-      unless    => "/usr/bin/mysql -e 'select user from mysql.user where user=\"${username}\";' | grep \"${username}\"",
-    } ->
-    Anchor['keystone::service::begin']
-    $sync_db = false
+      command   => "/usr/bin/rm -f /tmp/${username}-db-ready",
+      unless    => "/usr/bin/rm -f /tmp/${username}-db-ready",
+    }
   }
 
   class { '::keystone':

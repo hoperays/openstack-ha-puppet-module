@@ -28,39 +28,59 @@ class openstack::y005_nova (
     }
     $sync_db = true
     $sync_db_api = true
+    Anchor['nova::dbsync::end'] ->
+    exec { "${username1}-db-ready-echo":
+      timeout   => '3600',
+      tries     => '360',
+      try_sleep => '10',
+      command   => "/usr/bin/ssh controller-2 'echo ok > /tmp/${username1}-db-ready' && \
+                    /usr/bin/ssh controller-3 'echo ok > /tmp/${username1}-db-ready'",
+      unless    => "/usr/bin/ssh controller-2 'echo ok > /tmp/${username1}-db-ready' && \
+                    /usr/bin/ssh controller-3 'echo ok > /tmp/${username1}-db-ready'",
+    }
+    Anchor['nova::dbsync_api::end'] ->
+    exec { "${username2}-db-ready-echo":
+      timeout   => '3600',
+      tries     => '360',
+      try_sleep => '10',
+      command   => "/usr/bin/ssh controller-2 'echo ok > /tmp/${username2}-db-ready' && \
+                    /usr/bin/ssh controller-3 'echo ok > /tmp/${username2}-db-ready'",
+      unless    => "/usr/bin/ssh controller-2 'echo ok > /tmp/${username2}-db-ready' && \
+                    /usr/bin/ssh controller-3 'echo ok > /tmp/${username2}-db-ready'",
+    }
   } elsif $::hostname =~ /^controller-\d+$/ {
+    $sync_db = false
+    $sync_db_api = false
     Anchor['nova::config::end'] ->
     exec { "${username1}-db-ready":
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/usr/bin/mysql -e 'show tables from ${username1}'",
-      unless    => "/usr/bin/mysql -e 'show tables from ${username1}'",
-    } ->
-    exec { "${username1}-user-ready":
-      timeout   => '3600',
-      tries     => '360',
-      try_sleep => '10',
-      command   => "/usr/bin/mysql -e 'select user from mysql.user where user=\"${username1}\";' | grep \"${username1}\"",
-      unless    => "/usr/bin/mysql -e 'select user from mysql.user where user=\"${username1}\";' | grep \"${username1}\"",
+      command   => "/usr/bin/cat /tmp/${username1}-db-ready | grep ok",
+      unless    => "/usr/bin/cat /tmp/${username1}-db-ready | grep ok",
     } ->
     exec { "${username2}-db-ready":
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/usr/bin/mysql -e 'show tables from ${username2}'",
-      unless    => "/usr/bin/mysql -e 'show tables from ${username2}'",
+      command   => "/usr/bin/cat /tmp/${username2}-db-ready | grep ok",
+      unless    => "/usr/bin/cat /tmp/${username2}-db-ready | grep ok",
     } ->
-    exec { "${username2}-user-ready":
+    Anchor['nova::service::begin'] ->
+    exec { "${username1}-db-ready-rm":
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/usr/bin/mysql -e 'select user from mysql.user where user=\"${username2}\";' | grep \"${username2}\"",
-      unless    => "/usr/bin/mysql -e 'select user from mysql.user where user=\"${username2}\";' | grep \"${username2}\"",
+      command   => "/usr/bin/rm -f /tmp/${username1}-db-ready",
+      unless    => "/usr/bin/rm -f /tmp/${username1}-db-ready",
     } ->
-    Anchor['nova::service::begin']
-    $sync_db = false
-    $sync_db_api = false
+    exec { "${username2}-db-ready-rm":
+      timeout   => '3600',
+      tries     => '360',
+      try_sleep => '10',
+      command   => "/usr/bin/rm -f /tmp/${username2}-db-ready",
+      unless    => "/usr/bin/rm -f /tmp/${username2}-db-ready",
+    }
   }
 
   class { '::nova':
