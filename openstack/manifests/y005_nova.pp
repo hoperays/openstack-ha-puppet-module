@@ -34,15 +34,15 @@ class openstack::y005_nova (
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/usr/bin/mysql -e 'show tables from \"${username1}\"'",
-      unless    => "/usr/bin/mysql -e 'show tables from \"${username1}\"'",
+      command   => "/usr/bin/mysql -e 'show tables from ${username1}'",
+      unless    => "/usr/bin/mysql -e 'show tables from ${username1}'",
     } ->
     exec { "${username2}-db-ready":
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/usr/bin/mysql -e 'show tables from \"${username2}\"'",
-      unless    => "/usr/bin/mysql -e 'show tables from \"${username2}\"'",
+      command   => "/usr/bin/mysql -e 'show tables from ${username2}'",
+      unless    => "/usr/bin/mysql -e 'show tables from ${username2}'",
     } ->
     Anchor['nova::service::begin']
     $sync_db = false
@@ -205,7 +205,7 @@ class openstack::y005_nova (
       service_description => 'Openstack Compute Service',
       region              => 'RegionOne',
       tenant              => 'services',
-      email               => 'nova@example.com',
+      email               => 'nova@localhost',
       public_url          => "http://${controller_vip}:8774/v2.1",
       internal_url        => "http://${controller_vip}:8774/v2.1",
       admin_url           => "http://${controller_vip}:8774/v2.1",

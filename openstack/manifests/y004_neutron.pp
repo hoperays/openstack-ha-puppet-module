@@ -24,8 +24,8 @@ class openstack::y004_neutron (
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/usr/bin/mysql -e 'show tables from \"${username}\"'",
-      unless    => "/usr/bin/mysql -e 'show tables from \"${username}\"'",
+      command   => "/usr/bin/mysql -e 'show tables from ${username}'",
+      unless    => "/usr/bin/mysql -e 'show tables from ${username}'",
     } ->
     Anchor['neutron::service::begin']
     $sync_db = false
@@ -311,7 +311,7 @@ ONBOOT=yes
     class { '::neutron::keystone::auth':
       password            => $neutron_password,
       auth_name           => 'neutron',
-      email               => 'neutron@example.com',
+      email               => 'neutron@localhost',
       tenant              => 'services',
       configure_endpoint  => true,
       configure_user      => true,

@@ -21,8 +21,8 @@ class openstack::y002_glance (
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/usr/bin/mysql -e 'show tables from \"${username}\"'",
-      unless    => "/usr/bin/mysql -e 'show tables from \"${username}\"'",
+      command   => "/usr/bin/mysql -e 'show tables from ${username}'",
+      unless    => "/usr/bin/mysql -e 'show tables from ${username}'",
     } ->
     Anchor['glance::service::begin']
     $sync_db = false
@@ -116,7 +116,7 @@ class openstack::y002_glance (
 
   if $::hostname == $bootstrap_node {
     class { '::glance::keystone::auth':
-      email               => 'glance@example.com',
+      email               => 'glance@localhost',
       password            => $glance_password,
       auth_name           => 'glance',
       configure_endpoint  => true,

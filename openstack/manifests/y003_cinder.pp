@@ -22,8 +22,8 @@ class openstack::y003_cinder (
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/usr/bin/mysql -e 'show tables from \"${username}\"'",
-      unless    => "/usr/bin/mysql -e 'show tables from \"${username}\"'",
+      command   => "/usr/bin/mysql -e 'show tables from ${username}'",
+      unless    => "/usr/bin/mysql -e 'show tables from ${username}'",
     } ->
     Anchor['cinder::service::begin']
     $sync_db = false
@@ -142,7 +142,7 @@ class openstack::y003_cinder (
       tenant                 => 'services',
       tenant_user_v2         => 'services',
       tenant_user_v3         => 'services',
-      email                  => 'cinder@example.com',
+      email                  => 'cinder@localhost',
       email_user_v2          => undef,
       email_user_v3          => undef,
       public_url             => "http://${controller_vip}:8776/v1/%(tenant_id)s",

@@ -23,8 +23,8 @@ class openstack::y001_keystone (
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/usr/bin/mysql -e 'show tables from \"${username}\"'",
-      unless    => "/usr/bin/mysql -e 'show tables from \"${username}\"'",
+      command   => "/usr/bin/mysql -e 'show tables from ${username}'",
+      unless    => "/usr/bin/mysql -e 'show tables from ${username}'",
     } ->
     Anchor['keystone::service::begin']
     $sync_db = false
