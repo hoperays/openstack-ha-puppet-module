@@ -108,7 +108,7 @@ class openstack::y001_keystone (
       email                  => 'admin@example.com',
       password               => $admin_password,
       admin                  => 'admin',
-      admin_tenant           => 'openstack',
+      admin_tenant           => 'admin',
       admin_roles            => ['admin'],
       service_tenant         => 'services',
       admin_tenant_desc      => 'admin tenant',
