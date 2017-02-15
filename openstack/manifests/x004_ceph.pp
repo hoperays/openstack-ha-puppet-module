@@ -117,13 +117,13 @@ class openstack::x004_ceph (
       cap_mon      => 'allow profile bootstrap-rgw',
     }
 
-    #    ceph::osd {
-    #      '/dev/sdc':
-    #        journal => '/dev/sdb';
-    #
-    #      '/dev/sdd':
-    #        journal => '/dev/sdb';
-    #    }
+    ceph::osd {
+      '/dev/sdc':
+        journal => '/dev/sdb';
+
+      '/dev/sdd':
+        journal => '/dev/sdb';
+    }
   } elsif $::hostname =~ /^compute-\d+$/ {
     ceph::key { 'client.openstack':
       secret  => $openstack_key,
