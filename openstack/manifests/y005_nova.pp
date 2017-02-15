@@ -30,19 +30,19 @@ class openstack::y005_nova (
     $sync_db_api = true
   } elsif $::hostname =~ /^controller-\d+$/ {
     Anchor['nova::config::end'] ->
-    exec { "${username1}-user-ready":
+    exec { "${username1}-db-ready":
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/usr/bin/mysql -e 'select user from mysql.user where user=\"${username1}\";' | /usr/bin/grep \"${username1}\"",
-      unless    => "/usr/bin/mysql -e 'select user from mysql.user where user=\"${username1}\";' | /usr/bin/grep \"${username1}\"",
+      command   => "/usr/bin/mysql -e 'show tables from \"${username1}\"'",
+      unless    => "/usr/bin/mysql -e 'show tables from \"${username1}\"'",
     } ->
-    exec { "${username2}-user-ready":
+    exec { "${username2}-db-ready":
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/usr/bin/mysql -e 'select user from mysql.user where user=\"${username2}\";' | /usr/bin/grep \"${username2}\"",
-      unless    => "/usr/bin/mysql -e 'select user from mysql.user where user=\"${username2}\";' | /usr/bin/grep \"${username2}\"",
+      command   => "/usr/bin/mysql -e 'show tables from \"${username2}\"'",
+      unless    => "/usr/bin/mysql -e 'show tables from \"${username2}\"'",
     } ->
     Anchor['nova::service::begin']
     $sync_db = false

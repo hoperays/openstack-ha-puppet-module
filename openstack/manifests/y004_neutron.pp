@@ -20,12 +20,12 @@ class openstack::y004_neutron (
     $bridge_mappings = ['physnet1:br-eth2', 'extnet:br-ex']
   } elsif $::hostname =~ /^controller-\d+$/ {
     Anchor['neutron::config::end'] ->
-    exec { "${username}-user-ready":
+    exec { "${username}-db-ready":
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/usr/bin/mysql -e 'select user from mysql.user where user=\"${username}\";' | /usr/bin/grep \"${username}\"",
-      unless    => "/usr/bin/mysql -e 'select user from mysql.user where user=\"${username}\";' | /usr/bin/grep \"${username}\"",
+      command   => "/usr/bin/mysql -e 'show tables from \"${username}\"'",
+      unless    => "/usr/bin/mysql -e 'show tables from \"${username}\"'",
     } ->
     Anchor['neutron::service::begin']
     $sync_db = false
