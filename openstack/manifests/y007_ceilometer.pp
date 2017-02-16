@@ -68,7 +68,8 @@ class openstack::y007_ceilometer (
   }
 
   class { '::ceilometer::wsgi::apache':
-    ssl => false,
+    ssl       => false,
+    bind_host => $::ipaddress_eth0,
   }
 
   class { '::ceilometer::collector':
