@@ -138,7 +138,7 @@ class openstack::y003_cinder (
   }
 
   class { 'cinder::backends':
-    enabled_backends => 'rbd',
+    enabled_backends => ['rbd'],
   }
 
   if $::hostname == $bootstrap_node {
