@@ -11,7 +11,7 @@ class openstack::y006_horizon (
     servername                   => $servername,
     server_aliases               => $server_aliases,
     allowed_hosts                => $allowed_hosts,
-    listen_ssl                   => true,
+    listen_ssl                   => false,
     ssl_no_verify                => true,
     ssl_redirect                 => true,
     horizon_cert                 => '/etc/ssl/openstack.example.com.crt',
