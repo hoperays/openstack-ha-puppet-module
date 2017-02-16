@@ -46,27 +46,31 @@ class openstack::y003_cinder (
     }
   }
 
+  class { '::cinder::db':
+    database_max_retries    => '-1',
+    database_db_max_retries => '-1',
+  }
+
   class { '::cinder':
-    enable_v3_api    => true,
-    host             => 'hostgroup',
+    enable_v3_api       => true,
+    host                => 'hostgroup',
     storage_availability_zone          => 'nova',
     default_availability_zone          => 'nova',
-    log_dir          => '/var/log/cinder',
-    rpc_backend      => 'rabbit',
-    control_exchange => 'openstack',
-    api_paste_config => '/etc/cinder/api-paste.ini',
-    database_connection                => "mysql+pymysql://cinder:${cinder_password}@${controller_vip}/cinder",
-    database_max_retries               => '-1',
-    lock_path        => '/var/lib/cinder/tmp',
+    log_dir             => '/var/log/cinder',
+    rpc_backend         => 'rabbit',
+    control_exchange    => 'openstack',
+    api_paste_config    => '/etc/cinder/api-paste.ini',
+    database_connection => "mysql+pymysql://cinder:${cinder_password}@${controller_vip}/cinder",
+    lock_path           => '/var/lib/cinder/tmp',
     #
-    rabbit_hosts     => ["${controller_1}:5672", "${controller_2}:5672", "${controller_3}:5672"],
-    rabbit_use_ssl   => false,
-    rabbit_password  => 'guest',
-    rabbit_userid    => 'guest',
-    rabbit_ha_queues => true,
+    rabbit_hosts        => ["${controller_1}:5672", "${controller_2}:5672", "${controller_3}:5672"],
+    rabbit_use_ssl      => false,
+    rabbit_password     => 'guest',
+    rabbit_userid       => 'guest',
+    rabbit_ha_queues    => true,
     rabbit_heartbeat_timeout_threshold => '60',
     #
-    purge_config     => true,
+    purge_config        => true,
   }
 
   class { '::cinder::keystone::authtoken':

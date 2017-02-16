@@ -70,7 +70,7 @@ class openstack::y002_glance (
     log_dir         => '/var/log/glance',
     # rpc_backend   => 'rabbit',
     database_connection          => "mysql+pymysql://glance:${glance_password}@${controller_vip}/glance",
-    database_max_retries         => '-1',
+    #
     stores          => ['glance.store.http.Store', 'glance.store.rbd.Store'],
     default_store   => 'rbd',
     os_region_name  => 'RegionOne',
@@ -113,22 +113,26 @@ class openstack::y002_glance (
     password            => $glance_password,
   }
 
+  class { '::glance::registry::db':
+    database_max_retries    => '-1',
+    database_db_max_retries => '-1',
+  }
+
   class { '::glance::registry':
-    bind_host            => $::ipaddress_eth0,
-    bind_port            => '9191',
+    bind_host           => $::ipaddress_eth0,
+    bind_port           => '9191',
     # workers            => $::processorcount,
-    log_file             => '/var/log/glance/registry.log',
-    log_dir              => '/var/log/glance',
+    log_file            => '/var/log/glance/registry.log',
+    log_dir             => '/var/log/glance',
     # rpc_backend        => 'rabbit',
-    database_connection  => "mysql+pymysql://glance:${glance_password}@${controller_vip}/glance",
-    database_max_retries => '-1',
+    database_connection => "mysql+pymysql://glance:${glance_password}@${controller_vip}/glance",
     #
-    pipeline             => 'keystone',
-    auth_strategy        => 'keystone',
+    pipeline            => 'keystone',
+    auth_strategy       => 'keystone',
     #
-    sync_db              => $sync_db,
+    sync_db             => $sync_db,
     #
-    purge_config         => true,
+    purge_config        => true,
   }
 
   if $::hostname == $bootstrap_node {

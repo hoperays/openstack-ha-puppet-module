@@ -83,10 +83,14 @@ class openstack::y005_nova (
     }
   }
 
+  class { '::nova::db':
+    database_max_retries    => '-1',
+    database_db_max_retries => '-1',
+  }
+
   class { '::nova':
     database_connection                => "mysql+pymysql://nova:${nova_password}@${controller_vip}/nova",
     api_database_connection            => "mysql+pymysql://nova_api:${nova_api_password}@${controller_vip}/nova_api",
-    database_max_retries               => '-1',
     rabbit_userid     => 'guest',
     rabbit_password   => 'guest',
     rabbit_ha_queues  => true,
@@ -183,6 +187,10 @@ class openstack::y005_nova (
     }
 
     class { '::nova::scheduler':
+    }
+
+    class { '::nova::vncproxy::common':
+      vncproxy_host => $controller_vip,
     }
 
     class { '::nova::vncproxy':

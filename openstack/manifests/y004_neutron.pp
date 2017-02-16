@@ -163,10 +163,13 @@ ONBOOT=yes
       password            => $neutron_password,
     }
 
+    class { '::neutron::db':
+      database_max_retries    => '-1',
+      database_db_max_retries => '-1',
+    }
+
     class { '::neutron::server':
       database_connection          => "mysql+pymysql://neutron:${neutron_password}@${controller_vip}/neutron",
-      database_max_retries         => '-1',
-      # db_max_retries             => '-1',
       service_providers            => [
         'LOADBALANCERV2:Octavia:neutron_lbaas.drivers.octavia.driver.OctaviaDriver:default',
         'LOADBALANCER:Haproxy:neutron_lbaas.services.loadbalancer.drivers.haproxy.plugin_driver.HaproxyOnHostPluginDriver',
