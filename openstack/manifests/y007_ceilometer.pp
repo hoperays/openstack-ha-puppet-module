@@ -3,50 +3,11 @@ class openstack::y007_ceilometer (
   $ceilometer_password = 'ceilometer1234',
   $redis_password      = 'redis1234',
   $allowed_hosts       = ['%'],
-  $username            = 'ceilometer',
   $controller_vip      = '192.168.0.130',
   $controller_1        = '192.168.0.131',
   $controller_2        = '192.168.0.132',
   $controller_3        = '192.168.0.133',
   $telemetry_secret    = 'ceilometersecret',) {
-  if $::hostname == $bootstrap_node {
-    Exec['galera-ready'] ->
-    class { '::ceilometer::db::mysql':
-      password      => $ceilometer_password,
-      host          => 'localhost',
-      allowed_hosts => $allowed_hosts,
-    }
-    $sync_db = true
-    Anchor['ceilometer::dbsync::end'] ->
-    exec { "${username}-db-ready-echo":
-      timeout   => '3600',
-      tries     => '360',
-      try_sleep => '10',
-      command   => "/usr/bin/ssh controller-2 'echo ok > /tmp/${username}-db-ready' && \
-                    /usr/bin/ssh controller-3 'echo ok > /tmp/${username}-db-ready'",
-      unless    => "/usr/bin/ssh controller-2 'echo ok > /tmp/${username}-db-ready' && \
-                    /usr/bin/ssh controller-3 'echo ok > /tmp/${username}-db-ready'",
-    }
-  } else {
-    $sync_db = false
-    Anchor['ceilometer::config::end'] ->
-    exec { "${username}-db-ready":
-      timeout   => '3600',
-      tries     => '360',
-      try_sleep => '10',
-      command   => "/usr/bin/cat /tmp/${username}-db-ready | grep ok",
-      unless    => "/usr/bin/cat /tmp/${username}-db-ready | grep ok",
-    } ->
-    Anchor['ceilometer::service::begin'] ->
-    exec { "${username}-db-ready-rm":
-      timeout   => '3600',
-      tries     => '360',
-      try_sleep => '10',
-      command   => "/usr/bin/rm -f /tmp/${username}-db-ready",
-      unless    => "/usr/bin/rm -f /tmp/${username}-db-ready",
-    }
-  }
-
   class { '::ceilometer':
     http_timeout          => '600',
     log_dir               => '/var/log/ceilometer',
@@ -111,10 +72,10 @@ class openstack::y007_ceilometer (
   }
 
   class { '::ceilometer::collector':
-    meter_dispatcher  => ['gnocchi'],
-    event_dispatchers => ['database'],
-    udp_address       => '0.0.0.0',
-    udp_port          => '4952',
+    meter_dispatcher => ['gnocchi'],
+    event_dispatcher => ['database'],
+    udp_address      => '0.0.0.0',
+    udp_port         => '4952',
   }
 
   class { '::ceilometer::dispatcher::gnocchi':
