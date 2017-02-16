@@ -202,6 +202,9 @@ class openstack::y005_nova (
       heal_instance_info_cache_interval => '60',
       allow_resize_to_same_host         => true,
       resume_guests_state_on_host_boot  => true,
+      #
+      instance_usage_audit => true,
+      instance_usage_audit_period       => 'hour',
     }
 
     class { '::nova::compute::libvirt':

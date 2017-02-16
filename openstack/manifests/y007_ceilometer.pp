@@ -2,7 +2,6 @@ class openstack::y007_ceilometer (
   $bootstrap_node      = 'controller-1',
   $ceilometer_password = 'ceilometer1234',
   $redis_password      = 'redis1234',
-  $allowed_hosts       = ['%'],
   $controller_vip      = '192.168.0.130',
   $controller_1        = '192.168.0.131',
   $controller_2        = '192.168.0.132',
@@ -25,66 +24,82 @@ class openstack::y007_ceilometer (
     rabbit_heartbeat_timeout_threshold => '60',
   }
 
-  class { '::ceilometer::db':
-    database_connection     => "mongodb://${controller_1}:27017,${controller_2}:27017,${controller_3}:27017/ceilometer?replicaSet=openstack",
-    database_max_retries    => '-1',
-    database_db_max_retries => '-1',
+  class { '::ceilometer::agent::auth':
+    auth_url                 => "http://${controller_vip}:5000/",
+    auth_endpoint_type       => 'internalURL',
+    auth_type                => 'password',
+    auth_user_domain_name    => 'default',
+    auth_project_domain_name => 'default',
+    auth_region              => 'regionOne',
+    auth_tenant_name         => 'services',
+    auth_user                => 'ceilometer',
+    auth_password            => $ceilometer_password,
   }
 
-  class { '::ceilometer::client':
-  }
+  if $::hostname =~ /^controller-\d+$/ {
+    class { '::ceilometer::db':
+      database_connection     => "mongodb://${controller_1}:27017,${controller_2}:27017,${controller_3}:27017/ceilometer?replicaSet=openstack",
+      database_max_retries    => '-1',
+      database_db_max_retries => '-1',
+    }
 
-  class { '::ceilometer::expirer':
-  }
+    class { '::ceilometer::client':
+    }
 
-  class { '::ceilometer::agent::central':
-    coordination_url => "redis://:${redis_password}@${controller_vip}:6379",
-  }
+    class { '::ceilometer::expirer':
+    }
 
-  class { '::ceilometer::agent::notification':
-    ack_on_event_error => true,
-    store_events       => false,
-  }
+    class { '::ceilometer::agent::central':
+      coordination_url => "redis://:${redis_password}@${controller_vip}:6379",
+    }
 
-  class { '::ceilometer::keystone::authtoken':
-    auth_uri            => "http://${controller_vip}:5000/",
-    auth_url            => "http://${controller_vip}:35357/",
-    memcached_servers   => ["${controller_1}:11211", "${controller_2}:11211", "${controller_3}:11211"],
-    auth_type           => 'password',
-    project_domain_name => 'default',
-    user_domain_name    => 'default',
-    region_name         => 'RegionOne',
-    project_name        => 'services',
-    username            => 'ceilometer',
-    password            => $ceilometer_password,
-  }
+    class { '::ceilometer::agent::notification':
+      ack_on_event_error => true,
+      store_events       => false,
+    }
 
-  class { '::ceilometer::api':
-    host          => $ipaddress_eth0,
-    port          => '8777',
-    enable_proxy_headers_parsing => true,
-    #
-    service_name  => 'httpd',
-    auth_strategy => 'keystone',
-  }
+    class { '::ceilometer::keystone::authtoken':
+      auth_uri            => "http://${controller_vip}:5000/",
+      auth_url            => "http://${controller_vip}:35357/",
+      memcached_servers   => ["${controller_1}:11211", "${controller_2}:11211", "${controller_3}:11211"],
+      auth_type           => 'password',
+      project_domain_name => 'default',
+      user_domain_name    => 'default',
+      region_name         => 'RegionOne',
+      project_name        => 'services',
+      username            => 'ceilometer',
+      password            => $ceilometer_password,
+    }
 
-  class { '::ceilometer::wsgi::apache':
-    ssl       => false,
-    bind_host => $::ipaddress_eth0,
-  }
+    class { '::ceilometer::api':
+      host          => $ipaddress_eth0,
+      port          => '8777',
+      enable_proxy_headers_parsing => true,
+      #
+      service_name  => 'httpd',
+      auth_strategy => 'keystone',
+    }
 
-  class { '::ceilometer::collector':
-    meter_dispatcher => ['gnocchi'],
-    event_dispatcher => ['database'],
-    udp_address      => '0.0.0.0',
-    udp_port         => '4952',
-  }
+    class { '::ceilometer::wsgi::apache':
+      ssl       => false,
+      bind_host => $::ipaddress_eth0,
+    }
 
-  class { '::ceilometer::dispatcher::gnocchi':
-    filter_project => 'services',
-    archive_policy => 'low',
-    resources_definition_file => 'gnocchi_resources.yaml',
-    url            => "http://${controller_vip}:8041",
+    class { '::ceilometer::collector':
+      meter_dispatcher => ['gnocchi'],
+      event_dispatcher => ['database'],
+      udp_address      => '0.0.0.0',
+      udp_port         => '4952',
+    }
+
+    class { '::ceilometer::dispatcher::gnocchi':
+      filter_project => 'services',
+      archive_policy => 'low',
+      resources_definition_file => 'gnocchi_resources.yaml',
+      url            => "http://${controller_vip}:8041",
+    }
+  } elsif $::hostname =~ /^compute-\d+$/ {
+    class { '::ceilometer::agent::compute': }
   }
 
   if $::hostname == $bootstrap_node {
