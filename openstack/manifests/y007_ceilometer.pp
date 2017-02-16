@@ -89,18 +89,19 @@ class openstack::y007_ceilometer (
   if $::hostname == $bootstrap_node {
     class { '::ceilometer::keystone::auth':
       password            => $ceilometer_password,
+      email               => 'ceilometer@localhost',
       auth_name           => 'ceilometer',
+      configure_user      => true,
+      configure_user_role => true,
       service_name        => 'ceilometer',
+      service_type        => 'metering',
       service_description => 'Openstack Metering Service',
       region              => 'RegionOne',
       tenant              => 'services',
-      email               => 'ceilometer@localhost',
-      public_url          => "http://${controller_vip}:8777",
-      internal_url        => "http://${controller_vip}:8777",
-      admin_url           => "http://${controller_vip}:8777",
       configure_endpoint  => true,
-      configure_user      => true,
-      configure_user_role => true,
+      public_url          => "http://${controller_vip}:8777",
+      admin_url           => "http://${controller_vip}:8777",
+      internal_url        => "http://${controller_vip}:8777",
     }
   }
 }
