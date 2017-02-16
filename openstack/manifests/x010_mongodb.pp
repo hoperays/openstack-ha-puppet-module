@@ -6,13 +6,13 @@ class openstack::x010_mongodb (
   class { '::mongodb::globals': manage_package_repo => false, } ->
   class { '::mongodb::server':
     bind_ip    => ['127.0.0.1', $ipaddress_eth0],
-    replset    => 'ceilometer',
+    replset    => 'openstack',
     smallfiles => true,
   } ->
   class { '::mongodb::client': }
 
   if $::hostname == $bootstrap_node {
-    mongodb_replset { 'ceilometer':
+    mongodb_replset { 'openstack':
       members => [
         "${controller_1}:27017",
         "${controller_2}:27017",
