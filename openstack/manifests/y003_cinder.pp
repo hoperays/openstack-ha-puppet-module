@@ -69,20 +69,6 @@ class openstack::y003_cinder (
     purge_config     => true,
   }
 
-  class { '::cinder::api':
-    bind_host           => $::ipaddress_eth0, # osapi_volume_listen
-    # service_workers   => $::processorcount, # osapi_volume_workers
-    default_volume_type => 'rbd',
-    nova_catalog_info   => 'compute:Compute Service:publicURL',
-    nova_catalog_admin_info      => 'compute:Compute Service:adminURL',
-    #
-    keystone_enabled    => false,
-    auth_strategy       => false,
-    enable_proxy_headers_parsing => true,
-    #
-    sync_db             => $sync_db,
-  }
-
   class { '::cinder::keystone::authtoken':
     auth_uri            => "http://${controller_vip}:5000/",
     auth_url            => "http://${controller_vip}:35357/",
@@ -93,6 +79,20 @@ class openstack::y003_cinder (
     project_name        => 'services',
     username            => 'cinder',
     password            => $cinder_password,
+  }
+
+  class { '::cinder::api':
+    bind_host           => $::ipaddress_eth0, # osapi_volume_listen
+    # service_workers   => $::processorcount, # osapi_volume_workers
+    default_volume_type => 'rbd',
+    nova_catalog_info   => 'compute:Compute Service:publicURL',
+    nova_catalog_admin_info      => 'compute:Compute Service:adminURL',
+    #
+    keystone_enabled    => false,
+    auth_strategy       => 'keystone',
+    enable_proxy_headers_parsing => true,
+    #
+    sync_db             => $sync_db,
   }
 
   class { '::cinder::scheduler':
@@ -137,15 +137,8 @@ class openstack::y003_cinder (
     backup_ceph_stripe_count => '0'
   }
 
-  cinder_config {
-    'DEFAULT/auth_strategy':
-      value => 'keystone';
-
-    'DEFAULT/restore_discard_excess_bytes':
-      value => true;
-
-    'DEFAULT/enabled_backends':
-      value => 'rbd';
+  class { 'cinder::backends':
+    enabled_backends => 'rbd',
   }
 
   if $::hostname == $bootstrap_node {

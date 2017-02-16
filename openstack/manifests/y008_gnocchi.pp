@@ -39,13 +39,14 @@ class openstack::y008_gnocchi (
   }
 
   class { '::gnocchi::api':
-    max_limit    => '1000',
-    host         => $::ipaddress_eth0,
-    port         => '8041',
+    max_limit     => '1000',
+    host          => $::ipaddress_eth0,
+    port          => '8041',
     enable_proxy_headers_parsing => true,
     #
-    service_name => 'httpd',
-    sync_db      => $sync_db,
+    service_name  => 'httpd',
+    auth_strategy => 'keystone',
+    sync_db       => $sync_db,
   }
 
   class { '::gnocchi::wsgi::apache':

@@ -48,12 +48,13 @@ class openstack::y009_aodh (
 
   class { '::aodh::api':
     # enable_combination_alarms = False
-    host         => $::ipaddress_eth0,
-    port         => '8042',
+    host          => $::ipaddress_eth0,
+    port          => '8042',
     enable_proxy_headers_parsing => true,
     #
-    service_name => 'httpd',
-    sync_db      => $sync_db,
+    service_name  => 'httpd',
+    auth_strategy => 'keystone',
+    sync_db       => $sync_db,
   }
 
   class { '::aodh::wsgi::apache':

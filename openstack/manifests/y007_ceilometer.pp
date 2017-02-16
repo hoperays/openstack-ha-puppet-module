@@ -60,11 +60,12 @@ class openstack::y007_ceilometer (
   }
 
   class { '::ceilometer::api':
-    host         => $ipaddress_eth0,
-    port         => '8777',
+    host          => $ipaddress_eth0,
+    port          => '8777',
     enable_proxy_headers_parsing => true,
     #
-    service_name => 'httpd',
+    service_name  => 'httpd',
+    auth_strategy => 'keystone',
   }
 
   class { '::ceilometer::wsgi::apache':

@@ -45,6 +45,18 @@ class openstack::y002_glance (
     }
   }
 
+  class { '::glance::api::authtoken':
+    auth_uri            => "http://${controller_vip}:5000/",
+    auth_url            => "http://${controller_vip}:35357/",
+    memcached_servers   => ["${controller_1}:11211", "${controller_2}:11211", "${controller_3}:11211"],
+    auth_type           => 'password',
+    project_domain_name => 'default',
+    user_domain_name    => 'default',
+    project_name        => 'services',
+    username            => 'glance',
+    password            => $glance_password,
+  }
+
   class { '::glance::api':
     show_image_direct_url        => true,
     show_multiple_locations      => true,
@@ -65,23 +77,11 @@ class openstack::y002_glance (
     #
     enable_proxy_headers_parsing => true,
     pipeline        => 'keystone',
-    auth_strategy   => '::glance::api::authtoken',
+    auth_strategy   => 'keystone',
     #
     multi_store     => true,
     #
     purge_config    => true,
-  }
-
-  class { '::glance::api::authtoken':
-    auth_uri            => "http://${controller_vip}:5000/",
-    auth_url            => "http://${controller_vip}:35357/",
-    memcached_servers   => ["${controller_1}:11211", "${controller_2}:11211", "${controller_3}:11211"],
-    auth_type           => 'password',
-    project_domain_name => 'default',
-    user_domain_name    => 'default',
-    project_name        => 'services',
-    username            => 'glance',
-    password            => $glance_password,
   }
 
   class { '::glance::notify::rabbitmq':
@@ -101,6 +101,18 @@ class openstack::y002_glance (
     glare_enabled        => false,
   }
 
+  class { '::glance::registry::authtoken':
+    auth_uri            => "http://${controller_vip}:5000/",
+    auth_url            => "http://${controller_vip}:35357/",
+    memcached_servers   => ["${controller_1}:11211", "${controller_2}:11211", "${controller_3}:11211"],
+    auth_type           => 'password',
+    project_domain_name => 'default',
+    user_domain_name    => 'default',
+    project_name        => 'services',
+    username            => 'glance',
+    password            => $glance_password,
+  }
+
   class { '::glance::registry':
     bind_host            => $::ipaddress_eth0,
     bind_port            => '9191',
@@ -112,23 +124,11 @@ class openstack::y002_glance (
     database_max_retries => '-1',
     #
     pipeline             => 'keystone',
-    auth_strategy        => '::glance::registry::authtoken',
+    auth_strategy        => 'keystone',
     #
     sync_db              => $sync_db,
     #
     purge_config         => true,
-  }
-
-  class { '::glance::registry::authtoken':
-    auth_uri            => "http://${controller_vip}:5000/",
-    auth_url            => "http://${controller_vip}:35357/",
-    memcached_servers   => ["${controller_1}:11211", "${controller_2}:11211", "${controller_3}:11211"],
-    auth_type           => 'password',
-    project_domain_name => 'default',
-    user_domain_name    => 'default',
-    project_name        => 'services',
-    username            => 'glance',
-    password            => $glance_password,
   }
 
   if $::hostname == $bootstrap_node {
