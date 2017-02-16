@@ -50,6 +50,7 @@ class openstack::y001_keystone (
   class { '::keystone::db':
     database_max_retries    => '-1',
     database_db_max_retries => '-1',
+    database_connection     => "mysql+pymysql://keystone:${keystone_password}@${controller_vip}/keystone",
   }
 
   class { '::keystone':
@@ -65,7 +66,6 @@ class openstack::y001_keystone (
     catalog_template_file => '/etc/keystone/default_catalog.templates',
     catalog_driver        => 'sql',
     credential_key_repository          => '/etc/keystone/credential-keys',
-    database_connection   => "mysql+pymysql://keystone:${keystone_password}@${controller_vip}/keystone",
     # admin_workers       => max($::processorcount, 2),
     # public_workers      => max($::processorcount, 2),
     fernet_key_repository => '/etc/keystone/fernet-keys',

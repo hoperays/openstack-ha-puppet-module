@@ -166,26 +166,26 @@ ONBOOT=yes
     class { '::neutron::db':
       database_max_retries    => '-1',
       database_db_max_retries => '-1',
+      database_connection     => "mysql+pymysql://neutron:${neutron_password}@${controller_vip}/neutron",
     }
 
     class { '::neutron::server':
-      database_connection          => "mysql+pymysql://neutron:${neutron_password}@${controller_vip}/neutron",
-      service_providers            => [
+      service_providers  => [
         'LOADBALANCERV2:Octavia:neutron_lbaas.drivers.octavia.driver.OctaviaDriver:default',
         'LOADBALANCER:Haproxy:neutron_lbaas.services.loadbalancer.drivers.haproxy.plugin_driver.HaproxyOnHostPluginDriver',
         'VPN:openswan:neutron_vpnaas.services.vpn.service_drivers.ipsec.IPsecVPNDriver:default'],
-      auth_strategy => 'keystone',
+      auth_strategy      => 'keystone',
       enable_proxy_headers_parsing => true,
       #
-      router_distributed           => false,
+      router_distributed => false,
       router_scheduler_driver      => 'neutron.scheduler.l3_agent_scheduler.ChanceScheduler',
       #
-      api_workers   => '2',
-      rpc_workers   => '2',
-      l3_ha         => true,
+      api_workers        => '2',
+      rpc_workers        => '2',
+      l3_ha              => true,
       max_l3_agents_per_router     => '3',
       #
-      sync_db       => $sync_db,
+      sync_db            => $sync_db,
     }
 
     class { '::neutron::server::notifications':
