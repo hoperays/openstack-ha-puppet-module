@@ -33,6 +33,19 @@ class openstack::y009_aodh (
     rabbit_heartbeat_timeout_threshold => '60',
   }
 
+  class { '::aodh::keystone::authtoken':
+    auth_uri            => "http://${controller_vip}:5000/",
+    auth_url            => "http://${controller_vip}:35357/",
+    memcached_servers   => ["${controller_1}:11211", "${controller_2}:11211", "${controller_3}:11211"],
+    auth_type           => 'password',
+    project_domain_name => 'default',
+    user_domain_name    => 'default',
+    region_name         => 'RegionOne',
+    project_name        => 'services',
+    username            => 'aodh',
+    password            => $aodh_password,
+  }
+
   class { '::aodh::api':
     # enable_combination_alarms = False
     host         => $::ipaddress_eth0,
@@ -46,19 +59,6 @@ class openstack::y009_aodh (
   class { '::aodh::wsgi::apache':
     ssl       => false,
     bind_host => $::ipaddress_eth0,
-  }
-
-  class { '::aodh::keystone::authtoken':
-    auth_uri            => "http://${controller_vip}:5000/",
-    auth_url            => "http://${controller_vip}:35357/",
-    memcached_servers   => ["${controller_1}:11211", "${controller_2}:11211", "${controller_3}:11211"],
-    auth_type           => 'password',
-    project_domain_name => 'default',
-    user_domain_name    => 'default',
-    region_name         => 'RegionOne',
-    project_name        => 'services',
-    username            => 'aodh',
-    password            => $aodh_password,
   }
 
   class { '::aodh::auth':
