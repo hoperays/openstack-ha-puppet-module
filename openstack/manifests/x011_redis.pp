@@ -20,6 +20,8 @@ class openstack::x011_redis (
     mode    => '0644',
   }
 
+  package { 'python-redis': ensure => 'present', }
+
   if $::hostname == $bootstrap_node {
     pacemaker::resource::ocf { 'redis':
       ocf_agent_name  => 'heartbeat:redis',
