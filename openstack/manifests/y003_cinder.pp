@@ -141,8 +141,13 @@ class openstack::y003_cinder (
     backup_ceph_stripe_count => '0'
   }
 
-  class { 'cinder::backends':
+  class { '::cinder::backends':
     enabled_backends => ['rbd'],
+  }
+
+  class { '::cinder::ceilometer':
+    notification_transport_url => undef,
+    notification_driver        => 'messagingv2',
   }
 
   if $::hostname == $bootstrap_node {

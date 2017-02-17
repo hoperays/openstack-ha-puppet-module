@@ -12,18 +12,16 @@ class openstack::x005_pacemaker (
   }
 
   if $::hostname =~ /^controller-\d+$/ {
-    class { '::pacemaker': #
-      hacluster_pwd => $hacluster_pwd, } ->
+    class { '::pacemaker': hacluster_pwd => $hacluster_pwd, } ->
     class { '::pacemaker::corosync':
       cluster_members => $cluster_members,
       cluster_name    => $cluster_name,
-      # cluster_setup_extras => $cluster_setup_extras,
       manage_fw       => $manage_fw,
       remote_authkey  => $remote_authkey,
       setup_cluster   => $setup_cluster,
     }
   } elsif $::hostname =~ /^compute-\d+$/ {
-    package { 'pacemaker-remote': } ->
+    package { 'pacemaker-remote': ensure => 'present', } ->
     file { '/etc/pacemaker':
       ensure => directory,
       mode   => '0750',
@@ -45,29 +43,19 @@ class openstack::x005_pacemaker (
   }
 
   if $::hostname == $bootstrap_node {
-    pacemaker::property { 'maintenance-mode':
-      property => 'maintenance-mode',
-      value    => false,
-      require  => Class['::pacemaker::corosync'],
-    } ->
-    pacemaker::property { 'stonith-enabled':
-      property => 'stonith-enabled',
-      value    => false,
-    } ->
-    pacemaker::property { 'osprole-controller-1':
-      property => 'osprole',
-      value    => 'controller',
-      node     => 'controller-1',
-    } ->
-    pacemaker::property { 'osprole-controller-2':
-      property => 'osprole',
-      value    => 'controller',
-      node     => 'controller-2',
-    } ->
-    pacemaker::property { 'osprole-controller-3':
-      property => 'osprole',
-      value    => 'controller',
-      node     => 'controller-3',
+    pacemaker_resource_default { 'resource-stickiness':
+      ensure => 'present',
+      value  => 'INFINITY',
+    }
+
+    pacemaker_property {
+      'maintenance-mode':
+        ensure => 'present',
+        value  => false,;
+
+      'stonith-enabled':
+        ensure => 'present',
+        value  => false,;
     }
   }
 }

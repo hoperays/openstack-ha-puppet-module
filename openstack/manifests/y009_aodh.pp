@@ -20,16 +20,21 @@ class openstack::y009_aodh (
     $sync_db = false
   }
 
+  class { '::aodh::db':
+    database_max_retries    => '-1',
+    database_db_max_retries => '-1',
+    database_connection     => "mysql+pymysql://aodh:${aodh_password}@${controller_vip}/aodh",
+  }
+
   class { '::aodh':
-    log_dir             => '/var/log/aodh',
-    rpc_backend         => 'rabbit',
-    database_connection => "mysql+pymysql://aodh:${aodh_password}@${controller_vip}/aodh",
+    log_dir          => '/var/log/aodh',
+    rpc_backend      => 'rabbit',
     #
-    rabbit_hosts        => ["${controller_1}:5672", "${controller_2}:5672", "${controller_3}:5672"],
-    rabbit_use_ssl      => false,
-    rabbit_password     => 'guest',
-    rabbit_userid       => 'guest',
-    rabbit_ha_queues    => true,
+    rabbit_hosts     => ["${controller_1}:5672", "${controller_2}:5672", "${controller_3}:5672"],
+    rabbit_use_ssl   => false,
+    rabbit_password  => 'guest',
+    rabbit_userid    => 'guest',
+    rabbit_ha_queues => true,
     rabbit_heartbeat_timeout_threshold => '60',
   }
 
@@ -56,6 +61,8 @@ class openstack::y009_aodh (
     auth_strategy => 'keystone',
     sync_db       => $sync_db,
   }
+
+  aodh_config { 'api/enable_combination_alarms': value => false; }
 
   class { '::aodh::wsgi::apache':
     ssl       => false,

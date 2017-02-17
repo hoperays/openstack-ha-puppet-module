@@ -124,6 +124,38 @@ class openstack::y001_keystone (
   class { '::keystone::cron::token_flush':
   }
 
+  keystone_config {
+    'ec2/driver':
+      value => 'keystone.contrib.ec2.backends.sql.Ec2';
+
+    'security_compliance/lockout_failure_attempts':
+      value => '6';
+
+    'security_compliance/lockout_duration':
+      value => '1800';
+
+    'security_compliance/disable_user_account_days_inactive':
+      value => '90';
+
+    'security_compliance/password_expires_days':
+      value => '90';
+
+    # 'security_compliance/password_expires_ignore_user_ids':
+    #   value => ['3a54353c9dcc44f690975ea768512f6a'];
+
+    'security_compliance/password_regex':
+      value => '^(?=.*\d)(?=.*[a-zA-Z]).{7,}$';
+
+    'security_compliance/password_regex_description':
+      value => 'Passwords must contain at least 1 letter, 1 digit, and be a minimum length of 7 characters.';
+
+    'security_compliance/unique_last_password_count':
+      value => '5';
+
+    'security_compliance/minimum_password_age':
+      value => '1';
+  }
+
   if $::hostname == $bootstrap_node {
     class { '::keystone::roles::admin':
       email                  => 'admin@example.com',
@@ -161,7 +193,9 @@ class openstack::y001_keystone (
     mode    => '0644',
     owner   => 'root',
     group   => 'root',
-    content => "export OS_PROJECT_DOMAIN_NAME=default
+    content => "# Clear any old environment that may conflict.
+for key in $( set | awk '{FS=\"=\"}  /^OS_/ {print \$1}' ); do unset \$key ; done
+export OS_PROJECT_DOMAIN_NAME=default
 export OS_USER_DOMAIN_NAME=default
 export OS_PROJECT_NAME=admin
 export OS_USERNAME=admin

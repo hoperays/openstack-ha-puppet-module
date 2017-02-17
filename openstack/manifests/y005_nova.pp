@@ -171,8 +171,7 @@ class openstack::y005_nova (
       instance_name_template => 'instance-%08x',
       default_floating_pool  => 'public',
       use_forwarded_for      => 'false',
-      # osapi_compute_workers              => $::processorcount,
-      # metadata_workers                   => $::processorcount,
+      allow_resize_to_same_host            => true,
       fping_path             => '/usr/sbin/fping',
       enable_proxy_headers_parsing         => true,
       #
@@ -184,6 +183,16 @@ class openstack::y005_nova (
     }
 
     class { '::nova::consoleauth':
+    }
+
+    class { '::nova::scheduler::filter':
+      scheduler_host_manager          => 'host_manager',
+      scheduler_max_attempts          => '3',
+      scheduler_host_subset_size      => '1',
+      max_io_ops_per_host             => '8',
+      max_instances_per_host          => '50',
+      scheduler_weight_classes        => 'nova.scheduler.weights.all_weighers',
+      scheduler_use_baremetal_filters => false,
     }
 
     class { '::nova::scheduler':

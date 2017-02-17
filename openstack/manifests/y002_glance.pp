@@ -85,11 +85,12 @@ class openstack::y002_glance (
   }
 
   class { '::glance::notify::rabbitmq':
-    rabbit_hosts     => ["${controller_1}:5672", "${controller_2}:5672", "${controller_3}:5672"],
-    rabbit_use_ssl   => false,
-    rabbit_password  => 'guest',
-    rabbit_userid    => 'guest',
-    rabbit_ha_queues => true,
+    rabbit_hosts        => ["${controller_1}:5672", "${controller_2}:5672", "${controller_3}:5672"],
+    rabbit_use_ssl      => false,
+    rabbit_password     => 'guest',
+    rabbit_userid       => 'guest',
+    rabbit_ha_queues    => true,
+    notification_driver => 'messagingv2',
   }
 
   class { '::glance::backend::rbd':
