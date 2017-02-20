@@ -62,7 +62,7 @@ class openstack::y009_aodh (
     sync_db       => $sync_db,
   }
 
-  aodh_config { 'api/enable_combination_alarms': value => false; }
+  # aodh_config { 'api/enable_combination_alarms': value => false; }
 
   class { '::aodh::wsgi::apache':
     ssl       => false,
