@@ -60,7 +60,7 @@ class openstack::x001_firewall {
     provider => 'iptables',
   } ->
   firewall { '103 allow inbound haproxy stats':
-    dport    => ['1993'],
+    dport    => ['1993', '13993'],
     proto    => 'tcp',
     action   => 'accept',
     provider => 'iptables',

@@ -45,19 +45,26 @@ class openstack::x006_haproxy (
 
   haproxy::listen { 'stats':
     bind    => {
-      "${controller_vip}:1993" => ['transparent', 'ssl', 'crt', "/etc/pki/tls/certs/${ssl_pem}"]
+      "${controller_vip}:1993"  => ['transparent'],
+      "${controller_vip}:13993" => [
+        'transparent',
+        'ssl',
+        'crt',
+        "/etc/pki/tls/certs/${ssl_pem}"]
     }
     ,
     mode    => 'http',
     options => {
-      monitor-uri => '/status',
-      stats       => [
+      monitor-uri  => '/status',
+      stats        => [
         'enable',
         'uri /',
         'realm Haproxy\ Statistics',
         "auth admin:${admin_password}",
         'refresh 30s',
         ],
+      acl          => ['clear dst_port 1993', 'secure dst_port 13993'],
+      http-request => ["redirect prefix https://${controller_vip}:13993 unless { ssl_fc } secure"],
     }
   }
 
@@ -291,10 +298,12 @@ class openstack::x006_haproxy (
     ,
     mode    => 'http',
     options => {
-      cookie   => 'SERVERID insert indirect nocache',
-      option   => ['forwardfor', 'httpclose'],
-      reqadd   => 'X-Forwarded-Proto:\ https',
-      redirect => 'scheme https if !{ ssl_fc }',
+      cookie       => 'SERVERID insert indirect nocache',
+      option       => ['forwardfor', 'httpclose'],
+      http-request => [
+        'set-header X-Forwarded-Proto https if { ssl_fc }',
+        'set-header X-Forwarded-Proto http if !{ ssl_fc }',
+        'redirect scheme https if !{ ssl_fc }'],
     }
   }
 
