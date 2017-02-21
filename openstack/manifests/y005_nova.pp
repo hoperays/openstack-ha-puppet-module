@@ -199,7 +199,10 @@ class openstack::y005_nova (
     }
 
     class { '::nova::vncproxy::common':
-      vncproxy_host => $controller_vip,
+      vncproxy_host     => $controller_vip,
+      vncproxy_protocol => 'https',
+      vncproxy_port     => '13080',
+      vncproxy_path     => '/vnc_auto.html',
     }
 
     class { '::nova::vncproxy':
@@ -211,8 +214,8 @@ class openstack::y005_nova (
       vnc_enabled          => true,
       vncserver_proxyclient_address     => $ipaddress_eth0,
       vncproxy_host        => $controller_vip,
-      vncproxy_protocol    => 'http',
-      vncproxy_port        => '6080',
+      vncproxy_protocol    => 'https',
+      vncproxy_port        => '13080',
       vncproxy_path        => '/vnc_auto.html',
       vnc_keymap           => 'en-us',
       reserved_host_memory => '2048', # MB

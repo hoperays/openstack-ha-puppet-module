@@ -238,7 +238,12 @@ class openstack::x006_haproxy (
 
   haproxy::listen { 'nova_novncproxy':
     bind    => {
-      "${controller_vip}:6080" => ['transparent']
+      "${controller_vip}:6080"  => ['transparent'],
+      "${controller_vip}:13080" => [
+        'transparent',
+        'ssl',
+        'crt',
+        "/etc/pki/tls/certs/${ssl_pem}"],
     }
     ,
     options => {
