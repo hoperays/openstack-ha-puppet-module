@@ -6,7 +6,8 @@ class openstack::x006_haproxy (
   $controller_2     = '192.168.0.132',
   $controller_3     = '192.168.0.133',
   $bootstrap_node   = 'controller-1',
-  $manage_resources = false,) {
+  $manage_resources = false,
+  $ssl_pem          = 'apache-selfsigned.pem',) {
   class { '::haproxy':
     service_ensure   => $manage_resources,
     service_manage   => $manage_resources,
@@ -276,13 +277,19 @@ class openstack::x006_haproxy (
   haproxy::listen { 'horizon':
     bind    => {
       "${controller_vip}:80"  => ['transparent'],
-      "${controller_vip}:443" => ['transparent'],
+      "${controller_vip}:443" => [
+        'transparent',
+        'ssl',
+        'crt',
+        "/etc/pki/tls/certs/${ssl_pem}"],
     }
     ,
     mode    => 'http',
     options => {
-      cookie => 'SERVERID insert indirect nocache',
-      option => ['forwardfor'],
+      cookie   => 'SERVERID insert indirect nocache',
+      option   => ['forwardfor', 'httpclose'],
+      reqadd   => 'X-Forwarded-Proto:\ https',
+      redirect => 'scheme https if !{ ssl_fc }',
     }
   }
 
@@ -290,7 +297,7 @@ class openstack::x006_haproxy (
     listening_service => 'horizon',
     server_names      => ['controller-1', 'controller-2', 'controller-3'],
     ipaddresses       => [$controller_1, $controller_2, $controller_3],
-    ports             => ['80', '443'],
+    ports             => '80',
     options           => "check fall 5 inter 2000 rise 2",
     define_cookies    => true,
   }

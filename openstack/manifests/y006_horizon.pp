@@ -14,9 +14,9 @@ class openstack::y006_horizon (
     listen_ssl                   => false, # true
     ssl_no_verify                => true,
     ssl_redirect                 => true,
-    horizon_cert                 => '/etc/pki/tls/certs/openstack.example.com.crt',
-    horizon_key                  => '/etc/pki/tls/private/openstack.example.com.key',
-    horizon_ca                   => '/etc/pki/tls/certs/ca.crt',
+    horizon_cert                 => '/etc/pki/tls/certs/apache-selfsigned.crt',
+    horizon_key                  => '/etc/pki/tls/private/apache-selfsigned.key',
+    horizon_ca                   => '/etc/pki/tls/certs/apache-selfsigned.crt',
     cache_server_ip              => $cluster_nodes,
     cache_server_port            => '11211',
     secret_key                   => $secret_key,
