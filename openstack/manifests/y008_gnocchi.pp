@@ -23,6 +23,8 @@ class openstack::y008_gnocchi (
   class { '::gnocchi':
     log_dir             => '/var/log/gnocchi',
     database_connection => "mysql+pymysql://gnocchi:${gnocchi_password}@${controller_vip}/gnocchi",
+    #
+    require             => Package['python-redis'],
   }
 
   class { '::gnocchi::keystone::authtoken':

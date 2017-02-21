@@ -22,6 +22,8 @@ class openstack::y007_ceilometer (
     rabbit_userid         => 'guest',
     rabbit_ha_queues      => true,
     rabbit_heartbeat_timeout_threshold => '60',
+    #
+    require               => Package['python-redis'],
   }
 
   class { '::ceilometer::agent::auth':
