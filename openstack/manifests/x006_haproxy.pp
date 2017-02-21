@@ -45,7 +45,7 @@ class openstack::x006_haproxy (
 
   haproxy::listen { 'stats':
     bind    => {
-      "${controller_vip}:1993" => ['transparent']
+      "${controller_vip}:1993" => ['transparent', 'ssl', 'crt', "/etc/pki/tls/certs/${ssl_pem}"]
     }
     ,
     mode    => 'http',
