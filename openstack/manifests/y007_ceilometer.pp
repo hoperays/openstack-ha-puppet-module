@@ -25,12 +25,12 @@ class openstack::y007_ceilometer (
   }
 
   class { '::ceilometer::agent::auth':
-    auth_url                 => "http://${controller_vip}:5000/",
+    auth_url                 => "http://${controller_vip}:5000",
     auth_endpoint_type       => 'internalURL',
     auth_type                => 'password',
     auth_user_domain_name    => 'default',
     auth_project_domain_name => 'default',
-    auth_region              => 'regionOne',
+    auth_region              => 'RegionOne',
     auth_tenant_name         => 'services',
     auth_user                => 'ceilometer',
     auth_password            => $ceilometer_password,
@@ -61,13 +61,12 @@ class openstack::y007_ceilometer (
     }
 
     class { '::ceilometer::keystone::authtoken':
-      auth_uri            => "http://${controller_vip}:5000/",
-      auth_url            => "http://${controller_vip}:35357/",
+      auth_uri            => "http://${controller_vip}:5000/v2.0",
+      auth_url            => "http://${controller_vip}:35357",
       memcached_servers   => ["${controller_1}:11211", "${controller_2}:11211", "${controller_3}:11211"],
       auth_type           => 'password',
       project_domain_name => 'default',
       user_domain_name    => 'default',
-      region_name         => 'RegionOne',
       project_name        => 'services',
       username            => 'ceilometer',
       password            => $ceilometer_password,

@@ -26,13 +26,12 @@ class openstack::y008_gnocchi (
   }
 
   class { '::gnocchi::keystone::authtoken':
-    auth_uri            => "http://${controller_vip}:5000/",
-    auth_url            => "http://${controller_vip}:35357/",
+    auth_uri            => "http://${controller_vip}:5000/v2.0",
+    auth_url            => "http://${controller_vip}:35357",
     memcached_servers   => ["${controller_1}:11211", "${controller_2}:11211", "${controller_3}:11211"],
     auth_type           => 'password',
     project_domain_name => 'default',
     user_domain_name    => 'default',
-    region_name         => 'RegionOne',
     project_name        => 'services',
     username            => 'gnocchi',
     password            => $gnocchi_password,
