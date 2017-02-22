@@ -170,6 +170,7 @@ ONBOOT=yes
 
     class { '::neutron::server':
       service_providers  => [
+        'FIREWALL:Iptables:neutron.agent.linux.iptables_firewall.OVSHybridIptablesFirewallDriver:default',
         'LOADBALANCERV2:Octavia:neutron_lbaas.drivers.octavia.driver.OctaviaDriver:default',
         'LOADBALANCER:Haproxy:neutron_lbaas.services.loadbalancer.drivers.haproxy.plugin_driver.HaproxyOnHostPluginDriver',
         'VPN:openswan:neutron_vpnaas.services.vpn.service_drivers.ipsec.IPsecVPNDriver:default'],
@@ -217,7 +218,7 @@ ONBOOT=yes
 
     class { '::neutron::services::fwaas':
       enabled              => true,
-      driver               => 'openvswitch',
+      driver               => 'neutron_fwaas.services.firewall.drivers.linux.iptables_fwaas.IptablesFwaasDriver',
       vpnaas_agent_package => false,
       purge_config         => true,
     }
@@ -250,6 +251,8 @@ ONBOOT=yes
       #
       purge_config       => true,
     }
+
+    neutron_l3_agent_config { 'AGENT/extensions': value => 'fwaas'; }
 
     class { '::neutron::agents::metadata':
       metadata_ip   => $controller_vip,
