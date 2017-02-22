@@ -23,6 +23,8 @@ class openstack::y008_gnocchi (
   class { '::gnocchi':
     log_dir             => '/var/log/gnocchi',
     database_connection => "mysql+pymysql://gnocchi:${gnocchi_password}@${controller_vip}/gnocchi",
+    #
+    purge_config        => true,
   }
 
   class { '::gnocchi::keystone::authtoken':
