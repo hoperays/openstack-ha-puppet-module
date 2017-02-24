@@ -61,7 +61,8 @@ class openstack::y004_neutron (
       'trunk',
       'firewall',
       'vpnaas',
-      'neutron_lbaas.services.loadbalancer.plugin.LoadBalancerPluginv2'],
+      'neutron_lbaas.services.loadbalancer.plugin.LoadBalancerPluginv2',
+      'metering'],
     allow_overlapping_ips   => true,
     host                    => $::hostname,
     global_physnet_mtu      => '1500',
@@ -179,8 +180,6 @@ ONBOOT=yes
       router_distributed => false,
       router_scheduler_driver      => 'neutron.scheduler.l3_agent_scheduler.ChanceScheduler',
       #
-      api_workers        => '2',
-      rpc_workers        => '2',
       l3_ha              => true,
       max_l3_agents_per_router     => '3',
       #
@@ -205,7 +204,7 @@ ONBOOT=yes
       type_drivers         => ['local', 'flat', 'vlan', 'gre', 'vxlan'],
       tenant_network_types => ['vlan', 'vxlan'],
       mechanism_drivers    => ['openvswitch'],
-      extension_drivers    => ['qos', 'port_security'],
+      extension_drivers    => ['port_security', 'qos'],
       flat_networks        => '*',
       network_vlan_ranges  => 'physnet1:1:4094',
       tunnel_id_ranges     => '1:4094',
@@ -215,10 +214,13 @@ ONBOOT=yes
       purge_config         => true,
     }
 
+    neutron_fwaas_service_config { 'fwaas/agent_version': value => 'v1'; }
+
     class { '::neutron::services::fwaas':
-      enabled              => true,
       driver               => 'neutron_fwaas.services.firewall.drivers.linux.iptables_fwaas.IptablesFwaasDriver',
+      enabled              => true,
       vpnaas_agent_package => false,
+      #
       purge_config         => true,
     }
 
@@ -251,7 +253,7 @@ ONBOOT=yes
       purge_config       => true,
     }
 
-    neutron_l3_agent_config { 'AGENT/extensions': value => 'fwaas'; }
+    neutron_l3_agent_config { 'AGENT/extensions': value => join(any2array(['fwaas']), ','); }
 
     class { '::neutron::agents::metadata':
       metadata_ip   => $controller_vip,
@@ -274,6 +276,15 @@ ONBOOT=yes
       ipsec_status_check_interval => '30',
       #
       purge_config                => true,
+    }
+
+    class { 'neutron::agents::metering':
+      interface_driver => 'neutron.agent.linux.interface.OVSInterfaceDriver',
+      driver           => 'neutron.services.metering.drivers.noop.noop_driver.NoopMeteringDriver',
+      measure_interval => '30',
+      report_interval  => '300',
+      #
+      purge_config     => true,
     }
 
     file { '/etc/sysconfig/network-scripts/ifcfg-eth1':
