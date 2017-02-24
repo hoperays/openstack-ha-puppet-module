@@ -1,11 +1,11 @@
 class openstack::y006_horizon (
-  $bind_address   = $ipaddress_eth0,
-  $servername     = $::hostname, # 'openstack.example.com',
-  $server_aliases = ['*'],
-  $allowed_hosts  = ['*'],
-  $cluster_nodes  = ['192.168.0.131', '192.168.0.132', '192.168.0.133'],
-  $secret_key     = 'd872760ce14ffd0919ad',
-  $controller_vip = '192.168.0.130',) {
+  $bind_address     = $ipaddress_vlan53,
+  $servername       = $::hostname, # 'openstack.example.com',
+  $server_aliases   = ['*'],
+  $allowed_hosts    = ['*'],
+  $cluster_nodes    = ['172.17.53.101', '172.17.53.102', '172.17.53.103'],
+  $secret_key       = 'd872760ce14ffd0919ad',
+  $api_internal_vip = '172.17.53.100',) {
   class { '::horizon':
     bind_address                 => $bind_address,
     servername                   => $servername,
@@ -20,7 +20,7 @@ class openstack::y006_horizon (
     cache_server_ip              => $cluster_nodes,
     cache_server_port            => '11211',
     secret_key                   => $secret_key,
-    keystone_url                 => "http://${controller_vip}:5000/v3",
+    keystone_url                 => "http://${api_internal_vip}:5000",
     keystone_default_role        => '_member_',
     django_debug                 => false,
     api_result_limit             => '2000',

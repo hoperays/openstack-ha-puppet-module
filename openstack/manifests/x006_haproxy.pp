@@ -1,10 +1,12 @@
 class openstack::x006_haproxy (
   $admin_password   = 'admin1234',
   $redis_password   = 'redis1234',
-  $controller_vip   = '192.168.0.130',
-  $controller_1     = '192.168.0.131',
-  $controller_2     = '192.168.0.132',
-  $controller_3     = '192.168.0.133',
+  $mgmt_vip         = '172.17.51.100',
+  $api_public_vip   = '172.17.52.100',
+  $api_internal_vip = '172.17.53.100',
+  $controller_1     = '172.17.53.101',
+  $controller_2     = '172.17.53.102',
+  $controller_3     = '172.17.53.103',
   $bootstrap_node   = 'controller-1',
   $manage_resources = false,
   $ssl_pem          = 'apache-selfsigned.pem',) {
@@ -45,8 +47,8 @@ class openstack::x006_haproxy (
 
   haproxy::listen { 'stats':
     bind    => {
-      "${controller_vip}:1993"  => ['transparent'],
-      "${controller_vip}:13993" => [
+      "${api_public_vip}:1993"  => ['transparent'],
+      "${api_public_vip}:13993" => [
         'transparent',
         'ssl',
         'crt',
@@ -64,13 +66,13 @@ class openstack::x006_haproxy (
         'refresh 30s',
         ],
       acl          => ['clear dst_port 1993', 'secure dst_port 13993'],
-      http-request => ["redirect prefix https://${controller_vip}:13993 unless { ssl_fc } secure"],
+      http-request => ["redirect prefix https://${api_public_vip}:13993 unless { ssl_fc } secure"],
     }
   }
 
   haproxy::listen { 'mysql':
     bind    => {
-      "${controller_vip}:3306" => ['transparent']
+      "${api_internal_vip}:3306" => ['transparent']
     }
     ,
     options => {
@@ -93,7 +95,7 @@ class openstack::x006_haproxy (
 
   haproxy::listen { 'redis':
     bind    => {
-      "${controller_vip}:6379" => ['transparent']
+      "${api_internal_vip}:6379" => ['transparent']
     }
     ,
     options => {
@@ -120,7 +122,8 @@ class openstack::x006_haproxy (
 
   haproxy::listen { 'keystone_admin':
     bind    => {
-      "${controller_vip}:35357" => ['transparent']
+      "${mgmt_vip}:35357"         => ['transparent'],
+      "${api_internal_vip}:35357" => ['transparent']
     }
     ,
     mode    => 'http',
@@ -139,7 +142,8 @@ class openstack::x006_haproxy (
 
   haproxy::listen { 'keystone_public':
     bind    => {
-      "${controller_vip}:5000" => ['transparent']
+      "${api_public_vip}:5000"   => ['transparent'],
+      "${api_internal_vip}:5000" => ['transparent']
     }
     ,
     mode    => 'http',
@@ -158,7 +162,8 @@ class openstack::x006_haproxy (
 
   haproxy::listen { 'glance_api':
     bind    => {
-      "${controller_vip}:9292" => ['transparent']
+      "${api_public_vip}:9292"   => ['transparent'],
+      "${api_internal_vip}:9292" => ['transparent']
     }
     ,
     mode    => 'http',
@@ -177,7 +182,7 @@ class openstack::x006_haproxy (
 
   haproxy::listen { 'glance_registry':
     bind => {
-      "${controller_vip}:9191" => ['transparent']
+      "${api_internal_vip}:9191" => ['transparent']
     }
     ,
   }
@@ -192,7 +197,8 @@ class openstack::x006_haproxy (
 
   haproxy::listen { 'cinder':
     bind    => {
-      "${controller_vip}:8776" => ['transparent']
+      "${api_public_vip}:8776"   => ['transparent'],
+      "${api_internal_vip}:8776" => ['transparent']
     }
     ,
     mode    => 'http',
@@ -211,7 +217,8 @@ class openstack::x006_haproxy (
 
   haproxy::listen { 'neutron':
     bind    => {
-      "${controller_vip}:9696" => ['transparent']
+      "${api_public_vip}:9696"   => ['transparent'],
+      "${api_internal_vip}:9696" => ['transparent']
     }
     ,
     mode    => 'http',
@@ -230,7 +237,7 @@ class openstack::x006_haproxy (
 
   haproxy::listen { 'nova_metadata':
     bind => {
-      "${controller_vip}:8775" => ['transparent']
+      "${api_internal_vip}:8775" => ['transparent']
     }
     ,
   }
@@ -245,8 +252,8 @@ class openstack::x006_haproxy (
 
   haproxy::listen { 'nova_novncproxy':
     bind    => {
-      "${controller_vip}:6080"  => ['transparent'],
-      "${controller_vip}:13080" => [
+      "${api_public_vip}:6080"  => ['transparent'],
+      "${api_public_vip}:13080" => [
         'transparent',
         'ssl',
         'crt',
@@ -269,7 +276,8 @@ class openstack::x006_haproxy (
 
   haproxy::listen { 'nova_osapi':
     bind    => {
-      "${controller_vip}:8774" => ['transparent']
+      "${api_public_vip}:8774"   => ['transparent'],
+      "${api_internal_vip}:8774" => ['transparent']
     }
     ,
     mode    => 'http',
@@ -288,8 +296,8 @@ class openstack::x006_haproxy (
 
   haproxy::listen { 'horizon':
     bind    => {
-      "${controller_vip}:80"  => ['transparent'],
-      "${controller_vip}:443" => [
+      "${api_public_vip}:80"  => ['transparent'],
+      "${api_public_vip}:443" => [
         'transparent',
         'ssl',
         'crt',
@@ -318,7 +326,8 @@ class openstack::x006_haproxy (
 
   haproxy::listen { 'ceilometer':
     bind    => {
-      "${controller_vip}:8777" => ['transparent']
+      "${api_public_vip}:8777"   => ['transparent'],
+      "${api_internal_vip}:8777" => ['transparent']
     }
     ,
     mode    => 'http',
@@ -337,7 +346,8 @@ class openstack::x006_haproxy (
 
   haproxy::listen { 'gnocchi':
     bind    => {
-      "${controller_vip}:8041" => ['transparent']
+      "${api_public_vip}:8041"   => ['transparent'],
+      "${api_internal_vip}:8041" => ['transparent']
     }
     ,
     mode    => 'http',
@@ -356,7 +366,8 @@ class openstack::x006_haproxy (
 
   haproxy::listen { 'aodh':
     bind    => {
-      "${controller_vip}:8042" => ['transparent']
+      "${api_public_vip}:8042"   => ['transparent'],
+      "${api_internal_vip}:8042" => ['transparent']
     }
     ,
     mode    => 'http',
@@ -374,10 +385,10 @@ class openstack::x006_haproxy (
   }
 
   if $::hostname == $bootstrap_node {
-    pacemaker::resource::ip { "ip-${controller_vip}":
-      ip_address => $controller_vip,
-      require    => Class['::haproxy'],
-    } ->
+    Class['::haproxy'] ->
+    pacemaker::resource::ip { "ip-${mgmt_vip}": ip_address => $mgmt_vip, } ->
+    pacemaker::resource::ip { "ip-${api_public_vip}": ip_address => $api_public_vip, } ->
+    pacemaker::resource::ip { "ip-${api_internal_vip}": ip_address => $api_internal_vip, } ->
     exec { 'haproxy-ready':
       timeout   => '3600',
       tries     => '360',
@@ -391,16 +402,42 @@ class openstack::x006_haproxy (
       op_params    => 'start timeout=200s stop timeout=200s',
       clone_params => true,
     } ->
-    pacemaker::constraint::base { "order-ip-${controller_vip}-haproxy-clone-Optional":
+    pacemaker::constraint::base { "order-ip-${mgmt_vip}-haproxy-clone-Optional":
       constraint_type   => 'order',
       first_action      => 'start',
-      first_resource    => "ip-${controller_vip}",
+      first_resource    => "ip-${mgmt_vip}",
       second_action     => 'start',
       second_resource   => 'haproxy-clone',
       constraint_params => 'kind=Optional',
     } ->
-    pacemaker::constraint::colocation { "colocation-ip-${controller_vip}-haproxy-clone-INFINITY":
-      source => "ip-${controller_vip}",
+    pacemaker::constraint::colocation { "colocation-ip-${mgmt_vip}-haproxy-clone-INFINITY":
+      source => "ip-${mgmt_vip}",
+      target => 'haproxy-clone',
+      score  => 'INFINITY',
+    } ->
+    pacemaker::constraint::base { "order-ip-${api_public_vip}-haproxy-clone-Optional":
+      constraint_type   => 'order',
+      first_action      => 'start',
+      first_resource    => "ip-${api_public_vip}",
+      second_action     => 'start',
+      second_resource   => 'haproxy-clone',
+      constraint_params => 'kind=Optional',
+    } ->
+    pacemaker::constraint::colocation { "colocation-ip-${api_public_vip}-haproxy-clone-INFINITY":
+      source => "ip-${api_public_vip}",
+      target => 'haproxy-clone',
+      score  => 'INFINITY',
+    } ->
+    pacemaker::constraint::base { "order-ip-${api_internal_vip}-haproxy-clone-Optional":
+      constraint_type   => 'order',
+      first_action      => 'start',
+      first_resource    => "ip-${api_internal_vip}",
+      second_action     => 'start',
+      second_resource   => 'haproxy-clone',
+      constraint_params => 'kind=Optional',
+    } ->
+    pacemaker::constraint::colocation { "colocation-ip-${api_internal_vip}-haproxy-clone-INFINITY":
+      source => "ip-${api_internal_vip}",
       target => 'haproxy-clone',
       score  => 'INFINITY',
     } ->

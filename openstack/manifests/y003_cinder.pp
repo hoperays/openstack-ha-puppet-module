@@ -1,13 +1,14 @@
 class openstack::y003_cinder (
-  $bootstrap_node  = 'controller-1',
-  $cinder_password = 'cinder1234',
-  $allowed_hosts   = ['%'],
-  $username        = 'cinder',
-  $controller_vip  = '192.168.0.130',
-  $controller_1    = '192.168.0.131',
-  $controller_2    = '192.168.0.132',
-  $controller_3    = '192.168.0.133',
-  $rbd_secret_uuid = '2ad6a20f-ffdd-460d-afba-04ab286f365f',) {
+  $bootstrap_node   = 'controller-1',
+  $cinder_password  = 'cinder1234',
+  $allowed_hosts    = ['%'],
+  $username         = 'cinder',
+  $api_public_vip   = '172.17.52.100',
+  $api_internal_vip = '172.17.53.100',
+  $controller_1     = '172.17.53.101',
+  $controller_2     = '172.17.53.102',
+  $controller_3     = '172.17.53.103',
+  $rbd_secret_uuid  = '2ad6a20f-ffdd-460d-afba-04ab286f365f',) {
   if $::hostname == $bootstrap_node {
     Exec['galera-ready'] ->
     class { '::cinder::db::mysql':
@@ -49,7 +50,7 @@ class openstack::y003_cinder (
   class { '::cinder::db':
     database_max_retries    => '-1',
     database_db_max_retries => '-1',
-    database_connection     => "mysql+pymysql://cinder:${cinder_password}@${controller_vip}/cinder",
+    database_connection     => "mysql+pymysql://cinder:${cinder_password}@${api_internal_vip}/cinder",
   }
 
   class { '::cinder':
@@ -74,8 +75,8 @@ class openstack::y003_cinder (
   }
 
   class { '::cinder::keystone::authtoken':
-    auth_uri            => "http://${controller_vip}:5000",
-    auth_url            => "http://${controller_vip}:35357",
+    auth_uri            => "http://${api_internal_vip}:5000",
+    auth_url            => "http://${api_internal_vip}:35357",
     memcached_servers   => ["${controller_1}:11211", "${controller_2}:11211", "${controller_3}:11211"],
     auth_type           => 'password',
     project_domain_name => 'default',
@@ -86,8 +87,7 @@ class openstack::y003_cinder (
   }
 
   class { '::cinder::api':
-    bind_host           => $::ipaddress_eth0, # osapi_volume_listen
-    # service_workers   => $::processorcount, # osapi_volume_workers
+    bind_host           => $::ipaddress_vlan53, # osapi_volume_listen
     default_volume_type => 'rbd',
     nova_catalog_info   => 'compute:Compute Service:publicURL',
     nova_catalog_admin_info      => 'compute:Compute Service:adminURL',
@@ -104,7 +104,7 @@ class openstack::y003_cinder (
   }
 
   class { '::cinder::glance':
-    glance_api_servers => "http://${controller_vip}:9292",
+    glance_api_servers => "http://${api_internal_vip}:9292",
     glance_api_version => '2',
   }
 
@@ -164,15 +164,15 @@ class openstack::y003_cinder (
       email                  => 'cinder@localhost',
       email_user_v2          => undef,
       email_user_v3          => undef,
-      public_url             => "http://${controller_vip}:8776/v1/%(tenant_id)s",
-      internal_url           => "http://${controller_vip}:8776/v1/%(tenant_id)s",
-      admin_url              => "http://${controller_vip}:8776/v1/%(tenant_id)s",
-      public_url_v2          => "http://${controller_vip}:8776/v2/%(tenant_id)s",
-      internal_url_v2        => "http://${controller_vip}:8776/v2/%(tenant_id)s",
-      admin_url_v2           => "http://${controller_vip}:8776/v2/%(tenant_id)s",
-      public_url_v3          => "http://${controller_vip}:8776/v3/%(tenant_id)s",
-      internal_url_v3        => "http://${controller_vip}:8776/v3/%(tenant_id)s",
-      admin_url_v3           => "http://${controller_vip}:8776/v3/%(tenant_id)s",
+      public_url             => "http://${api_public_vip}:8776/v1/%(tenant_id)s",
+      internal_url           => "http://${api_internal_vip}:8776/v1/%(tenant_id)s",
+      admin_url              => "http://${api_internal_vip}:8776/v1/%(tenant_id)s",
+      public_url_v2          => "http://${api_public_vip}:8776/v2/%(tenant_id)s",
+      internal_url_v2        => "http://${api_internal_vip}:8776/v2/%(tenant_id)s",
+      admin_url_v2           => "http://${api_internal_vip}:8776/v2/%(tenant_id)s",
+      public_url_v3          => "http://${api_public_vip}:8776/v3/%(tenant_id)s",
+      internal_url_v3        => "http://${api_internal_vip}:8776/v3/%(tenant_id)s",
+      admin_url_v3           => "http://${api_internal_vip}:8776/v3/%(tenant_id)s",
       configure_endpoint     => true,
       configure_endpoint_v2  => true,
       configure_endpoint_v3  => true,

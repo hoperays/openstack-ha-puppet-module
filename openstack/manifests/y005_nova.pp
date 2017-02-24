@@ -6,10 +6,11 @@ class openstack::y005_nova (
   $allowed_hosts     = ['%'],
   $username1         = 'nova',
   $username2         = 'nova_api',
-  $controller_vip    = '192.168.0.130',
-  $controller_1      = '192.168.0.131',
-  $controller_2      = '192.168.0.132',
-  $controller_3      = '192.168.0.133',
+  $api_public_vip    = '172.17.52.100',
+  $api_internal_vip  = '172.17.53.100',
+  $controller_1      = '172.17.53.101',
+  $controller_2      = '172.17.53.102',
+  $controller_3      = '172.17.53.103',
   $metadata_secret   = 'metadata1234',
   $remote_authkey    = 'remote1234',
   $rbd_secret_uuid   = '2ad6a20f-ffdd-460d-afba-04ab286f365f',
@@ -86,8 +87,8 @@ class openstack::y005_nova (
   class { '::nova::db':
     database_max_retries    => '-1',
     database_db_max_retries => '-1',
-    database_connection     => "mysql+pymysql://nova:${nova_password}@${controller_vip}/nova",
-    api_database_connection => "mysql+pymysql://nova_api:${nova_api_password}@${controller_vip}/nova_api",
+    database_connection     => "mysql+pymysql://nova:${nova_password}@${api_internal_vip}/nova",
+    api_database_connection => "mysql+pymysql://nova_api:${nova_api_password}@${api_internal_vip}/nova_api",
   }
 
   class { '::nova':
@@ -99,7 +100,7 @@ class openstack::y005_nova (
     rabbit_hosts           => ["${controller_1}:5672", "${controller_2}:5672", "${controller_3}:5672"],
     auth_strategy          => 'keystone',
     #
-    glance_api_servers     => "http://${controller_vip}:9292",
+    glance_api_servers     => "http://${api_internal_vip}:9292",
     cinder_catalog_info    => 'volumev2:cinderv2:publicURL',
     log_dir                => '/var/log/nova',
     notify_api_faults      => false,
@@ -127,8 +128,8 @@ class openstack::y005_nova (
   }
 
   class { '::nova::network::neutron':
-    neutron_auth_url                => "http://${controller_vip}:35357/v3",
-    neutron_url                     => "http://${controller_vip}:9696",
+    neutron_auth_url                => "http://${api_internal_vip}:35357/v3",
+    neutron_url                     => "http://${api_internal_vip}:9696",
     #
     neutron_auth_type               => 'v3password',
     neutron_project_domain_name     => 'default',
@@ -149,8 +150,8 @@ class openstack::y005_nova (
 
   if $::hostname =~ /^controller-\d+$/ {
     class { '::nova::keystone::authtoken':
-      auth_uri            => "http://${controller_vip}:5000",
-      auth_url            => "http://${controller_vip}:35357",
+      auth_uri            => "http://${api_internal_vip}:5000",
+      auth_url            => "http://${api_internal_vip}:35357",
       memcached_servers   => ["${controller_1}:11211", "${controller_2}:11211", "${controller_3}:11211"],
       auth_type           => 'password',
       project_domain_name => 'default',
@@ -161,9 +162,9 @@ class openstack::y005_nova (
     }
 
     class { '::nova::api':
-      api_bind_address       => $ipaddress_eth0,
+      api_bind_address       => $ipaddress_vlan53,
       osapi_compute_listen_port            => '8774',
-      metadata_listen        => $ipaddress_eth0,
+      metadata_listen        => $ipaddress_vlan53,
       metadata_listen_port   => '8775',
       enabled_apis           => ['osapi_compute', 'metadata'],
       neutron_metadata_proxy_shared_secret => $metadata_secret,
@@ -198,21 +199,21 @@ class openstack::y005_nova (
     }
 
     class { '::nova::vncproxy::common':
-      vncproxy_host     => $controller_vip,
+      vncproxy_host     => $api_public_vip,
       vncproxy_protocol => 'https',
       vncproxy_port     => '13080',
       vncproxy_path     => '/vnc_auto.html',
     }
 
     class { '::nova::vncproxy':
-      host => $::ipaddress_eth0,
+      host => $::ipaddress_vlan53,
       port => '6080',
     }
   } elsif $::hostname =~ /^compute-\d+$/ {
     class { '::nova::compute':
       vnc_enabled          => true,
-      vncserver_proxyclient_address     => $ipaddress_eth0,
-      vncproxy_host        => $controller_vip,
+      vncserver_proxyclient_address     => $ipaddress_vlan53,
+      vncproxy_host        => $api_public_vip,
       vncproxy_protocol    => 'https',
       vncproxy_port        => '13080',
       vncproxy_path        => '/vnc_auto.html',
@@ -262,9 +263,9 @@ class openstack::y005_nova (
       region              => 'RegionOne',
       tenant              => 'services',
       email               => 'nova@localhost',
-      public_url          => "http://${controller_vip}:8774/v2.1",
-      internal_url        => "http://${controller_vip}:8774/v2.1",
-      admin_url           => "http://${controller_vip}:8774/v2.1",
+      public_url          => "http://${api_public_vip}:8774/v2.1",
+      internal_url        => "http://${api_internal_vip}:8774/v2.1",
+      admin_url           => "http://${api_internal_vip}:8774/v2.1",
       configure_endpoint  => true,
       configure_user      => true,
       configure_user_role => true,

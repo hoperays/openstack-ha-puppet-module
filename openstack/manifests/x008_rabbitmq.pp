@@ -8,7 +8,7 @@ class openstack::x008_rabbitmq (
     service_manage           => $manage_resources,
     config_cluster           => false,
     cluster_nodes            => $cluster_nodes,
-    node_ip_address          => $ipaddress_eth0,
+    node_ip_address          => $ipaddress_vlan53,
     cluster_node_type        => 'ram',
     erlang_cookie            => 'CECDFFCEFEDBFAAECDFA',
     wipe_db_on_cookie_change => true,

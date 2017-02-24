@@ -5,10 +5,11 @@ class openstack::y001_keystone (
   $keystone_password = 'keystone1234',
   $allowed_hosts     = ['%'],
   $username          = 'keystone',
-  $controller_vip    = '192.168.0.130',
-  $controller_1      = '192.168.0.131',
-  $controller_2      = '192.168.0.132',
-  $controller_3      = '192.168.0.133',) {
+  $api_public_vip    = '172.17.52.100',
+  $api_internal_vip  = '172.17.53.100',
+  $controller_1      = '172.17.53.101',
+  $controller_2      = '172.17.53.102',
+  $controller_3      = '172.17.53.103',) {
   if $::hostname == $bootstrap_node {
     Exec['galera-ready'] ->
     class { '::keystone::db::mysql':
@@ -50,7 +51,7 @@ class openstack::y001_keystone (
   class { '::keystone::db':
     database_max_retries    => '-1',
     database_db_max_retries => '-1',
-    database_connection     => "mysql+pymysql://keystone:${keystone_password}@${controller_vip}/keystone",
+    database_connection     => "mysql+pymysql://keystone:${keystone_password}@${api_internal_vip}/keystone",
   }
 
   class { '::keystone':
@@ -60,14 +61,12 @@ class openstack::y001_keystone (
     log_dir               => '/var/log/keystone',
     # rpc_backend         => 'rabbit',
     public_port           => '5000',
-    public_bind_host      => $::ipaddress_eth0,
-    admin_bind_host       => $::ipaddress_eth0,
+    public_bind_host      => $::ipaddress_vlan53,
+    admin_bind_host       => $::ipaddress_vlan53,
     admin_port            => '35357',
     catalog_template_file => '/etc/keystone/default_catalog.templates',
     catalog_driver        => 'sql',
     credential_key_repository          => '/etc/keystone/credential-keys',
-    # admin_workers       => max($::processorcount, 2),
-    # public_workers      => max($::processorcount, 2),
     fernet_key_repository => '/etc/keystone/fernet-keys',
     notification_driver   => 'messaging',
     rabbit_hosts          => ["${controller_1}:5672", "${controller_2}:5672", "${controller_3}:5672"],
@@ -98,24 +97,20 @@ class openstack::y001_keystone (
       ,
     }
     ,
-    # default_domain      => 'default',
-    manage_service        => false,
-    enabled               => false,
+    service_name          => 'httpd',
+    default_domain        => 'default',
     #
     purge_config          => true,
   }
 
-  class { '::keystone::config':
-  }
-
   class { '::apache':
-    ip => $::ipaddress_eth0,
+    ip => $::ipaddress_vlan53,
   }
 
   class { '::keystone::wsgi::apache':
     ssl             => false,
-    bind_host       => $::ipaddress_eth0,
-    admin_bind_host => $::ipaddress_eth0,
+    bind_host       => $::ipaddress_vlan53,
+    admin_bind_host => $::ipaddress_vlan53,
   }
 
   class { '::keystone::cors':
@@ -134,11 +129,11 @@ class openstack::y001_keystone (
     'security_compliance/lockout_duration':
       value => '1800';
 
-    'security_compliance/disable_user_account_days_inactive':
-      value => '90';
+    # 'security_compliance/disable_user_account_days_inactive':
+    #   value => '90';
 
-    'security_compliance/password_expires_days':
-      value => '90';
+    # 'security_compliance/password_expires_days':
+    #   value => '90';
 
     # 'security_compliance/password_expires_ignore_user_ids':
     #   value => ['3a54353c9dcc44f690975ea768512f6a'];
@@ -175,9 +170,9 @@ class openstack::y001_keystone (
     }
 
     class { '::keystone::endpoint':
-      public_url     => "http://${controller_vip}:5000",
-      internal_url   => "http://${controller_vip}:5000",
-      admin_url      => "http://${controller_vip}:35357",
+      public_url     => "http://${api_public_vip}:5000",
+      internal_url   => "http://${api_internal_vip}:5000",
+      admin_url      => "http://${api_internal_vip}:35357",
       region         => 'RegionOne',
       user_domain    => undef,
       project_domain => undef,
@@ -199,8 +194,8 @@ export OS_PROJECT_DOMAIN_NAME=default
 export OS_USER_DOMAIN_NAME=default
 export OS_PROJECT_NAME=admin
 export OS_USERNAME=admin
-export OS_PASSWORD=admin1234
-export OS_AUTH_URL=http://${controller_vip}:35357/v3
+export OS_PASSWORD=${admin_password}
+export OS_AUTH_URL=http://${api_internal_vip}:35357/v3
 export OS_IDENTITY_API_VERSION=3
 export OS_IMAGE_API_VERSION=2
 export PS1='[\u@\h \W(keystone_admin)]# '

@@ -1,17 +1,17 @@
 class openstack::z001_zabbix (
-  $bootstrap_node    = 'controller-1',
-  $nova_password     = 'nova1234',
-  $nova_api_password = 'nova_api1234',
-  $neutron_password  = 'neutron1234',
-  $allowed_hosts     = ['%'],
-  $cluster_nodes     = ['controller-1', 'controller-2', 'controller-3'],
-  $host              = 'controller-vip',) {
+  $bootstrap_node   = 'controller-1',
+  $zabbix_password  = 'zabbix1234',
+  $allowed_hosts    = ['%'],
+  $username         = 'zabbix',
+  $api_public_vip   = '172.17.52.100',
+  $api_internal_vip = '172.17.53.100',
+  $controller_1     = '172.17.53.101',
+  $controller_2     = '172.17.53.102',
+  $controller_3     = '172.17.53.103',) {
   if $::hostname == $bootstrap_node {
-    $sync_db = true
-    $sync_db_api = true
+    $manage_database = true
   } else {
-    $sync_db = false
-    $sync_db_api = false
+    $manage_database = false
   }
 
   class { 'apache':
@@ -27,6 +27,9 @@ class openstack::z001_zabbix (
   }
 
   class { 'zabbix::agent':
-    server => '192.168.20.11',
+    server => $api_internal_vip,
+  }
+
+  if $::hostname == $bootstrap_node {
   }
 }

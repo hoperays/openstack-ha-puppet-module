@@ -2,10 +2,11 @@ class openstack::y007_ceilometer (
   $bootstrap_node      = 'controller-1',
   $ceilometer_password = 'ceilometer1234',
   $redis_password      = 'redis1234',
-  $controller_vip      = '192.168.0.130',
-  $controller_1        = '192.168.0.131',
-  $controller_2        = '192.168.0.132',
-  $controller_3        = '192.168.0.133',
+  $api_public_vip      = '172.17.52.100',
+  $api_internal_vip    = '172.17.53.100',
+  $controller_1        = '172.17.53.101',
+  $controller_2        = '172.17.53.102',
+  $controller_3        = '172.17.53.103',
   $telemetry_secret    = 'ceilometersecret',) {
   class { '::ceilometer':
     http_timeout          => '600',
@@ -27,7 +28,7 @@ class openstack::y007_ceilometer (
   }
 
   class { '::ceilometer::agent::auth':
-    auth_url                 => "http://${controller_vip}:5000",
+    auth_url                 => "http://${api_internal_vip}:5000",
     auth_endpoint_type       => 'internalURL',
     auth_type                => 'password',
     auth_user_domain_name    => 'default',
@@ -52,7 +53,7 @@ class openstack::y007_ceilometer (
     }
 
     class { '::ceilometer::agent::central':
-      coordination_url => "redis://:${redis_password}@${controller_vip}:6379",
+      coordination_url => "redis://:${redis_password}@${api_internal_vip}:6379",
       #
       require          => Package['python-redis'],
     }
@@ -63,8 +64,8 @@ class openstack::y007_ceilometer (
     }
 
     class { '::ceilometer::keystone::authtoken':
-      auth_uri            => "http://${controller_vip}:5000",
-      auth_url            => "http://${controller_vip}:35357",
+      auth_uri            => "http://${api_internal_vip}:5000",
+      auth_url            => "http://${api_internal_vip}:35357",
       memcached_servers   => ["${controller_1}:11211", "${controller_2}:11211", "${controller_3}:11211"],
       auth_type           => 'password',
       project_domain_name => 'default',
@@ -75,7 +76,7 @@ class openstack::y007_ceilometer (
     }
 
     class { '::ceilometer::api':
-      host          => $ipaddress_eth0,
+      host          => $ipaddress_vlan53,
       port          => '8777',
       enable_proxy_headers_parsing => true,
       #
@@ -85,7 +86,7 @@ class openstack::y007_ceilometer (
 
     class { '::ceilometer::wsgi::apache':
       ssl       => false,
-      bind_host => $::ipaddress_eth0,
+      bind_host => $::ipaddress_vlan53,
     }
 
     class { '::ceilometer::collector':
@@ -99,7 +100,7 @@ class openstack::y007_ceilometer (
       filter_project => 'services',
       archive_policy => 'low',
       resources_definition_file => 'gnocchi_resources.yaml',
-      url            => "http://${controller_vip}:8041",
+      url            => "http://${api_internal_vip}:8041",
     }
   } elsif $::hostname =~ /^compute-\d+$/ {
     class { '::ceilometer::agent::compute': }
@@ -118,9 +119,9 @@ class openstack::y007_ceilometer (
       region              => 'RegionOne',
       tenant              => 'services',
       configure_endpoint  => true,
-      public_url          => "http://${controller_vip}:8777",
-      admin_url           => "http://${controller_vip}:8777",
-      internal_url        => "http://${controller_vip}:8777",
+      public_url          => "http://${api_public_vip}:8777",
+      admin_url           => "http://${api_internal_vip}:8777",
+      internal_url        => "http://${api_internal_vip}:8777",
     }
   }
 }

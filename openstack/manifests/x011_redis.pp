@@ -1,13 +1,11 @@
 class openstack::x011_redis (
   $bootstrap_node   = 'controller-1',
-  $controller_1     = '192.168.0.131',
   $redis_password   = 'redis1234',
   $redis_file_limit = '10240',) {
   class { '::redis':
-    bind           => $ipaddress_eth0,
+    bind           => $ipaddress_vlan53,
     masterauth     => $redis_password,
     requirepass    => $redis_password,
-    # slaveof        => $slaveof,
     #
     notify_service => false,
     service_manage => false,

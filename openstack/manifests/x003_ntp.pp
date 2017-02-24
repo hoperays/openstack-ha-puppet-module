@@ -13,6 +13,6 @@ class openstack::x003_ntp {
       default        => ['controller-1', 'controller-2', 'controller-3'],
     },
     iburst_enable     => true,
-    interfaces        => [$ipaddress_eth0],
+    interfaces        => [$ipaddress_vlan53],
   }
 }

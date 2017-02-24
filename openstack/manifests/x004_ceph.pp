@@ -3,10 +3,10 @@ class openstack::x004_ceph (
   # uuidgen
   $fsid                        = '9dfaa171-db9e-48c5-af8c-c618cc3bfec4',
   $mon_initial_members         = 'controller-1,controller-2,controller-3',
-  $mon_host                    = '192.168.104.131,192.168.104.132,192.168.104.133',
+  $mon_host                    = '172.17.55.101,172.17.55.102,172.17.55.103',
   $authentication_type         = 'cephx',
-  $public_network              = '192.168.104.0/24',
-  $cluster_network             = '192.168.105.0/24',
+  $public_network              = '172.17.55.0/24',
+  $cluster_network             = '172.17.56.0/24',
   $mon_osd_full_ratio          = '.80',
   $mon_osd_nearfull_ratio      = '.70',
   $osd_pool_default_size       = '3',

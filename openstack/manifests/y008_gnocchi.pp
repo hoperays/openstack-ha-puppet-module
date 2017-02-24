@@ -4,10 +4,11 @@ class openstack::y008_gnocchi (
   $redis_password   = 'redis1234',
   $allowed_hosts    = ['%'],
   $username         = 'gnocchi',
-  $controller_vip   = '192.168.0.130',
-  $controller_1     = '192.168.0.131',
-  $controller_2     = '192.168.0.132',
-  $controller_3     = '192.168.0.133',) {
+  $api_public_vip   = '172.17.52.100',
+  $api_internal_vip = '172.17.53.100',
+  $controller_1     = '172.17.53.101',
+  $controller_2     = '172.17.53.102',
+  $controller_3     = '172.17.53.103',) {
   if $::hostname == $bootstrap_node {
     Exec['galera-ready'] ->
     class { '::gnocchi::db::mysql':
@@ -22,14 +23,14 @@ class openstack::y008_gnocchi (
 
   class { '::gnocchi':
     log_dir             => '/var/log/gnocchi',
-    database_connection => "mysql+pymysql://gnocchi:${gnocchi_password}@${controller_vip}/gnocchi",
+    database_connection => "mysql+pymysql://gnocchi:${gnocchi_password}@${api_internal_vip}/gnocchi",
     #
     purge_config        => true,
   }
 
   class { '::gnocchi::keystone::authtoken':
-    auth_uri            => "http://${controller_vip}:5000",
-    auth_url            => "http://${controller_vip}:35357",
+    auth_uri            => "http://${api_internal_vip}:5000",
+    auth_url            => "http://${api_internal_vip}:35357",
     memcached_servers   => ["${controller_1}:11211", "${controller_2}:11211", "${controller_3}:11211"],
     auth_type           => 'password',
     project_domain_name => 'default',
@@ -41,7 +42,7 @@ class openstack::y008_gnocchi (
 
   class { '::gnocchi::api':
     max_limit     => '1000',
-    host          => $::ipaddress_eth0,
+    host          => $::ipaddress_vlan53,
     port          => '8041',
     enable_proxy_headers_parsing => true,
     #
@@ -52,11 +53,10 @@ class openstack::y008_gnocchi (
 
   class { '::gnocchi::wsgi::apache':
     ssl       => false,
-    bind_host => $::ipaddress_eth0,
+    bind_host => $::ipaddress_vlan53,
   }
 
   class { '::gnocchi::metricd':
-    workers => '1',
   }
 
   class { '::gnocchi::statsd':
@@ -68,7 +68,7 @@ class openstack::y008_gnocchi (
   }
 
   class { '::gnocchi::storage':
-    coordination_url => "redis://:${redis_password}@${controller_vip}:6379",
+    coordination_url => "redis://:${redis_password}@${api_internal_vip}:6379",
     #
     require          => Package['python-redis'],
   }
@@ -95,9 +95,9 @@ class openstack::y008_gnocchi (
       service_name        => 'gnocchi',
       service_type        => 'metric',
       region              => 'RegionOne',
-      public_url          => "http://${controller_vip}:8041",
-      internal_url        => "http://${controller_vip}:8041",
-      admin_url           => "http://${controller_vip}:8041",
+      public_url          => "http://${api_public_vip}:8041",
+      internal_url        => "http://${api_internal_vip}:8041",
+      admin_url           => "http://${api_internal_vip}:8041",
       service_description => 'Openstack Metric Service',
     }
   }

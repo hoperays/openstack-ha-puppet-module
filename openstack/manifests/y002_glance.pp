@@ -1,12 +1,13 @@
 class openstack::y002_glance (
-  $bootstrap_node  = 'controller-1',
-  $glance_password = 'glance1234',
-  $allowed_hosts   = ['%'],
-  $username        = 'glance',
-  $controller_vip  = '192.168.0.130',
-  $controller_1    = '192.168.0.131',
-  $controller_2    = '192.168.0.132',
-  $controller_3    = '192.168.0.133',) {
+  $bootstrap_node   = 'controller-1',
+  $glance_password  = 'glance1234',
+  $allowed_hosts    = ['%'],
+  $username         = 'glance',
+  $api_public_vip   = '172.17.52.100',
+  $api_internal_vip = '172.17.53.100',
+  $controller_1     = '172.17.53.101',
+  $controller_2     = '172.17.53.102',
+  $controller_3     = '172.17.53.103',) {
   if $::hostname == $bootstrap_node {
     Exec['galera-ready'] ->
     class { '::glance::db::mysql':
@@ -46,8 +47,8 @@ class openstack::y002_glance (
   }
 
   class { '::glance::api::authtoken':
-    auth_uri            => "http://${controller_vip}:5000",
-    auth_url            => "http://${controller_vip}:35357",
+    auth_uri            => "http://${api_internal_vip}:5000",
+    auth_url            => "http://${api_internal_vip}:35357",
     memcached_servers   => ["${controller_1}:11211", "${controller_2}:11211", "${controller_3}:11211"],
     auth_type           => 'password',
     project_domain_name => 'default',
@@ -60,16 +61,15 @@ class openstack::y002_glance (
   class { '::glance::api':
     show_image_direct_url        => true,
     show_multiple_locations      => true,
-    bind_host       => $::ipaddress_eth0,
+    bind_host       => $::ipaddress_vlan53,
     bind_port       => '9292',
-    # workers       => $::processorcount,
     image_cache_dir => '/var/lib/glance/image-cache',
-    registry_host   => $controller_vip,
+    registry_host   => $api_internal_vip,
     registry_client_protocol     => 'http',
     log_file        => '/var/log/glance/api.log',
     log_dir         => '/var/log/glance',
     # rpc_backend   => 'rabbit',
-    database_connection          => "mysql+pymysql://glance:${glance_password}@${controller_vip}/glance",
+    database_connection          => "mysql+pymysql://glance:${glance_password}@${api_internal_vip}/glance",
     #
     stores          => ['glance.store.http.Store', 'glance.store.rbd.Store'],
     default_store   => 'rbd',
@@ -103,8 +103,8 @@ class openstack::y002_glance (
   }
 
   class { '::glance::registry::authtoken':
-    auth_uri            => "http://${controller_vip}:5000",
-    auth_url            => "http://${controller_vip}:35357",
+    auth_uri            => "http://${api_internal_vip}:5000",
+    auth_url            => "http://${api_internal_vip}:35357",
     memcached_servers   => ["${controller_1}:11211", "${controller_2}:11211", "${controller_3}:11211"],
     auth_type           => 'password',
     project_domain_name => 'default',
@@ -117,16 +117,15 @@ class openstack::y002_glance (
   class { '::glance::registry::db':
     database_max_retries    => '-1',
     database_db_max_retries => '-1',
-    database_connection     => "mysql+pymysql://glance:${glance_password}@${controller_vip}/glance",
+    database_connection     => "mysql+pymysql://glance:${glance_password}@${api_internal_vip}/glance",
   }
 
   class { '::glance::registry':
-    bind_host     => $::ipaddress_eth0,
+    bind_host     => $::ipaddress_vlan53,
     bind_port     => '9191',
-    # workers            => $::processorcount,
     log_file      => '/var/log/glance/registry.log',
     log_dir       => '/var/log/glance',
-    # rpc_backend        => 'rabbit',
+    # rpc_backend => 'rabbit',
     #
     pipeline      => 'keystone',
     auth_strategy => 'keystone',
@@ -149,9 +148,9 @@ class openstack::y002_glance (
       region              => 'RegionOne',
       tenant              => 'services',
       service_description => 'OpenStack Image Service',
-      public_url          => "http://${controller_vip}:9292",
-      admin_url           => "http://${controller_vip}:9292",
-      internal_url        => "http://${controller_vip}:9292",
+      public_url          => "http://${api_public_vip}:9292",
+      admin_url           => "http://${api_internal_vip}:9292",
+      internal_url        => "http://${api_internal_vip}:9292",
     }
   }
 }

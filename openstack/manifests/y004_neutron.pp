@@ -4,11 +4,13 @@ class openstack::y004_neutron (
   $nova_password    = 'nova1234',
   $allowed_hosts    = ['%'],
   $username         = 'neutron',
-  $controller_vip   = '192.168.0.130',
-  $controller_1     = '192.168.0.131',
-  $controller_2     = '192.168.0.132',
-  $controller_3     = '192.168.0.133',
-  $metadata_secret  = 'metadata1234',) {
+  $api_public_vip   = '172.17.52.100',
+  $api_internal_vip = '172.17.53.100',
+  $controller_1     = '172.17.53.101',
+  $controller_2     = '172.17.53.102',
+  $controller_3     = '172.17.53.103',
+  $metadata_secret  = 'metadata1234',
+  $bridge_mappings  = ['cloud:br-bond0']) {
   if $::hostname == $bootstrap_node {
     Exec['galera-ready'] ->
     class { '::neutron::db::mysql':
@@ -27,7 +29,6 @@ class openstack::y004_neutron (
       unless    => "/usr/bin/ssh controller-2 'echo ok > /tmp/${username}-db-ready' && \
                     /usr/bin/ssh controller-3 'echo ok > /tmp/${username}-db-ready'",
     }
-    $bridge_mappings = ['physnet1:br-eth2', 'extnet:br-ex']
   } elsif $::hostname =~ /^controller-\d+$/ {
     $sync_db = false
     Anchor['neutron::config::end'] ->
@@ -46,13 +47,10 @@ class openstack::y004_neutron (
       command   => "/usr/bin/rm -f /tmp/${username}-db-ready",
       unless    => "/usr/bin/rm -f /tmp/${username}-db-ready",
     }
-    $bridge_mappings = ['physnet1:br-eth2', 'extnet:br-ex']
-  } elsif $::hostname =~ /^compute-\d+$/ {
-    $bridge_mappings = ['physnet1:br-eth2']
   }
 
   class { '::neutron':
-    bind_host               => $::ipaddress_eth0,
+    bind_host               => $::ipaddress_vlan53,
     auth_strategy           => 'keystone',
     core_plugin             => 'neutron.plugins.ml2.plugin.Ml2Plugin',
     service_plugins         => [
@@ -93,67 +91,17 @@ class openstack::y004_neutron (
     extensions                 => ['qos'],
     integration_bridge         => 'br-int',
     tunnel_bridge              => 'br-tun',
-    local_ip                   => $::ipaddress_eth3,
+    local_ip                   => $::ipaddress_vlan54,
     bridge_mappings            => $bridge_mappings,
     firewall_driver            => 'neutron.agent.linux.iptables_firewall.OVSHybridIptablesFirewallDriver',
     #
     purge_config               => true,
   }
 
-  file { '/etc/sysconfig/network-scripts/ifcfg-eth2':
-    ensure  => file,
-    mode    => '0644',
-    owner   => 'root',
-    group   => 'root',
-    content => "NAME=eth2
-DEVICE=eth2
-TYPE=OVSPort
-DEVICETYPE=ovs
-OVS_BRIDGE=br-eth2
-BOOTPROTO=none
-ONBOOT=yes
-",
-  } ->
-  file { '/etc/sysconfig/network-scripts/ifcfg-br-eth2':
-    ensure  => file,
-    mode    => '0644',
-    owner   => 'root',
-    group   => 'root',
-    content => "NAME=br-eth2
-DEVICE=br-eth2
-DEVICETYPE=ovs
-OVSBOOTPROTO=none
-TYPE=OVSBridge
-BOOTPROTO=none
-ONBOOT=yes
-",
-  } ->
-  exec { 'ovs-vsctl add-br br-eth2':
-    timeout   => '3600',
-    tries     => '360',
-    try_sleep => '10',
-    command   => "/usr/bin/ovs-vsctl add-br br-eth2",
-    unless    => "/usr/bin/ovs-vsctl list-ports br-eth2",
-  } ->
-  exec { 'ip link set br-eth2 up':
-    timeout   => '3600',
-    tries     => '360',
-    try_sleep => '10',
-    command   => "/usr/sbin/ip link set br-eth2 up",
-    unless    => "/usr/sbin/ip link show br-eth2 | /usr/bin/grep 'UP'",
-  } ->
-  exec { 'ovs-vsctl add-port br-eth2 eth2':
-    timeout   => '3600',
-    tries     => '360',
-    try_sleep => '10',
-    command   => "/usr/bin/ovs-vsctl add-port br-eth2 eth2",
-    unless    => "/usr/bin/ovs-vsctl list-ports br-eth2 | /usr/bin/grep ^eth2",
-  }
-
   if $::hostname =~ /^controller-\d+$/ {
     class { '::neutron::keystone::authtoken':
-      auth_uri            => "http://${controller_vip}:5000/v2.0",
-      auth_url            => "http://${controller_vip}:35357",
+      auth_uri            => "http://${api_internal_vip}:5000",
+      auth_url            => "http://${api_internal_vip}:35357",
       memcached_servers   => ["${controller_1}:11211", "${controller_2}:11211", "${controller_3}:11211"],
       auth_type           => 'password',
       project_domain_name => 'default',
@@ -166,7 +114,7 @@ ONBOOT=yes
     class { '::neutron::db':
       database_max_retries    => '-1',
       database_db_max_retries => '-1',
-      database_connection     => "mysql+pymysql://neutron:${neutron_password}@${controller_vip}/neutron",
+      database_connection     => "mysql+pymysql://neutron:${neutron_password}@${api_internal_vip}/neutron",
     }
 
     class { '::neutron::server':
@@ -187,7 +135,7 @@ ONBOOT=yes
     }
 
     class { '::neutron::server::notifications':
-      auth_url          => "http://${controller_vip}:35357/v3",
+      auth_url          => "http://${api_internal_vip}:35357/v3",
       auth_type         => 'password',
       project_domain_id => 'default',
       user_domain_id    => 'default',
@@ -195,7 +143,7 @@ ONBOOT=yes
       username          => 'nova',
       password          => $nova_password,
       #
-      nova_url          => "http://${controller_vip}:8774/v2.1",
+      nova_url          => "http://${api_internal_vip}:8774/v2.1",
       notify_nova_on_port_status_changes => true,
       notify_nova_on_port_data_changes   => true,
     }
@@ -206,10 +154,10 @@ ONBOOT=yes
       mechanism_drivers    => ['openvswitch'],
       extension_drivers    => ['port_security', 'qos'],
       flat_networks        => '*',
-      network_vlan_ranges  => 'physnet1:1:4094',
-      tunnel_id_ranges     => '1:4094',
+      network_vlan_ranges  => ['cloud:1:1', 'cloud:100:599'],
+      tunnel_id_ranges     => ['100:599'],
       vxlan_group          => '224.0.0.1',
-      vni_ranges           => '1:4094',
+      vni_ranges           => ['100:599'],
       #
       purge_config         => true,
     }
@@ -256,7 +204,7 @@ ONBOOT=yes
     neutron_l3_agent_config { 'AGENT/extensions': value => join(any2array(['fwaas']), ','); }
 
     class { '::neutron::agents::metadata':
-      metadata_ip   => $controller_vip,
+      metadata_ip   => $api_internal_vip,
       shared_secret => $metadata_secret,
       #
       purge_config  => true,
@@ -286,56 +234,6 @@ ONBOOT=yes
       #
       purge_config     => true,
     }
-
-    file { '/etc/sysconfig/network-scripts/ifcfg-eth1':
-      ensure  => file,
-      mode    => '0644',
-      owner   => 'root',
-      group   => 'root',
-      content => "NAME=eth1
-DEVICE=eth1
-TYPE=OVSPort
-DEVICETYPE=ovs
-OVS_BRIDGE=br-ex
-BOOTPROTO=none
-ONBOOT=yes
-",
-    } ->
-    file { '/etc/sysconfig/network-scripts/ifcfg-br-ex':
-      ensure  => file,
-      mode    => '0644',
-      owner   => 'root',
-      group   => 'root',
-      content => "NAME=br-ex
-DEVICE=br-ex
-DEVICETYPE=ovs
-OVSBOOTPROTO=none
-TYPE=OVSBridge
-BOOTPROTO=none
-ONBOOT=yes
-",
-    } ->
-    exec { 'ovs-vsctl add-br br-ex':
-      timeout   => '3600',
-      tries     => '360',
-      try_sleep => '10',
-      command   => "/usr/bin/ovs-vsctl add-br br-ex",
-      unless    => "/usr/bin/ovs-vsctl list-ports br-ex",
-    } ->
-    exec { 'ip link set br-ex up':
-      timeout   => '3600',
-      tries     => '360',
-      try_sleep => '10',
-      command   => "/usr/sbin/ip link set br-ex up",
-      unless    => "/usr/sbin/ip link show br-ex | /usr/bin/grep 'UP'",
-    } ->
-    exec { 'ovs-vsctl add-port br-ex eth1':
-      timeout   => '3600',
-      tries     => '360',
-      try_sleep => '10',
-      command   => "/usr/bin/ovs-vsctl add-port br-ex eth1",
-      unless    => "/usr/bin/ovs-vsctl list-ports br-ex | /usr/bin/grep ^eth1",
-    }
   }
 
   if $::hostname == $bootstrap_node {
@@ -351,9 +249,9 @@ ONBOOT=yes
       service_type        => 'network',
       service_description => 'Neutron Networking Service',
       region              => 'RegionOne',
-      public_url          => "http://${controller_vip}:9696",
-      admin_url           => "http://${controller_vip}:9696",
-      internal_url        => "http://${controller_vip}:9696",
+      public_url          => "http://${api_public_vip}:9696",
+      admin_url           => "http://${api_internal_vip}:9696",
+      internal_url        => "http://${api_internal_vip}:9696",
     }
   }
 }

@@ -1,35 +1,43 @@
 class openstack::x002_hosts {
   host { 'pxeserver':
     ensure => present,
-    ip     => '192.168.103.200',
+    ip     => '192.168.1.200',
   } ->
-  host { 'controller-vip':
+  host { 'mgmt-vip':
     ensure => present,
-    ip     => '192.168.0.130',
+    ip     => '172.17.51.100',
+  } ->
+  host { 'api-public-vip':
+    ensure => present,
+    ip     => '172.17.52.100',
+  } ->
+  host { 'api-internal-vip':
+    ensure => present,
+    ip     => '172.17.53.100',
   } ->
   host { 'controller-1':
     ensure => present,
-    ip     => '192.168.0.131',
+    ip     => '172.17.53.101',
   } ->
   host { 'controller-2':
     ensure => present,
-    ip     => '192.168.0.132',
+    ip     => '172.17.53.102',
   } ->
   host { 'controller-3':
     ensure => present,
-    ip     => '192.168.0.133',
+    ip     => '172.17.53.103',
   } ->
   host { 'compute-1':
     ensure => present,
-    ip     => '192.168.0.134',
+    ip     => '172.17.53.104',
   } ->
   host { 'compute-2':
     ensure => present,
-    ip     => '192.168.0.135',
+    ip     => '172.17.53.105',
   } ->
   host { 'compute-3':
     ensure => present,
-    ip     => '192.168.0.136',
+    ip     => '172.17.53.106',
   } ->
   file { '.ssh':
     ensure => 'directory',
