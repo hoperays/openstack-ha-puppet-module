@@ -98,7 +98,7 @@ class openstack::y001_keystone (
     }
     ,
     service_name          => 'httpd',
-    default_domain        => 'default',
+    # default_domain      => 'default',
     #
     purge_config          => true,
   }
