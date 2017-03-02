@@ -1,0 +1,293 @@
+openstack::x001_firewall::pre_rules:
+  000 accept all icmp:
+    proto: icmp
+    action: accept
+  001 accept all to lo interface:
+    proto: all
+    iniface: lo
+    action: accept
+  002 reject local traffic not on loopback interface:
+    iniface: lo
+    proto: all
+    destination: 127.0.0.1/8
+    action: reject
+  003 accept related established rules:
+    proto: all
+    state:
+    - RELATED
+    - ESTABLISHED
+    action: accept
+  004 allow inbound ssh:
+    dport:
+    - 22
+    proto: tcp
+    action: accept
+    provider: iptables
+openstack::x001_firewall::post_rules:
+  998 log all:
+    proto: all
+    jump: LOG
+  999 drop all:
+    proto: all
+    action: drop
+openstack::x001_firewall::controller_rules:
+  100 allow inbound ntp:
+    dport:
+    - 123
+    proto: udp
+    action: accept
+    provider: iptables
+  101 allow inbound ceph monitor:
+    dport:
+    - 6789
+    proto: tcp
+    action: accept
+    provider: iptables
+  102 allow inbound pacemaker:
+    dport:
+    - 2224
+    - 3121
+    - 21064
+    proto: tcp
+    action: accept
+    provider: iptables
+  102 allow inbound corosync:
+    dport:
+    - 5405
+    proto: udp
+    action: accept
+    provider: iptables
+  103 allow inbound haproxy stats:
+    dport:
+    - 1993
+    - 13993
+    proto: tcp
+    action: accept
+    provider: iptables
+  104 allow inbound mysql galera:
+    dport:
+    - 873
+    - 3306
+    - 4444
+    - 4567
+    - 4568
+    - 9200
+    proto: tcp
+    action: accept
+    provider: iptables
+  105 allow inbound rabbitmq:
+    dport:
+    - 4369
+    - 5672
+    - 25672
+    proto: tcp
+    action: accept
+    provider: iptables
+  106 allow inbound memcached:
+    dport:
+    - 11211
+    proto: tcp
+    action: accept
+    provider: iptables
+  107 allow inbound mongodb:
+    dport:
+    - 27017
+    - 27018
+    - 27019
+    proto: tcp
+    action: accept
+    provider: iptables
+  108 allow inbound redis:
+    dport:
+    - 6379
+    - 26379
+    proto: tcp
+    action: accept
+    provider: iptables
+  200 allow inbound keystone:
+    dport:
+    - 5000
+    - 13000
+    - 35357
+    - 13357
+    proto: tcp
+    action: accept
+    provider: iptables
+  201 allow inbound glance registory:
+    dport:
+    - 9191
+    proto: tcp
+    action: accept
+    provider: iptables
+  201 allow inbound glance api:
+    dport:
+    - 9292
+    - 13292
+    proto: tcp
+    action: accept
+    provider: iptables
+  202 allow inbound cinder api:
+    dport:
+    - 8776
+    - 13776
+    proto: tcp
+    action: accept
+    provider: iptables
+  203 allow inbound neutron api:
+    dport:
+    - 9696
+    - 13696
+    proto: tcp
+    action: accept
+    provider: iptables
+  203 allow inbound neutron dhcp input:
+    dport:
+    - 67
+    proto: udp
+    action: accept
+    provider: iptables
+  203 allow inbound neutron vxlan networks:
+    dport:
+    - 4789
+    proto: udp
+    action: accept
+    provider: iptables
+  203 allow inbound neutron gre networks:
+    proto: gre
+    action: accept
+    provider: iptables
+  203 allow inbound neutron l3 vrrp:
+    proto: vrrp
+    action: accept
+    provider: iptables
+  204 allow inbound nova metadata:
+    dport:
+    - 8775
+    proto: tcp
+    action: accept
+    provider: iptables
+  204 allow inbound nova novncproxy:
+    dport:
+    - 6080
+    - 13080
+    proto: tcp
+    action: accept
+    provider: iptables
+  204 allow inbound nova api:
+    dport:
+    - 8773
+    - 3773
+    - 8774
+    - 13774
+    proto: tcp
+    action: accept
+    provider: iptables
+  205 allow inbound horizon:
+    dport:
+    - 80
+    - 443
+    proto: tcp
+    action: accept
+    provider: iptables
+  206 allow inbound ceilometer api:
+    dport:
+    - 8777
+    - 13777
+    proto: tcp
+    action: accept
+    provider: iptables
+  207 allow inbound gnocchi api:
+    dport:
+    - 8041
+    - 13041
+    proto: tcp
+    action: accept
+    provider: iptables
+  207 allow inbound gnocchi statsd:
+    dport:
+    - 8125
+    proto: udp
+    action: accept
+    provider: iptables
+  208 allow inbound aodh api:
+    dport:
+    - 8042
+    - 13042
+    proto: tcp
+    action: accept
+    provider: iptables
+  300 allow inbound zabbix server:
+    dport:
+    - 10051
+    proto: tcp
+    action: accept
+    provider: iptables
+  300 allow inbound zabbix agent:
+    dport:
+    - 10050
+    proto: tcp
+    action: accept
+    provider: iptables
+  300 allow inbound zabbix snmp:
+    dport:
+    - 161
+    proto: udp
+    action: accept
+    provider: iptables
+openstack::x001_firewall::novacompute_rules:
+  102 allow inbound pacemaker:
+    dport:
+    - 3121
+    proto: tcp
+    action: accept
+    provider: iptables
+  203 allow inbound neutron vxlan networks:
+    dport:
+    - 4789
+    proto: udp
+    action: accept
+    provider: iptables
+  203 allow inbound neutron gre networks:
+    proto: gre
+    action: accept
+    provider: iptables
+  204 allow inbound nova libvirt:
+    dport:
+    - 5900-5999
+    - 16509
+    - 16514
+    - 49152-49215
+    proto: tcp
+    action: accept
+    provider: iptables
+  300 allow inbound zabbix agent:
+    dport:
+    - 10050
+    proto: tcp
+    action: accept
+    provider: iptables
+  300 allow inbound zabbix snmp:
+    dport:
+    - 161
+    proto: udp
+    action: accept
+    provider: iptables
+openstack::x001_firewall::cephstorage_rules:
+  101 allow inbound ceph osd:
+    dport:
+    - 6800-7300
+    proto: tcp
+    action: accept
+    provider: iptables
+  300 allow inbound zabbix agent:
+    dport:
+    - 10050
+    proto: tcp
+    action: accept
+    provider: iptables
+  300 allow inbound zabbix snmp:
+    dport:
+    - 161
+    proto: udp
+    action: accept
+    provider: iptables

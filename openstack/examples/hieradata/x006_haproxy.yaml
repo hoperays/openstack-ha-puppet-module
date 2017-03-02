@@ -1,0 +1,39 @@
+openstack::x006_haproxy::haproxy_stats_user: admin
+openstack::x006_haproxy::haproxy_stats_password: 9bf87b1407fb12ef405d21cd859b34fe
+openstack::x006_haproxy::redis_password: ce339fd2b8d63a58fe4e92bcbf4efadf
+openstack::x006_haproxy::manage_resources: false
+openstack::x006_haproxy::haproxy_log_address: /dev/log
+openstack::x006_haproxy::haproxy_global_maxconn: 20480
+openstack::x006_haproxy::haproxy_ssl_cipher_suite: '!SSLv2:kEECDH:kRSA:kEDH:kPSK:+3DES:!aNULL:!eNULL:!MD5:!EXP:!RC4:!SEED:!IDEA:!DES'
+openstack::x006_haproxy::haproxy_ssl_options: no-sslv3
+openstack::x006_haproxy::haproxy_default_maxconn: 4096
+openstack::x006_haproxy::haproxy_default_timeout:
+- http-request 10s
+- queue 2m
+- connect 10s
+- client 2m
+- server 2m
+- check 10s
+openstack::x006_haproxy::haproxy_listen_bind_param:
+- transparent
+openstack::x006_haproxy::haproxy_listen_options:
+  http-request:
+  - set-header X-Forwarded-Proto https if { ssl_fc }
+  - set-header X-Forwarded-Proto http if !{ ssl_fc }
+openstack::x006_haproxy::haproxy_member_options:
+- check
+- fall 5
+- inter 2000
+- rise 2
+openstack::x006_haproxy::service_certificate: /etc/pki/tls/certs/apache-selfsigned.pem
+openstack::x006_haproxy::refresh: 30s
+openstack::x006_haproxy::mysql: true
+openstack::x006_haproxy::redis: true
+openstack::x006_haproxy::keystone: true
+openstack::x006_haproxy::glance: true
+openstack::x006_haproxy::cinder: true
+openstack::x006_haproxy::neutron: true
+openstack::x006_haproxy::nova: true
+openstack::x006_haproxy::horizon: true
+openstack::x006_haproxy::gnocchi: true
+openstack::x006_haproxy::aodh: true

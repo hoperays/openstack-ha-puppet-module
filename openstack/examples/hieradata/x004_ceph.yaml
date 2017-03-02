@@ -1,0 +1,58 @@
+openstack::x004_ceph::fsid: 9dfaa171-db9e-48c5-af8c-c618cc3bfec4
+openstack::x004_ceph::authentication_type: cephx
+openstack::x004_ceph::public_network: 172.17.105.0/24
+openstack::x004_ceph::cluster_network: 172.17.106.0/24
+openstack::x004_ceph::mon_osd_full_ratio: 0.8
+openstack::x004_ceph::mon_osd_nearfull_ratio: 0.7
+openstack::x004_ceph::osd_pool_default_size: 3
+openstack::x004_ceph::osd_journal_size: 30720
+openstack::x004_ceph::filestore_xattr_use_omap: true
+openstack::x004_ceph::filestore_max_sync_interval: 10
+openstack::x004_ceph::osd_mkfs_type: xfs
+openstack::x004_ceph::osd_mkfs_options_xfs: -f -i size=2048
+openstack::x004_ceph::osd_mount_options_xfs: rw,noatime,inode64,logbsize=256k,delaylog
+openstack::x004_ceph::osd_crush_chooseleaf_type: 1
+openstack::x004_ceph::mon_key: AQDuZ+xXWjN8JhAAEBD7j3EaFVhXQBJzjLdf2Q==
+openstack::x004_ceph::controller_keys:
+  client.admin:
+    secret: AQDtZ+xX3678NxAAnWIyLVy2dVQ0wZePqWG09Q==
+    cap_mon: allow *
+    cap_osd: allow *
+    cap_mds: allow *
+openstack::x004_ceph::cephstorage_keys:
+  client.bootstrap-mds:
+    secret: AQAyGSxY9+bgNRAAdMFl/EjA6KM5hP1wBcDZog==
+    cap_mon: allow profile bootstrap-mds
+    keyring_path: /var/lib/ceph/bootstrap-mds/ceph.keyring
+  client.bootstrap-osd:
+    secret: AQBMdOxXzLkwHxAA8TeFuJyvG6/NHziVyb06bg==
+    cap_mon: allow profile bootstrap-osd
+    keyring_path: /var/lib/ceph/bootstrap-osd/ceph.keyring
+  client.bootstrap-rgw:
+    secret: AQClPkpYRsB1CxAAZ9hhExzByrXKbPiV1kDu5Q==
+    cap_mon: allow profile bootstrap-rgw
+    keyring_path: /var/lib/ceph/bootstrap-rgw/ceph.keyring
+openstack::x004_ceph::novacompute_keys:
+  client.openstack:
+    mode: '0644'
+    secret: AQB+RUpYfv+aIRAA4AbRb+XICXx+x+shF5AeZQ==
+    cap_mon: allow r
+    cap_osd: allow class-read object_prefix rbd_children, allow rwx pool=volumes, allow rwx pool=backups, allow rwx pool=vms, allow rwx pool=images, allow rwx pool=metrics
+openstack::x004_ceph::osds:
+  /dev/sdc:
+    journal: /dev/sdb
+  /dev/sdd:
+    journal: /dev/sdb
+openstack::x004_ceph::pools:
+  rbd:
+    ensure: absent
+  volumes:
+    pg_num: 64
+  images:
+    pg_num: 64
+  backups:
+    pg_num: 64
+  vms:
+    pg_num: 64
+  metrics:
+    pg_num: 64

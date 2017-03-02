@@ -1,18 +1,26 @@
-class openstack::x003_ntp {
-  class { 'ntp':
+class openstack::x003_ntp (
+  $controller_1_hostname = hiera('controller_1_hostname'),
+  $controller_2_hostname = hiera('controller_2_hostname'),
+  $controller_3_hostname = hiera('controller_3_hostname'),
+  $ntp_servers           = [],
+  $iburst_enable         = false,
+  $ntp_interfaces        = [
+    hiera('admin_interface'),
+    hiera('public_interface'),
+    hiera('internal_interface')],
+) {
+  class { '::ntp':
     servers           => $hostname ? {
-      'controller-1' => ['time.pool.aliyun.com', '127.127.1.0'],
-      'controller-2' => ['controller-1', '127.127.1.0'],
-      'controller-3' => ['controller-1', 'controller-2', '127.127.1.0'],
-      default        => ['controller-1', 'controller-2', 'controller-3'],
+      $controller_1_hostname => union($ntp_servers, ['127.127.1.0']),
+      $controller_2_hostname => [$controller_1_hostname, '127.127.1.0'],
+      $controller_3_hostname => [$controller_1_hostname, $controller_2_hostname, '127.127.1.0'],
+      default                => [$controller_1_hostname, $controller_2_hostname, $controller_3_hostname],
     },
     preferred_servers => $hostname ? {
-      'controller-1' => ['time.pool.aliyun.com'],
-      'controller-2' => ['controller-1'],
-      'controller-3' => ['controller-1', 'controller-2'],
-      default        => ['controller-1', 'controller-2', 'controller-3'],
+      $controller_1_hostname => $ntp_servers,
+      default                => [$controller_1_hostname],
     },
-    iburst_enable     => true,
-    interfaces        => [$ipaddress_vlan53],
+    iburst_enable     => $iburst_enable,
+    interfaces        => $ntp_interfaces,
   }
 }

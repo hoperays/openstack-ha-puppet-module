@@ -1,0 +1,7 @@
+openstack::x008_rabbitmq::manage_resources: false
+openstack::x008_rabbitmq::config_cluster: false
+openstack::x008_rabbitmq::cluster_node_type: ram
+openstack::x008_rabbitmq::erlang_cookie: 1b910838716fcc19e1ed0ff5307b7315
+openstack::x008_rabbitmq::wipe_db_on_cookie_change: true
+openstack::x008_rabbitmq::default_user: guest
+openstack::x008_rabbitmq::default_pass: 7282863f484f9230a8d24b4a3f472ed4

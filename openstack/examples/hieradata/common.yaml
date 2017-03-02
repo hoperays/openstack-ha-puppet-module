@@ -1,0 +1,15 @@
+controller_1_hostname: examplecloud-controller-1
+controller_2_hostname: examplecloud-controller-2
+controller_3_hostname: examplecloud-controller-3
+admin_vip: 172.17.101.50
+public_vip: 172.17.102.50
+internal_vip: 172.17.103.50
+controller_1_internal_ip: 172.17.103.51
+controller_2_internal_ip: 172.17.103.52
+controller_3_internal_ip: 172.17.103.53
+controller_1_storage_ip: 172.17.105.51
+controller_2_storage_ip: 172.17.105.52
+controller_3_storage_ip: 172.17.105.53
+admin_interface: '%{::ipaddress_vlan101}'
+public_interface: '%{::ipaddress_vlan102}'
+internal_interface: '%{::ipaddress_vlan103}'

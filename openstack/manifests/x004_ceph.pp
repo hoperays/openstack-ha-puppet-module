@@ -1,30 +1,37 @@
 class openstack::x004_ceph (
-  $bootstrap_node              = 'controller-1',
+  $bootstrap_node              = hiera('controller_1_hostname'),
   # uuidgen
-  $fsid                        = '9dfaa171-db9e-48c5-af8c-c618cc3bfec4',
-  $mon_initial_members         = 'controller-1,controller-2,controller-3',
-  $mon_host                    = '172.17.55.101,172.17.55.102,172.17.55.103',
-  $authentication_type         = 'cephx',
-  $public_network              = '172.17.55.0/24',
-  $cluster_network             = '172.17.56.0/24',
-  $mon_osd_full_ratio          = '.80',
-  $mon_osd_nearfull_ratio      = '.70',
-  $osd_pool_default_size       = '3',
-  $osd_journal_size            = '30720',
-  $filestore_xattr_use_omap    = true,
-  $filestore_max_sync_interval = '10',
-  $osd_mkfs_type               = 'xfs',
-  $osd_mkfs_options_xfs        = '-f -i size=2048',
-  $osd_mount_options_xfs       = 'rw,noatime,inode64,logbsize=256k,delaylog',
-  $osd_crush_chooseleaf_type   = '1',
+  $fsid                        = '',
+  $mon_initial_members         = join(any2array([
+    hiera('controller_1_hostname'),
+    hiera('controller_2_hostname'),
+    hiera('controller_3_hostname')]), ','),
+  $mon_host                    = join(any2array([
+    hiera('controller_1_storage_ip'),
+    hiera('controller_2_storage_ip'),
+    hiera('controller_3_storage_ip')]), ','),
+  $authentication_type         = '',
+  $public_network              = '',
+  $cluster_network             = '',
+  $mon_osd_full_ratio          = '',
+  $mon_osd_nearfull_ratio      = '',
+  $osd_pool_default_size       = '',
+  $osd_journal_size            = '',
+  $filestore_xattr_use_omap    = false,
+  $filestore_max_sync_interval = '',
+  $osd_mkfs_type               = '',
+  $osd_mkfs_options_xfs        = '',
+  $osd_mount_options_xfs       = '',
+  $osd_crush_chooseleaf_type   = '',
   # ceph-authtool --gen-print-key
-  $admin_key                   = 'AQDtZ+xX3678NxAAnWIyLVy2dVQ0wZePqWG09Q==',
-  $mon_key                     = 'AQDuZ+xXWjN8JhAAEBD7j3EaFVhXQBJzjLdf2Q==',
-  $bootstrap_mds_key           = 'AQAyGSxY9+bgNRAAdMFl/EjA6KM5hP1wBcDZog==',
-  $bootstrap_osd_key           = 'AQBMdOxXzLkwHxAA8TeFuJyvG6/NHziVyb06bg==',
-  $bootstrap_rgw_key           = 'AQClPkpYRsB1CxAAZ9hhExzByrXKbPiV1kDu5Q==',
-  $openstack_key               = 'AQB+RUpYfv+aIRAA4AbRb+XICXx+x+shF5AeZQ==',) {
-  class { 'ceph':
+  $mon_key  = '',
+  $controller_keys             = {},
+  $cephstorage_keys            = {},
+  $novacompute_keys            = {},
+  $osds                        = {},
+  $pools                       = {},
+) {
+  class { '::ceph':
     fsid                   => $fsid,
     mon_initial_members    => $mon_initial_members,
     mon_host               => $mon_host,
@@ -57,7 +64,7 @@ class openstack::x004_ceph (
       value => $osd_crush_chooseleaf_type;
   }
 
-  if $::hostname =~ /^controller-\d+$/ {
+  if $::hostname =~ /^*controller-\d*$/ {
     ceph::mon { $::hostname: key => $mon_key, }
 
     Ceph::Key {
@@ -65,93 +72,15 @@ class openstack::x004_ceph (
       inject_as_id   => 'mon.',
       inject_keyring => "/var/lib/ceph/mon/ceph-${::hostname}/keyring",
     }
-
-    ceph::key { 'client.admin':
-      secret  => $admin_key,
-      cap_mon => 'allow *',
-      cap_osd => 'allow *',
-      cap_mds => 'allow *',
-    }
-
-    ceph::key { 'client.bootstrap-mds':
-      keyring_path => '/var/lib/ceph/bootstrap-mds/ceph.keyring',
-      secret       => $bootstrap_mds_key,
-      cap_mon      => 'allow profile bootstrap-mds',
-    }
-
-    ceph::key { 'client.bootstrap-osd':
-      keyring_path => '/var/lib/ceph/bootstrap-osd/ceph.keyring',
-      secret       => $bootstrap_osd_key,
-      cap_mon      => 'allow profile bootstrap-osd',
-    }
-
-    ceph::key { 'client.bootstrap-rgw':
-      keyring_path => '/var/lib/ceph/bootstrap-rgw/ceph.keyring',
-      secret       => $bootstrap_rgw_key,
-      cap_mon      => 'allow profile bootstrap-rgw',
-    }
-
-    ceph::key { 'client.openstack':
-      secret  => $openstack_key,
-      cap_mon => 'allow r',
-      cap_osd => 'allow class-read object_prefix rbd_children, allow rwx pool=volumes, allow rwx pool=backups, allow rwx pool=vms, allow rwx pool=images, allow rwx pool=metrics',
-      mode    => '0644',
-    }
-
-  } elsif $::hostname =~ /^storage-\d+$/ {
-    ceph::key { 'client.bootstrap-mds':
-      keyring_path => '/var/lib/ceph/bootstrap-mds/ceph.keyring',
-      secret       => $bootstrap_mds_key,
-      cap_mon      => 'allow profile bootstrap-mds',
-    }
-
-    ceph::key { 'client.bootstrap-osd':
-      keyring_path => '/var/lib/ceph/bootstrap-osd/ceph.keyring',
-      secret       => $bootstrap_osd_key,
-      cap_mon      => 'allow profile bootstrap-osd',
-    }
-
-    ceph::key { 'client.bootstrap-rgw':
-      keyring_path => '/var/lib/ceph/bootstrap-rgw/ceph.keyring',
-      secret       => $bootstrap_rgw_key,
-      cap_mon      => 'allow profile bootstrap-rgw',
-    }
-
-    ceph::osd {
-      '/dev/sdc':
-        journal => '/dev/sdb';
-
-      '/dev/sdd':
-        journal => '/dev/sdb';
-    }
-  } elsif $::hostname =~ /^compute-\d+$/ {
-    ceph::key { 'client.openstack':
-      secret  => $openstack_key,
-      cap_mon => 'allow r',
-      cap_osd => 'allow class-read object_prefix rbd_children, allow rwx pool=volumes, allow rwx pool=backups, allow rwx pool=vms, allow rwx pool=images, allow rwx pool=metrics',
-      mode    => '0644',
-    }
+    create_resources('ceph::key', merge($controller_keys, $cephstorage_keys, $novacompute_keys))
+  } elsif $::hostname =~ /^*cephstorage-\d*$/ {
+    create_resources('ceph::key', $cephstorage_keys)
+    create_resources('ceph::osd', $osds)
+  } elsif $::hostname =~ /^*novacompute-\d*$/ {
+    create_resources('ceph::key', $novacompute_keys)
   }
 
   if $::hostname == $bootstrap_node {
-    ceph::pool {
-      'rbd':
-        ensure => 'absent';
-
-      'volumes':
-        pg_num => '64';
-
-      'images':
-        pg_num => '64';
-
-      'backups':
-        pg_num => '64';
-
-      'vms':
-        pg_num => '64';
-
-      'metrics':
-        pg_num => '64';
-    }
+    create_resources('ceph::pool', $pools)
   }
 }

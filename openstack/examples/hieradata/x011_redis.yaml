@@ -1,0 +1,3 @@
+openstack::x011_redis::redis_password: 519b4939d6a68f089a0c2ed05075b577
+openstack::x011_redis::redis_file_limit: 10240
+openstack::x011_redis::manage_resources: false

@@ -1,22 +1,29 @@
 class openstack::x010_mongodb (
-  $bootstrap_node = 'controller-1',
-  $controller_1   = '172.17.53.101',
-  $controller_2   = '172.17.53.102',
-  $controller_3   = '172.17.53.103',) {
-  class { '::mongodb::globals': manage_package_repo => false, } ->
+  $bootstrap_node           = hiera('controller_1_hostname'),
+  $manage_package_repo      = false,
+  $bind_ip                  = hiera('internal_interface'),
+  $replset                  = '',
+  $smallfiles               = false,
+  $controller_1_internal_ip = hiera('controller_1_internal_ip'),
+  $controller_2_internal_ip = hiera('controller_2_internal_ip'),
+  $controller_3_internal_ip = hiera('controller_3_internal_ip'),
+) {
+  class { '::mongodb::globals':
+    manage_package_repo => $manage_package_repo,
+  } ->
   class { '::mongodb::server':
-    bind_ip    => ['127.0.0.1', $ipaddress_vlan53],
-    replset    => 'openstack',
-    smallfiles => true,
+    bind_ip    => $bind_ip,
+    replset    => $replset,
+    smallfiles => $smallfiles,
   } ->
   class { '::mongodb::client': }
 
   if $::hostname == $bootstrap_node {
-    mongodb_replset { 'openstack':
+    mongodb_replset { $replset:
       members => [
-        "${controller_1}:27017",
-        "${controller_2}:27017",
-        "${controller_3}:27017"],
+        "${controller_1_internal_ip}:27017",
+        "${controller_2_internal_ip}:27017",
+        "${controller_3_internal_ip}:27017"],
     }
   }
 }

@@ -1,26 +1,34 @@
 class openstack::x005_pacemaker (
-  $bootstrap_node  = 'controller-1',
-  $hacluster_pwd   = 'hacluster1234',
-  $cluster_members = 'controller-1 controller-2 controller-3',
-  $cluster_name    = 'openstack_cluster',
-  $manage_fw       = false,
-  $remote_authkey  = 'remote1234',) {
+  $bootstrap_node              = hiera('controller_1_hostname'),
+  $cluster_members             = join(any2array([
+    hiera('controller_1_hostname'),
+    hiera('controller_2_hostname'),
+    hiera('controller_3_hostname')]), ' '),
+  $hacluster_pwd               = '',
+  $cluster_name                = '',
+  $remote_authkey              = '',
+  $manage_fw                   = false,
+  $pacemaker_propertys         = {},
+  $pacemaker_resource_defaults = {},
+) {
   if $::hostname == $bootstrap_node {
     $setup_cluster = true
   } else {
     $setup_cluster = false
   }
 
-  if $::hostname =~ /^controller-\d+$/ {
-    class { '::pacemaker': hacluster_pwd => $hacluster_pwd, } ->
+  if $::hostname =~ /^*controller-\d*$/ {
+    class { '::pacemaker':
+      hacluster_pwd => $hacluster_pwd,
+    } ->
     class { '::pacemaker::corosync':
       cluster_members => $cluster_members,
       cluster_name    => $cluster_name,
-      manage_fw       => $manage_fw,
       remote_authkey  => $remote_authkey,
+      manage_fw       => $manage_fw,
       setup_cluster   => $setup_cluster,
     }
-  } elsif $::hostname =~ /^compute-\d+$/ {
+  } elsif $::hostname =~ /^*novacompute-\d*$/ {
     package { 'pacemaker-remote': ensure => 'present', } ->
     file { '/etc/pacemaker':
       ensure => directory,
@@ -43,19 +51,7 @@ class openstack::x005_pacemaker (
   }
 
   if $::hostname == $bootstrap_node {
-    pacemaker_resource_default { 'resource-stickiness':
-      ensure => 'present',
-      value  => 'INFINITY',
-    }
-
-    pacemaker_property {
-      'maintenance-mode':
-        ensure => 'present',
-        value  => false,;
-
-      'stonith-enabled':
-        ensure => 'present',
-        value  => false,;
-    }
+    create_resources('pacemaker_property', $pacemaker_propertys)
+    create_resources('pacemaker_resource_default', $pacemaker_resource_defaults)
   }
 }

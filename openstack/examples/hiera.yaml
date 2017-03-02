@@ -1,0 +1,27 @@
+:backends:
+- yaml
+:yaml:
+  :datadir: /etc/puppet/hieradata
+:hierarchy:
+- common
+- x001_firewall
+- x002_hosts
+- x003_ntp
+- x004_ceph
+- x005_pacemaker
+- x006_haproxy
+- x007_galera
+- x008_rabbitmq
+- x009_memcached
+- x010_mongodb
+- x011_redis
+- y001_keystone
+- y002_glance
+- y003_cinder
+- y004_neutron
+- y005_nova
+- y006_horizon
+- y007_ceilometer
+- y008_gnocchi
+- y009_aodh
+- z001_zabbix

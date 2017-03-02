@@ -1,17 +1,30 @@
 class openstack::x008_rabbitmq (
-  $bootstrap_node   = 'controller-1',
-  $cluster_nodes    = ['controller-1', 'controller-2', 'controller-3'],
-  $manage_resources = false,) {
-  class { 'rabbitmq':
+  $bootstrap_node           = hiera('controller_1_hostname'),
+  $manage_resources         = false,
+  $config_cluster           = false,
+  $cluster_nodes            = [
+    hiera('controller_1_hostname'),
+    hiera('controller_2_hostname'),
+    hiera('controller_3_hostname')],
+  $node_ip_address          = hiera('internal_interface'),
+  $cluster_node_type        = '',
+  $erlang_cookie            = '',
+  $wipe_db_on_cookie_change = false,
+  $default_user             = '',
+  $default_pass             = '',
+) {
+  class { '::rabbitmq':
     repos_ensure             => $manage_resources,
     admin_enable             => $manage_resources,
     service_manage           => $manage_resources,
-    config_cluster           => false,
+    config_cluster           => $config_cluster,
     cluster_nodes            => $cluster_nodes,
-    node_ip_address          => $ipaddress_vlan53,
-    cluster_node_type        => 'ram',
-    erlang_cookie            => 'CECDFFCEFEDBFAAECDFA',
-    wipe_db_on_cookie_change => true,
+    node_ip_address          => $node_ip_address,
+    cluster_node_type        => $cluster_node_type,
+    erlang_cookie            => $erlang_cookie,
+    wipe_db_on_cookie_change => $wipe_db_on_cookie_change,
+    default_user             => $default_user,
+    default_pass             => $default_pass,
   }
 
   if $::hostname == $bootstrap_node {
@@ -21,7 +34,7 @@ class openstack::x008_rabbitmq (
       meta_params     => 'notify=true',
       clone_params    => 'ordered=true interleave=true',
       op_params       => 'start timeout=200s stop timeout=200s',
-      require         => Class['rabbitmq'],
+      require         => Class['::rabbitmq'],
     }
   }
 }

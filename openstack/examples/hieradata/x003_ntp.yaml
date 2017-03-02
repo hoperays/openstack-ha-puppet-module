@@ -1,0 +1,3 @@
+openstack::x003_ntp::ntp_servers:
+- time.pool.aliyun.com
+openstack::x003_ntp::iburst_enable: true

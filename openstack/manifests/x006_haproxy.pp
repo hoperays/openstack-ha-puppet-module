@@ -1,15 +1,45 @@
 class openstack::x006_haproxy (
-  $admin_password   = 'admin1234',
-  $redis_password   = 'redis1234',
-  $mgmt_vip         = '172.17.51.100',
-  $api_public_vip   = '172.17.52.100',
-  $api_internal_vip = '172.17.53.100',
-  $controller_1     = '172.17.53.101',
-  $controller_2     = '172.17.53.102',
-  $controller_3     = '172.17.53.103',
-  $bootstrap_node   = 'controller-1',
-  $manage_resources = false,
-  $ssl_pem          = 'apache-selfsigned.pem',) {
+  $bootstrap_node            = hiera('controller_1_hostname'),
+  $admin_vip                 = hiera('admin_vip'),
+  $public_vip                = hiera('public_vip'),
+  $internal_vip              = hiera('internal_vip'),
+  $server_names              = [
+    hiera('controller_1_hostname'),
+    hiera('controller_2_hostname'),
+    hiera('controller_3_hostname')],
+  $ipaddresses               = [
+    hiera('controller_1_internal_ip'),
+    hiera('controller_2_internal_ip'),
+    hiera('controller_3_internal_ip')],
+  $controller_2_hostname     = hiera('controller_2_hostname'),
+  $controller_3_hostname     = hiera('controller_3_hostname'),
+  $haproxy_stats_user        = '',
+  $haproxy_stats_password    = '',
+  $redis_password            = '',
+  $manage_resources          = false,
+  $haproxy_log_address       = '',
+  $haproxy_global_maxconn    = '',
+  $haproxy_ssl_cipher_suite  = '',
+  $haproxy_ssl_options       = '',
+  $haproxy_default_maxconn   = '',
+  $haproxy_default_timeout   = [],
+  $haproxy_listen_bind_param = [],
+  $haproxy_listen_options    = {},
+  $haproxy_member_options    = [],
+  $service_certificate       = '',
+  $refresh          = '',
+  $mysql            = false,
+  $redis            = false,
+  $keystone         = false,
+  $glance           = false,
+  $cinder           = false,
+  $neutron          = false,
+  $nova             = false,
+  $horizon          = false,
+  $ceilometer       = false,
+  $gnocchi          = false,
+  $aodh             = false,
+) {
   class { '::haproxy':
     service_ensure   => $manage_resources,
     service_manage   => $manage_resources,
@@ -17,13 +47,13 @@ class openstack::x006_haproxy (
       daemon  => '',
       user    => 'haproxy',
       group   => 'haproxy',
-      log     => "/dev/log local0",
+      log     => "$haproxy_log_address local0",
       chroot  => '/var/lib/haproxy',
       pidfile => '/var/run/haproxy.pid',
-      maxconn => '20480',
+      maxconn => "$haproxy_global_maxconn",
       stats   => 'socket /var/lib/haproxy/stats',
-      ssl-default-bind-ciphers => '!SSLv2:kEECDH:kRSA:kEDH:kPSK:+3DES:!aNULL:!eNULL:!MD5:!EXP:!RC4:!SEED:!IDEA:!DES',
-      ssl-default-bind-options => 'no-sslv3',
+      ssl-default-bind-ciphers => "$haproxy_ssl_cipher_suite",
+      ssl-default-bind-options => "$haproxy_ssl_options",
     }
     ,
     defaults_options => {
@@ -31,28 +61,20 @@ class openstack::x006_haproxy (
       stats   => 'enable',
       option  => 'redispatch',
       retries => '3',
-      maxconn => '4096',
+      maxconn => $haproxy_default_maxconn,
       mode    => 'tcp',
-      timeout => [
-        'http-request 10s',
-        'queue 2m',
-        'connect 10s',
-        'client 2m',
-        'server 2m',
-        'check 10s',
-        ],
+      timeout => $haproxy_default_timeout,
     }
     ,
   }
 
   haproxy::listen { 'stats':
     bind    => {
-      "${api_public_vip}:1993"  => ['transparent'],
-      "${api_public_vip}:13993" => [
-        'transparent',
+      "$public_vip:1993"  => $haproxy_listen_bind_param,
+      "$public_vip:13993" => union($haproxy_listen_bind_param, [
         'ssl',
         'crt',
-        "/etc/pki/tls/certs/${ssl_pem}"]
+        $service_certificate])
     }
     ,
     mode    => 'http',
@@ -62,382 +84,347 @@ class openstack::x006_haproxy (
         'enable',
         'uri /',
         'realm Haproxy\ Statistics',
-        "auth admin:${admin_password}",
-        'refresh 30s',
+        "auth ${haproxy_stats_user}:${haproxy_stats_password}",
+        "refresh ${refresh}",
         ],
-      acl          => ['clear dst_port 1993', 'secure dst_port 13993'],
-      http-request => ["redirect prefix https://${api_public_vip}:13993 unless { ssl_fc } secure"],
+      acl          => ["clear dst_port 1993", "secure dst_port 13993"],
+      http-request => ["redirect prefix https://$public_vip:13993 unless { ssl_fc } secure"],
     }
   }
 
-  haproxy::listen { 'mysql':
-    bind    => {
-      "${api_internal_vip}:3306" => ['transparent']
-    }
-    ,
-    options => {
-      option      => ['tcpka', 'httpchk'],
-      stick       => 'on dst',
-      stick-table => 'type ip size 1000',
-      timeout     => [
-        'client 90m',
-        'server 90m'],
-    }
+  Haproxy::Balancermember {
+    server_names => $server_names,
+    ipaddresses  => $ipaddresses,
+    options      => $haproxy_member_options
   }
 
-  haproxy::balancermember { 'mysql':
-    listening_service => 'mysql',
-    server_names      => ['controller-1', 'controller-2', 'controller-3'],
-    ipaddresses       => [$controller_1, $controller_2, $controller_3],
-    ports             => '3306',
-    options           => 'backup check inter 1s on-marked-down shutdown-sessions port 9200',
-  }
-
-  haproxy::listen { 'redis':
-    bind    => {
-      "${api_internal_vip}:6379" => ['transparent']
+  if $mysql {
+    haproxy::listen { 'mysql':
+      bind    => {
+        "$internal_vip:3306" => $haproxy_listen_bind_param
+      }
+      ,
+      options => {
+        option      => ['tcpka', 'httpchk'],
+        stick       => 'on dst',
+        stick-table => 'type ip size 1000',
+        timeout     => [
+          'client 90m',
+          'server 90m'],
+      }
     }
-    ,
-    options => {
-      balance   => 'first',
-      option    => 'tcp-check',
-      tcp-check => [
-        "send AUTH\ ${redis_password}\\r\\n",
-        'send PING\r\n',
-        'expect string +PONG',
-        'send info\ replication\r\n',
-        'expect string role:master',
-        'send QUIT\r\n',
-        'expect string +OK'],
+
+    haproxy::balancermember { 'mysql':
+      listening_service => 'mysql',
+      ports             => '3306',
+      options           => 'backup check inter 1s on-marked-down shutdown-sessions port 9200',
     }
   }
 
-  haproxy::balancermember { 'redis':
-    listening_service => 'redis',
-    server_names      => ['controller-1', 'controller-2', 'controller-3'],
-    ipaddresses       => [$controller_1, $controller_2, $controller_3],
-    ports             => '6379',
-    options           => 'check fall 5 inter 2000 rise 2',
-  }
-
-  haproxy::listen { 'keystone_admin':
-    bind    => {
-      "${mgmt_vip}:35357"         => ['transparent'],
-      "${api_internal_vip}:35357" => ['transparent']
+  if $redis {
+    haproxy::listen { 'redis':
+      bind    => {
+        "$internal_vip:6379" => $haproxy_listen_bind_param
+      }
+      ,
+      options => {
+        balance   => 'first',
+        option    => 'tcp-check',
+        tcp-check => [
+          "send AUTH\ ${redis_password}\\r\\n",
+          'send PING\r\n',
+          'expect string +PONG',
+          'send info\ replication\r\n',
+          'expect string role:master',
+          'send QUIT\r\n',
+          'expect string +OK'],
+      }
     }
-    ,
-    mode    => 'http',
-    options => {
-      http-request => ['set-header X-Forwarded-Proto https if { ssl_fc }', 'set-header X-Forwarded-Proto http if !{ ssl_fc }'],
-    }
-  }
 
-  haproxy::balancermember { 'keystone_admin':
-    listening_service => 'keystone_admin',
-    server_names      => ['controller-1', 'controller-2', 'controller-3'],
-    ipaddresses       => [$controller_1, $controller_2, $controller_3],
-    ports             => '35357',
-    options           => 'check fall 5 inter 2000 rise 2',
-  }
-
-  haproxy::listen { 'keystone_public':
-    bind    => {
-      "${api_public_vip}:5000"   => ['transparent'],
-      "${api_internal_vip}:5000" => ['transparent']
-    }
-    ,
-    mode    => 'http',
-    options => {
-      http-request => ['set-header X-Forwarded-Proto https if { ssl_fc }', 'set-header X-Forwarded-Proto http if !{ ssl_fc }'],
+    haproxy::balancermember { 'redis':
+      listening_service => 'redis',
+      ports             => '6379',
     }
   }
 
-  haproxy::balancermember { 'keystone_public':
-    listening_service => 'keystone_public',
-    server_names      => ['controller-1', 'controller-2', 'controller-3'],
-    ipaddresses       => [$controller_1, $controller_2, $controller_3],
-    ports             => '5000',
-    options           => 'check fall 5 inter 2000 rise 2',
-  }
-
-  haproxy::listen { 'glance_api':
-    bind    => {
-      "${api_public_vip}:9292"   => ['transparent'],
-      "${api_internal_vip}:9292" => ['transparent']
+  if $keystone {
+    haproxy::listen { 'keystone_admin':
+      bind    => {
+        "$admin_vip:35357"    => $haproxy_listen_bind_param,
+        "$internal_vip:35357" => $haproxy_listen_bind_param
+      }
+      ,
+      mode    => 'http',
+      options => $haproxy_listen_options,
     }
-    ,
-    mode    => 'http',
-    options => {
-      http-request => ['set-header X-Forwarded-Proto https if { ssl_fc }', 'set-header X-Forwarded-Proto http if !{ ssl_fc }'],
+
+    haproxy::balancermember { 'keystone_admin':
+      listening_service => 'keystone_admin',
+      ports             => '35357',
     }
-  }
 
-  haproxy::balancermember { 'glance_api':
-    listening_service => 'glance_api',
-    server_names      => ['controller-1', 'controller-2', 'controller-3'],
-    ipaddresses       => [$controller_1, $controller_2, $controller_3],
-    ports             => '9292',
-    options           => 'check fall 5 inter 2000 rise 2',
-  }
-
-  haproxy::listen { 'glance_registry':
-    bind => {
-      "${api_internal_vip}:9191" => ['transparent']
+    haproxy::listen { 'keystone_public':
+      bind    => {
+        "$public_vip:5000"   => $haproxy_listen_bind_param,
+        "$internal_vip:5000" => $haproxy_listen_bind_param
+      }
+      ,
+      mode    => 'http',
+      options => $haproxy_listen_options,
     }
-    ,
-  }
 
-  haproxy::balancermember { 'glance_registry':
-    listening_service => 'glance_registry',
-    server_names      => ['controller-1', 'controller-2', 'controller-3'],
-    ipaddresses       => [$controller_1, $controller_2, $controller_3],
-    ports             => '9191',
-    options           => 'check fall 5 inter 2000 rise 2',
-  }
-
-  haproxy::listen { 'cinder':
-    bind    => {
-      "${api_public_vip}:8776"   => ['transparent'],
-      "${api_internal_vip}:8776" => ['transparent']
-    }
-    ,
-    mode    => 'http',
-    options => {
-      http-request => ['set-header X-Forwarded-Proto https if { ssl_fc }', 'set-header X-Forwarded-Proto http if !{ ssl_fc }'],
+    haproxy::balancermember { 'keystone_public':
+      listening_service => 'keystone_public',
+      ports             => '5000',
     }
   }
 
-  haproxy::balancermember { 'cinder':
-    listening_service => 'cinder',
-    server_names      => ['controller-1', 'controller-2', 'controller-3'],
-    ipaddresses       => [$controller_1, $controller_2, $controller_3],
-    ports             => '8776',
-    options           => 'check fall 5 inter 2000 rise 2',
-  }
-
-  haproxy::listen { 'neutron':
-    bind    => {
-      "${api_public_vip}:9696"   => ['transparent'],
-      "${api_internal_vip}:9696" => ['transparent']
+  if $glance {
+    haproxy::listen { 'glance_registry':
+      bind => {
+        "$public_vip:9191"   => $haproxy_listen_bind_param,
+        "$internal_vip:9191" => $haproxy_listen_bind_param
+      }
+      ,
     }
-    ,
-    mode    => 'http',
-    options => {
-      http-request => ['set-header X-Forwarded-Proto https if { ssl_fc }', 'set-header X-Forwarded-Proto http if !{ ssl_fc }'],
+
+    haproxy::balancermember { 'glance_registry':
+      listening_service => 'glance_registry',
+      ports             => '9191',
     }
-  }
 
-  haproxy::balancermember { 'neutron':
-    listening_service => 'neutron',
-    server_names      => ['controller-1', 'controller-2', 'controller-3'],
-    ipaddresses       => [$controller_1, $controller_2, $controller_3],
-    ports             => '9696',
-    options           => 'check fall 5 inter 2000 rise 2',
-  }
-
-  haproxy::listen { 'nova_metadata':
-    bind => {
-      "${api_internal_vip}:8775" => ['transparent']
+    haproxy::listen { 'glance_api':
+      bind    => {
+        "$public_vip:9292"   => $haproxy_listen_bind_param,
+        "$internal_vip:9292" => $haproxy_listen_bind_param
+      }
+      ,
+      mode    => 'http',
+      options => $haproxy_listen_options,
     }
-    ,
-  }
 
-  haproxy::balancermember { 'nova_metadata':
-    listening_service => 'nova_metadata',
-    server_names      => ['controller-1', 'controller-2', 'controller-3'],
-    ipaddresses       => [$controller_1, $controller_2, $controller_3],
-    ports             => '8775',
-    options           => 'check fall 5 inter 2000 rise 2',
-  }
-
-  haproxy::listen { 'nova_novncproxy':
-    bind    => {
-      "${api_public_vip}:6080"  => ['transparent'],
-      "${api_public_vip}:13080" => [
-        'transparent',
-        'ssl',
-        'crt',
-        "/etc/pki/tls/certs/${ssl_pem}"],
-    }
-    ,
-    options => {
-      balance => 'source',
-      timeout => 'tunnel 1h',
+    haproxy::balancermember { 'glance_api':
+      listening_service => 'glance_api',
+      ports             => '9292',
     }
   }
 
-  haproxy::balancermember { 'nova_novncproxy':
-    listening_service => 'nova_novncproxy',
-    server_names      => ['controller-1', 'controller-2', 'controller-3'],
-    ipaddresses       => [$controller_1, $controller_2, $controller_3],
-    ports             => '6080',
-    options           => 'check fall 5 inter 2000 rise 2',
-  }
-
-  haproxy::listen { 'nova_osapi':
-    bind    => {
-      "${api_public_vip}:8774"   => ['transparent'],
-      "${api_internal_vip}:8774" => ['transparent']
+  if $cinder {
+    haproxy::listen { 'cinder':
+      bind    => {
+        "$public_vip:8776"   => $haproxy_listen_bind_param,
+        "$internal_vip:8776" => $haproxy_listen_bind_param
+      }
+      ,
+      mode    => 'http',
+      options => $haproxy_listen_options,
     }
-    ,
-    mode    => 'http',
-    options => {
-      http-request => ['set-header X-Forwarded-Proto https if { ssl_fc }', 'set-header X-Forwarded-Proto http if !{ ssl_fc }'],
+
+    haproxy::balancermember { 'cinder':
+      listening_service => 'cinder_api',
+      ports             => '8776',
     }
   }
 
-  haproxy::balancermember { 'nova_osapi':
-    listening_service => 'nova_osapi',
-    server_names      => ['controller-1', 'controller-2', 'controller-3'],
-    ipaddresses       => [$controller_1, $controller_2, $controller_3],
-    ports             => '8774',
-    options           => 'check fall 5 inter 2000 rise 2',
-  }
-
-  haproxy::listen { 'horizon':
-    bind    => {
-      "${api_public_vip}:80"  => ['transparent'],
-      "${api_public_vip}:443" => [
-        'transparent',
-        'ssl',
-        'crt',
-        "/etc/pki/tls/certs/${ssl_pem}"],
+  if $neutron {
+    haproxy::listen { 'neutron':
+      bind    => {
+        "$public_vip:9696"   => $haproxy_listen_bind_param,
+        "$internal_vip:9696" => $haproxy_listen_bind_param
+      }
+      ,
+      mode    => 'http',
+      options => $haproxy_listen_options,
     }
-    ,
-    mode    => 'http',
-    options => {
-      cookie       => 'SERVERID insert indirect nocache',
-      option       => ['forwardfor', 'httpclose'],
-      http-request => [
-        'set-header X-Forwarded-Proto https if { ssl_fc }',
-        'set-header X-Forwarded-Proto http if !{ ssl_fc }',
-        'redirect scheme https if !{ ssl_fc }'],
+
+    haproxy::balancermember { 'neutron':
+      listening_service => 'neutron',
+      ports             => '9696',
     }
   }
 
-  haproxy::balancermember { 'horizon':
-    listening_service => 'horizon',
-    server_names      => ['controller-1', 'controller-2', 'controller-3'],
-    ipaddresses       => [$controller_1, $controller_2, $controller_3],
-    ports             => '80',
-    options           => "check fall 5 inter 2000 rise 2",
-    define_cookies    => true,
-  }
-
-  haproxy::listen { 'ceilometer':
-    bind    => {
-      "${api_public_vip}:8777"   => ['transparent'],
-      "${api_internal_vip}:8777" => ['transparent']
+  if $nova {
+    haproxy::listen { 'nova_metadata':
+      bind => {
+        "$internal_vip:8775" => $haproxy_listen_bind_param
+      }
+      ,
     }
-    ,
-    mode    => 'http',
-    options => {
-      http-request => ['set-header X-Forwarded-Proto https if { ssl_fc }', 'set-header X-Forwarded-Proto http if !{ ssl_fc }'],
-    }
-  }
 
-  haproxy::balancermember { 'ceilometer':
-    listening_service => 'ceilometer',
-    server_names      => ['controller-1', 'controller-2', 'controller-3'],
-    ipaddresses       => [$controller_1, $controller_2, $controller_3],
-    ports             => '8777',
-    options           => 'check fall 5 inter 2000 rise 2',
-  }
-
-  haproxy::listen { 'gnocchi':
-    bind    => {
-      "${api_public_vip}:8041"   => ['transparent'],
-      "${api_internal_vip}:8041" => ['transparent']
+    haproxy::balancermember { 'nova_metadata':
+      listening_service => 'nova_metadata',
+      ports             => '8775',
     }
-    ,
-    mode    => 'http',
-    options => {
-      http-request => ['set-header X-Forwarded-Proto https if { ssl_fc }', 'set-header X-Forwarded-Proto http if !{ ssl_fc }'],
-    }
-  }
 
-  haproxy::balancermember { 'gnocchi':
-    listening_service => 'gnocchi',
-    server_names      => ['controller-1', 'controller-2', 'controller-3'],
-    ipaddresses       => [$controller_1, $controller_2, $controller_3],
-    ports             => '8041',
-    options           => 'check fall 5 inter 2000 rise 2',
-  }
-
-  haproxy::listen { 'aodh':
-    bind    => {
-      "${api_public_vip}:8042"   => ['transparent'],
-      "${api_internal_vip}:8042" => ['transparent']
+    haproxy::listen { 'nova_novncproxy':
+      bind    => {
+        "$public_vip:6080"  => $haproxy_listen_bind_param,
+        "$public_vip:13080" => union($haproxy_listen_bind_param, [
+          'ssl',
+          'crt',
+          $service_certificate])
+      }
+      ,
+      options => {
+        balance => 'source',
+        timeout => 'tunnel 1h',
+      }
     }
-    ,
-    mode    => 'http',
-    options => {
-      http-request => ['set-header X-Forwarded-Proto https if { ssl_fc }', 'set-header X-Forwarded-Proto http if !{ ssl_fc }'],
+
+    haproxy::balancermember { 'nova_novncproxy':
+      listening_service => 'nova_novncproxy',
+      ports             => '6080',
+    }
+
+    haproxy::listen { 'nova_osapi':
+      bind    => {
+        "$public_vip:8774"   => $haproxy_listen_bind_param,
+        "$internal_vip:8774" => $haproxy_listen_bind_param
+      }
+      ,
+      mode    => 'http',
+      options => $haproxy_listen_options,
+    }
+
+    haproxy::balancermember { 'nova_osapi':
+      listening_service => 'nova_osapi',
+      ports             => '8774',
     }
   }
 
-  haproxy::balancermember { 'aodh':
-    listening_service => 'aodh',
-    server_names      => ['controller-1', 'controller-2', 'controller-3'],
-    ipaddresses       => [$controller_1, $controller_2, $controller_3],
-    ports             => '8042',
-    options           => 'check fall 5 inter 2000 rise 2',
+  if $horizon {
+    haproxy::listen { 'horizon':
+      bind    => {
+        "$public_vip:80"  => $haproxy_listen_bind_param,
+        "$public_vip:443" => union($haproxy_listen_bind_param, [
+          'ssl',
+          'crt',
+          $service_certificate])
+      }
+      ,
+      mode    => 'http',
+      options => {
+        cookie       => 'SERVERID insert indirect nocache',
+        option       => ['forwardfor', 'httpclose'],
+        http-request => [
+          'set-header X-Forwarded-Proto https if { ssl_fc }',
+          'set-header X-Forwarded-Proto http if !{ ssl_fc }',
+          'redirect scheme https if !{ ssl_fc }'],
+      }
+    }
+
+    haproxy::balancermember { 'horizon':
+      listening_service => 'horizon',
+      ports             => '80',
+      define_cookies    => true,
+    }
+  }
+
+  if $ceilometer {
+    haproxy::listen { 'ceilometer':
+      bind    => {
+        "$public_vip:8777"   => $haproxy_listen_bind_param,
+        "$internal_vip:8777" => $haproxy_listen_bind_param
+      }
+      ,
+      mode    => 'http',
+      options => $haproxy_listen_options,
+    }
+
+    haproxy::balancermember { 'ceilometer':
+      listening_service => 'ceilometer',
+      ports             => '8777',
+    }
+  }
+
+  if $gnocchi {
+    haproxy::listen { 'gnocchi':
+      bind    => {
+        "$public_vip:8041"   => $haproxy_listen_bind_param,
+        "$internal_vip:8041" => $haproxy_listen_bind_param
+      }
+      ,
+      mode    => 'http',
+      options => $haproxy_listen_options,
+    }
+
+    haproxy::balancermember { 'gnocchi':
+      listening_service => 'gnocchi',
+      ports             => '8041',
+    }
+  }
+
+  if $aodh {
+    haproxy::listen { 'aodh':
+      bind    => {
+        "$public_vip:8042"   => $haproxy_listen_bind_param,
+        "$internal_vip:8042" => $haproxy_listen_bind_param
+      }
+      ,
+      mode    => 'http',
+      options => $haproxy_listen_options,
+    }
+
+    haproxy::balancermember { 'aodh':
+      listening_service => 'aodh',
+      ports             => '8042',
+    }
   }
 
   if $::hostname == $bootstrap_node {
     Class['::haproxy'] ->
-    pacemaker::resource::ip { "ip-${mgmt_vip}": ip_address => $mgmt_vip, } ->
-    pacemaker::resource::ip { "ip-${api_public_vip}": ip_address => $api_public_vip, } ->
-    pacemaker::resource::ip { "ip-${api_internal_vip}": ip_address => $api_internal_vip, } ->
+    pacemaker::resource::ip { "ip-$admin_vip": ip_address => $admin_vip, } ->
+    pacemaker::resource::ip { "ip-$public_vip": ip_address => $public_vip, } ->
+    pacemaker::resource::ip { "ip-$internal_vip": ip_address => $internal_vip, } ->
     exec { 'haproxy-ready':
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/usr/bin/scp controller-2:/etc/haproxy/haproxy.cfg /tmp/haproxy.cfg2 && diff /etc/haproxy/haproxy.cfg /tmp/haproxy.cfg2 && \
-                    /usr/bin/scp controller-3:/etc/haproxy/haproxy.cfg /tmp/haproxy.cfg3 && diff /etc/haproxy/haproxy.cfg /tmp/haproxy.cfg3",
-      unless    => "/usr/bin/scp controller-2:/etc/haproxy/haproxy.cfg /tmp/haproxy.cfg2 && diff /etc/haproxy/haproxy.cfg /tmp/haproxy.cfg2 && \
-                    /usr/bin/scp controller-3:/etc/haproxy/haproxy.cfg /tmp/haproxy.cfg3 && diff /etc/haproxy/haproxy.cfg /tmp/haproxy.cfg3",
+      command   => "/bin/scp ${controller_2_hostname}:/etc/haproxy/haproxy.cfg /tmp/haproxy.cfg2 && diff /etc/haproxy/haproxy.cfg /tmp/haproxy.cfg2 && \
+                    /bin/scp ${controller_3_hostname}:/etc/haproxy/haproxy.cfg /tmp/haproxy.cfg3 && diff /etc/haproxy/haproxy.cfg /tmp/haproxy.cfg3",
+      unless    => "/bin/scp ${controller_2_hostname}:/etc/haproxy/haproxy.cfg /tmp/haproxy.cfg2 && diff /etc/haproxy/haproxy.cfg /tmp/haproxy.cfg2 && \
+                    /bin/scp ${controller_3_hostname}:/etc/haproxy/haproxy.cfg /tmp/haproxy.cfg3 && diff /etc/haproxy/haproxy.cfg /tmp/haproxy.cfg3",
     } ->
     pacemaker::resource::service { 'haproxy':
       op_params    => 'start timeout=200s stop timeout=200s',
       clone_params => true,
     } ->
-    pacemaker::constraint::base { "order-ip-${mgmt_vip}-haproxy-clone-Optional":
+    pacemaker::constraint::base { "order-ip-$admin_vip-haproxy-clone-Optional":
       constraint_type   => 'order',
       first_action      => 'start',
-      first_resource    => "ip-${mgmt_vip}",
+      first_resource    => "ip-$admin_vip",
       second_action     => 'start',
       second_resource   => 'haproxy-clone',
       constraint_params => 'kind=Optional',
     } ->
-    pacemaker::constraint::colocation { "colocation-ip-${mgmt_vip}-haproxy-clone-INFINITY":
-      source => "ip-${mgmt_vip}",
+    pacemaker::constraint::colocation { "colocation-ip-$admin_vip-haproxy-clone-INFINITY":
+      source => "ip-$admin_vip",
       target => 'haproxy-clone',
       score  => 'INFINITY',
     } ->
-    pacemaker::constraint::base { "order-ip-${api_public_vip}-haproxy-clone-Optional":
+    pacemaker::constraint::base { "order-ip-$public_vip-haproxy-clone-Optional":
       constraint_type   => 'order',
       first_action      => 'start',
-      first_resource    => "ip-${api_public_vip}",
+      first_resource    => "ip-$public_vip",
       second_action     => 'start',
       second_resource   => 'haproxy-clone',
       constraint_params => 'kind=Optional',
     } ->
-    pacemaker::constraint::colocation { "colocation-ip-${api_public_vip}-haproxy-clone-INFINITY":
-      source => "ip-${api_public_vip}",
+    pacemaker::constraint::colocation { "colocation-ip-$public_vip-haproxy-clone-INFINITY":
+      source => "ip-$public_vip",
       target => 'haproxy-clone',
       score  => 'INFINITY',
     } ->
-    pacemaker::constraint::base { "order-ip-${api_internal_vip}-haproxy-clone-Optional":
+    pacemaker::constraint::base { "order-ip-$internal_vip-haproxy-clone-Optional":
       constraint_type   => 'order',
       first_action      => 'start',
-      first_resource    => "ip-${api_internal_vip}",
+      first_resource    => "ip-$internal_vip",
       second_action     => 'start',
       second_resource   => 'haproxy-clone',
       constraint_params => 'kind=Optional',
     } ->
-    pacemaker::constraint::colocation { "colocation-ip-${api_internal_vip}-haproxy-clone-INFINITY":
-      source => "ip-${api_internal_vip}",
+    pacemaker::constraint::colocation { "colocation-ip-$internal_vip-haproxy-clone-INFINITY":
+      source => "ip-$internal_vip",
       target => 'haproxy-clone',
       score  => 'INFINITY',
     } ->
@@ -445,10 +432,10 @@ class openstack::x006_haproxy (
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/usr/bin/rm -f /tmp/haproxy.cfg2 && \
-                    /usr/bin/rm -f /tmp/haproxy.cfg3",
-      unless    => "/usr/bin/rm -f /tmp/haproxy.cfg2 && \
-                    /usr/bin/rm -f /tmp/haproxy.cfg3",
+      command   => "/bin/rm -f /tmp/haproxy.cfg2 && \
+                    /bin/rm -f /tmp/haproxy.cfg3",
+      unless    => "/bin/rm -f /tmp/haproxy.cfg2 && \
+                    /bin/rm -f /tmp/haproxy.cfg3",
     }
   }
 }
