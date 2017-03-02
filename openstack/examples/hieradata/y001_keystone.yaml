@@ -1,0 +1,5 @@
+openstack::y001_keystone::token_expiration: 3600
+openstack::y001_keystone::token_provider: uuid
+openstack::y001_keystone::token_driver: sql
+openstack::y001_keystone::credential_keys_0: d_9esDjvKlaN_Og7ZCqEbvnv9iXphnjOfnt2ZfXq4C4=
+openstack::y001_keystone::credential_keys_1: 17tl2C3zlfMbDwaNpdiufd2zjsXpDPLF3i5Hm1Rd1rQ=

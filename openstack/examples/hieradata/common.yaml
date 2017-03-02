@@ -13,3 +13,11 @@ controller_3_storage_ip: 172.17.105.53
 admin_interface: '%{::ipaddress_vlan101}'
 public_interface: '%{::ipaddress_vlan102}'
 internal_interface: '%{::ipaddress_vlan103}'
+rabbit_username: guest
+rabbit_password: 7282863f484f9230a8d24b4a3f472ed4
+admin_token: 5d979d080d73443e1adcc0eb5c0b37d5
+admin_username: admin
+admin_password: f623fd9eade81b69028d9aafcaa37436
+keystone_dbname: keystone
+keystone_username: keystone
+keystone_password: a2ed2062d965f750c10255021e0db31e

@@ -10,8 +10,8 @@ class openstack::x008_rabbitmq (
   $cluster_node_type        = '',
   $erlang_cookie            = '',
   $wipe_db_on_cookie_change = false,
-  $default_user             = '',
-  $default_pass             = '',
+  $default_user             = hiera('rabbit_username'),
+  $default_pass             = hiera('rabbit_password'),
 ) {
   class { '::rabbitmq':
     repos_ensure             => $manage_resources,
