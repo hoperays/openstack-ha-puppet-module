@@ -111,6 +111,16 @@ class openstack::x007_galera (
     require => Mysql_grant["${clustercheck_username}@localhost/*.*"],
   }
 
+  exec { 'delete user host like %controller-%':
+    command => "/bin/echo \"DELETE FROM mysql.user WHERE host LIKE \'%controller-%\'; \
+                  flush privileges;\" | \
+                  /bin/mysql",
+    unless  => "/bin/echo \"DELETE FROM mysql.user WHERE host LIKE \'%controller-%\'; \
+                  flush privileges;\" | \
+                  /bin/mysql",
+    require => Exec['galera-ready'],
+  }
+
   if $::hostname == $bootstrap_node {
     pacemaker::resource::ocf { 'galera':
       ensure          => 'present',
@@ -126,15 +136,5 @@ class openstack::x007_galera (
     mysql_user { ['root@127.0.0.1', 'root@::1', '@localhost', '@%']: ensure => 'absent', }
 
     mysql_database { 'test': ensure => 'absent', }
-
-    exec { 'delete user host like %controller-%':
-      command => "/bin/echo \"DELETE FROM mysql.user WHERE host LIKE \'%controller-%\'; \
-                  flush privileges;\" | \
-                  /bin/mysql",
-      unless  => "/bin/echo \"DELETE FROM mysql.user WHERE host LIKE \'%controller-%\'; \
-                  flush privileges;\" | \
-                  /bin/mysql",
-      require => Exec['galera-ready'],
-    }
   }
 }
