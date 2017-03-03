@@ -7,7 +7,8 @@ class openstack::x007_galera (
     hiera('controller_2_hostname'),
     hiera('controller_3_hostname')]), ','),
   $gmcast_listen_addr    = hiera('internal_interface'),
-  $clustercheck_password = '',
+  $clustercheck_username = hiera('clustercheck_username'),
+  $clustercheck_password = hiera('clustercheck_password'),
   $mysql_config_file     = '',
   $manage_resources      = false,
 ) {
@@ -88,17 +89,17 @@ class openstack::x007_galera (
   Exec['galera-ready'] -> Mysql_user <| |>
   Exec['galera-ready'] -> Mysql_database <| |>
 
-  mysql_user { 'clustercheck@localhost':
+  mysql_user { "${clustercheck_username}@localhost":
     ensure        => 'present',
     password_hash => mysql_password($clustercheck_password),
   }
 
-  mysql_grant { 'clustercheck@localhost/*.*':
+  mysql_grant { "${clustercheck_username}@localhost/*.*":
     ensure     => 'present',
     options    => ['GRANT'],
     privileges => ['PROCESS'],
     table      => '*.*',
-    user       => 'clustercheck@localhost',
+    user       => "${clustercheck_username}@localhost",
   }
 
   file { '/etc/sysconfig/clustercheck':
@@ -106,8 +107,8 @@ class openstack::x007_galera (
     mode    => '0600',
     owner   => 'root',
     group   => 'root',
-    content => "MYSQL_USERNAME=clustercheck\nMYSQL_PASSWORD=${clustercheck_password}\nMYSQL_HOST=localhost\n",
-    require => Mysql_grant['clustercheck@localhost/*.*'],
+    content => "MYSQL_USERNAME=${clustercheck_username}\nMYSQL_PASSWORD=${clustercheck_password}\nMYSQL_HOST=localhost\n",
+    require => Mysql_grant["${clustercheck_username}@localhost/*.*"],
   }
 
   if $::hostname == $bootstrap_node {

@@ -1,4 +1,3 @@
 openstack::x007_galera::max_connections: 4096
-openstack::x007_galera::clustercheck_password: 994f210390468f4cd0cc603d7350c769
 openstack::x007_galera::mysql_config_file: /etc/my.cnf.d/galera.cnf
 openstack::x007_galera::manage_resources: false

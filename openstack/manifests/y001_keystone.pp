@@ -13,8 +13,6 @@ class openstack::y001_keystone (
   $controller_1_internal_ip = hiera('controller_1_internal_ip'),
   $controller_2_internal_ip = hiera('controller_2_internal_ip'),
   $controller_3_internal_ip = hiera('controller_3_internal_ip'),
-  $admin_interface          = hiera('admin_interface'),
-  $public_interface         = hiera('public_interface'),
   $internal_interface       = hiera('internal_interface'),
   $token_expiration         = '',
   $token_provider           = '',
@@ -28,7 +26,7 @@ class openstack::y001_keystone (
       user          => $user,
       password      => $password,
       host          => 'localhost',
-      allowed_hosts => [$internal_vip],
+      allowed_hosts => [$controller_1_internal_ip, $controller_2_internal_ip, $controller_3_internal_ip],
     }
     $sync_db = true
     Anchor['keystone::dbsync::end'] ->
@@ -167,9 +165,9 @@ class openstack::y001_keystone (
 
   if $::hostname == $bootstrap_node {
     class { '::keystone::roles::admin':
-      email                  => 'admin@example.com',
+      email                  => "$admin_username@example.com",
       password               => $admin_password,
-      admin                  => 'admin',
+      admin                  => $admin_username,
       admin_tenant           => 'admin',
       admin_roles            => ['admin'],
       service_tenant         => 'services',

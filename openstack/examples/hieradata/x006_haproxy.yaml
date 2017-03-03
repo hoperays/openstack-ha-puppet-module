@@ -1,6 +1,3 @@
-openstack::x006_haproxy::haproxy_stats_user: admin
-openstack::x006_haproxy::haproxy_stats_password: 9bf87b1407fb12ef405d21cd859b34fe
-openstack::x006_haproxy::redis_password: ce339fd2b8d63a58fe4e92bcbf4efadf
 openstack::x006_haproxy::manage_resources: false
 openstack::x006_haproxy::haproxy_log_address: /dev/log
 openstack::x006_haproxy::haproxy_global_maxconn: 20480
@@ -35,5 +32,6 @@ openstack::x006_haproxy::cinder: true
 openstack::x006_haproxy::neutron: true
 openstack::x006_haproxy::nova: true
 openstack::x006_haproxy::horizon: true
+openstack::x006_haproxy::ceilometer: true
 openstack::x006_haproxy::gnocchi: true
 openstack::x006_haproxy::aodh: true

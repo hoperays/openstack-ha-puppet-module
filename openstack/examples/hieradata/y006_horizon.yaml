@@ -1,0 +1,14 @@
+openstack::y006_horizon::server_aliases:
+- '*'
+openstack::y006_horizon::allowed_hosts:
+- '*'
+openstack::y006_horizon::api_result_limit: 2000
+openstack::y006_horizon::keystone_multidomain_support: true
+openstack::y006_horizon::keystone_default_domain: default
+openstack::y006_horizon::timezone: Asia/Shanghai
+openstack::y006_horizon::session_timeout: 1800
+openstack::y006_horizon::neutron_options:
+  enable_lb: true
+  enable_firewall: true
+  enable_vpn: true
+  enable_ha_router: true

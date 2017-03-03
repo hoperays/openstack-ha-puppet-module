@@ -1,106 +1,123 @@
 class openstack::y005_nova (
-  $bootstrap_node    = 'controller-1',
-  $nova_password     = 'nova1234',
-  $nova_api_password = 'nova_api1234',
-  $neutron_password  = 'neutron1234',
-  $allowed_hosts     = ['%'],
-  $username1         = 'nova',
-  $username2         = 'nova_api',
-  $api_public_vip    = '172.17.52.100',
-  $api_internal_vip  = '172.17.53.100',
-  $controller_1      = '172.17.53.101',
-  $controller_2      = '172.17.53.102',
-  $controller_3      = '172.17.53.103',
-  $metadata_secret   = 'metadata1234',
-  $remote_authkey    = 'remote1234',
-  $rbd_secret_uuid   = '2ad6a20f-ffdd-460d-afba-04ab286f365f',
-  $openstack_key     = 'AQB+RUpYfv+aIRAA4AbRb+XICXx+x+shF5AeZQ==',) {
+  $bootstrap_node             = hiera('controller_1_hostname'),
+  $rabbit_userid              = hiera('rabbit_username'),
+  $rabbit_password            = hiera('rabbit_password'),
+  $dbname_1                   = hiera('nova_dbname'),
+  $user_1                     = hiera('nova_username'),
+  $password_1                 = hiera('nova_password'),
+  $dbname_2                   = hiera('nova_api_dbname'),
+  $user_2                     = hiera('nova_api_username'),
+  $password_2                 = hiera('nova_api_password'),
+  $public_vip                 = hiera('public_vip'),
+  $internal_vip               = hiera('internal_vip'),
+  $controller_1_internal_ip   = hiera('controller_1_internal_ip'),
+  $controller_2_internal_ip   = hiera('controller_2_internal_ip'),
+  $controller_3_internal_ip   = hiera('controller_3_internal_ip'),
+  $internal_interface         = hiera('internal_interface'),
+  $metadata_secret            = hiera('metadata_secret'),
+  $neutron_username           = hiera('neutron_username'),
+  $neutron_password           = hiera('neutron_password'),
+  $remote_authkey             = hiera('remote_authkey'),
+  $rbd_secret_uuid            = hiera('rbd_secret_uuid'),
+  $cpu_allocation_ratio       = '',
+  $ram_allocation_ratio       = '',
+  $disk_allocation_ratio      = '',
+  $openstack_key              = '',
+  $reserved_host_memory       = '',
+  $controller_as_novacompute  = hiera('controller_as_novacompute'),
+) {
   if $::hostname == $bootstrap_node {
-    Exec['galera-ready'] ->
     class { '::nova::db::mysql':
-      password      => $nova_password,
+      dbname        => $dbname_1,
+      user          => $user_1,
+      password      => $password_1,
       host          => 'localhost',
-      allowed_hosts => $allowed_hosts,
+      allowed_hosts => [$controller_1_internal_ip, $controller_2_internal_ip, $controller_3_internal_ip],
     } ->
     class { '::nova::db::mysql_api':
-      password      => $nova_api_password,
+      dbname        => $dbname_2,
+      user          => $user_2,
+      password      => $password_2,
       host          => 'localhost',
-      allowed_hosts => $allowed_hosts,
+      allowed_hosts => [$controller_1_internal_ip, $controller_2_internal_ip, $controller_3_internal_ip],
     }
     $sync_db = true
     $sync_db_api = true
     Anchor['nova::dbsync::end'] ->
-    exec { "${username1}-db-ready-echo":
+    exec { "${dbname_1}-db-ready-echo":
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/usr/bin/ssh controller-2 'echo ok > /tmp/${username1}-db-ready' && \
-                    /usr/bin/ssh controller-3 'echo ok > /tmp/${username1}-db-ready'",
-      unless    => "/usr/bin/ssh controller-2 'echo ok > /tmp/${username1}-db-ready' && \
-                    /usr/bin/ssh controller-3 'echo ok > /tmp/${username1}-db-ready'",
+      command   => "/bin/ssh ${controller_2_internal_ip} 'echo ok > /tmp/${dbname_1}-db-ready' && \
+                    /bin/ssh ${controller_3_internal_ip} 'echo ok > /tmp/${dbname_1}-db-ready'",
+      unless    => "/bin/ssh ${controller_2_internal_ip} 'echo ok > /tmp/${dbname_1}-db-ready' && \
+                    /bin/ssh ${controller_3_internal_ip} 'echo ok > /tmp/${dbname_1}-db-ready'",
     }
     Anchor['nova::dbsync_api::end'] ->
-    exec { "${username2}-db-ready-echo":
+    exec { "${dbname_2}-db-ready-echo":
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/usr/bin/ssh controller-2 'echo ok > /tmp/${username2}-db-ready' && \
-                    /usr/bin/ssh controller-3 'echo ok > /tmp/${username2}-db-ready'",
-      unless    => "/usr/bin/ssh controller-2 'echo ok > /tmp/${username2}-db-ready' && \
-                    /usr/bin/ssh controller-3 'echo ok > /tmp/${username2}-db-ready'",
+      command   => "/bin/ssh ${controller_2_internal_ip} 'echo ok > /tmp/${dbname_2}-db-ready' && \
+                    /bin/ssh ${controller_3_internal_ip} 'echo ok > /tmp/${dbname_2}-db-ready'",
+      unless    => "/bin/ssh ${controller_2_internal_ip} 'echo ok > /tmp/${dbname_2}-db-ready' && \
+                    /bin/ssh ${controller_3_internal_ip} 'echo ok > /tmp/${dbname_2}-db-ready'",
     }
-  } elsif $::hostname =~ /^controller-\d+$/ {
+  } elsif $::hostname =~ /^*controller-\d*$/ {
     $sync_db = false
     $sync_db_api = false
     Anchor['nova::config::end'] ->
-    exec { "${username1}-db-ready":
+    exec { "${dbname_1}-db-ready":
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/usr/bin/cat /tmp/${username1}-db-ready | grep ok",
-      unless    => "/usr/bin/cat /tmp/${username1}-db-ready | grep ok",
+      command   => "/bin/cat /tmp/${dbname_1}-db-ready | grep ok",
+      unless    => "/bin/cat /tmp/${dbname_1}-db-ready | grep ok",
     } ->
-    exec { "${username2}-db-ready":
+    exec { "${dbname_2}-db-ready":
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/usr/bin/cat /tmp/${username2}-db-ready | grep ok",
-      unless    => "/usr/bin/cat /tmp/${username2}-db-ready | grep ok",
+      command   => "/bin/cat /tmp/${dbname_2}-db-ready | grep ok",
+      unless    => "/bin/cat /tmp/${dbname_2}-db-ready | grep ok",
     } ->
     Anchor['nova::service::begin'] ->
-    exec { "${username1}-db-ready-rm":
+    exec { "${dbname_1}-db-ready-rm":
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/usr/bin/rm -f /tmp/${username1}-db-ready",
-      unless    => "/usr/bin/rm -f /tmp/${username1}-db-ready",
+      command   => "/bin/rm -f /tmp/${dbname_1}-db-ready",
+      unless    => "/bin/rm -f /tmp/${dbname_1}-db-ready",
     } ->
-    exec { "${username2}-db-ready-rm":
+    exec { "${dbname_2}-db-ready-rm":
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/usr/bin/rm -f /tmp/${username2}-db-ready",
-      unless    => "/usr/bin/rm -f /tmp/${username2}-db-ready",
+      command   => "/bin/rm -f /tmp/${dbname_2}-db-ready",
+      unless    => "/bin/rm -f /tmp/${dbname_2}-db-ready",
     }
   }
 
   class { '::nova::db':
     database_max_retries    => '-1',
     database_db_max_retries => '-1',
-    database_connection     => "mysql+pymysql://nova:${nova_password}@${api_internal_vip}/nova",
-    api_database_connection => "mysql+pymysql://nova_api:${nova_api_password}@${api_internal_vip}/nova_api",
+    database_connection     => "mysql+pymysql://${user_1}:${password_1}@${internal_vip}/${dbname_1}",
+    api_database_connection => "mysql+pymysql://${user_2}:${password_2}@${internal_vip}/${dbname_2}",
   }
 
   class { '::nova':
-    rabbit_userid          => 'guest',
-    rabbit_password        => 'guest',
+    rabbit_userid          => $rabbit_userid,
+    rabbit_password        => $rabbit_password,
     rabbit_ha_queues       => true,
     rabbit_use_ssl         => false,
     rabbit_heartbeat_timeout_threshold => '60',
-    rabbit_hosts           => ["${controller_1}:5672", "${controller_2}:5672", "${controller_3}:5672"],
+    rabbit_hosts           => [
+      "${controller_1_internal_ip}:5672",
+      "${controller_2_internal_ip}:5672",
+      "${controller_3_internal_ip}:5672"],
     auth_strategy          => 'keystone',
     #
-    glance_api_servers     => "http://${api_internal_vip}:9292",
+    glance_api_servers     => "http://${internal_vip}:9292",
     cinder_catalog_info    => 'volumev2:cinderv2:publicURL',
     log_dir                => '/var/log/nova',
     notify_api_faults      => false,
@@ -109,9 +126,9 @@ class openstack::y005_nova (
     image_service          => 'nova.image.glance.GlanceImageService',
     notify_on_state_change => 'vm_and_task_state',
     use_ipv6               => false,
-    cpu_allocation_ratio   => '4.0',
-    ram_allocation_ratio   => '1.0',
-    disk_allocation_ratio  => '0.8',
+    cpu_allocation_ratio   => $cpu_allocation_ratio,
+    ram_allocation_ratio   => $ram_allocation_ratio,
+    disk_allocation_ratio  => $disk_allocation_ratio,
     service_down_time      => '60',
     host                   => $::hostname,
     rootwrap_config        => '/etc/nova/rootwrap.conf',
@@ -124,19 +141,22 @@ class openstack::y005_nova (
   class { '::nova::cache':
     enabled          => true,
     backend          => 'oslo_cache.memcache_pool',
-    memcache_servers => ["${controller_1}:11211", "${controller_2}:11211", "${controller_3}:11211"],
+    memcache_servers => [
+      "${controller_1_internal_ip}:11211",
+      "${controller_2_internal_ip}:11211",
+      "${controller_3_internal_ip}:11211"],
   }
 
   class { '::nova::network::neutron':
-    neutron_auth_url                => "http://${api_internal_vip}:35357/v3",
-    neutron_url                     => "http://${api_internal_vip}:9696",
+    neutron_auth_url                => "http://${internal_vip}:35357/v3",
+    neutron_url                     => "http://${internal_vip}:9696",
     #
     neutron_auth_type               => 'v3password',
     neutron_project_domain_name     => 'default',
     neutron_user_domain_name        => 'default',
     neutron_region_name             => 'RegionOne',
     neutron_project_name            => 'services',
-    neutron_username                => 'neutron',
+    neutron_username                => $neutron_username,
     neutron_password                => $neutron_password,
     #
     neutron_url_timeout             => '30',
@@ -148,23 +168,26 @@ class openstack::y005_nova (
     dhcp_domain                     => 'novalocal',
   }
 
-  if $::hostname =~ /^controller-\d+$/ {
+  if $::hostname =~ /^*controller-\d*$/ {
     class { '::nova::keystone::authtoken':
-      auth_uri            => "http://${api_internal_vip}:5000",
-      auth_url            => "http://${api_internal_vip}:35357",
-      memcached_servers   => ["${controller_1}:11211", "${controller_2}:11211", "${controller_3}:11211"],
+      auth_uri            => "http://${internal_vip}:5000",
+      auth_url            => "http://${internal_vip}:35357",
+      memcached_servers   => [
+        "${controller_1_internal_ip}:11211",
+        "${controller_2_internal_ip}:11211",
+        "${controller_3_internal_ip}:11211"],
       auth_type           => 'password',
       project_domain_name => 'default',
       user_domain_name    => 'default',
       project_name        => 'services',
-      username            => 'nova',
-      password            => $nova_password,
+      username            => $user_1,
+      password            => $password_1,
     }
 
     class { '::nova::api':
-      api_bind_address       => $ipaddress_vlan53,
+      api_bind_address       => $internal_interface,
       osapi_compute_listen_port            => '8774',
-      metadata_listen        => $ipaddress_vlan53,
+      metadata_listen        => $internal_interface,
       metadata_listen_port   => '8775',
       enabled_apis           => ['osapi_compute', 'metadata'],
       neutron_metadata_proxy_shared_secret => $metadata_secret,
@@ -199,31 +222,33 @@ class openstack::y005_nova (
     }
 
     class { '::nova::vncproxy::common':
-      vncproxy_host     => $api_public_vip,
+      vncproxy_host     => $public_vip,
       vncproxy_protocol => 'https',
       vncproxy_port     => '13080',
       vncproxy_path     => '/vnc_auto.html',
     }
 
     class { '::nova::vncproxy':
-      host => $::ipaddress_vlan53,
+      host => $internal_interface,
       port => '6080',
     }
-  } elsif $::hostname =~ /^compute-\d+$/ {
+  }
+
+  if $::hostname =~ /^*novacompute-\d*$/ or $controller_as_novacompute {
     class { '::nova::compute':
-      vnc_enabled          => true,
-      vncserver_proxyclient_address     => $ipaddress_vlan53,
-      vncproxy_host        => $api_public_vip,
-      vncproxy_protocol    => 'https',
-      vncproxy_port        => '13080',
-      vncproxy_path        => '/vnc_auto.html',
-      vnc_keymap           => 'en-us',
-      reserved_host_memory => '2048', # MB
+      vnc_enabled                       => true,
+      vncserver_proxyclient_address     => $internal_vip,
+      vncproxy_host                     => $public_vip,
+      vncproxy_protocol                 => 'https',
+      vncproxy_port                     => '13080',
+      vncproxy_path                     => '/vnc_auto.html',
+      vnc_keymap                        => 'en-us',
+      reserved_host_memory              => $reserved_host_memory, # MB
       heal_instance_info_cache_interval => '60',
       allow_resize_to_same_host         => true,
       resume_guests_state_on_host_boot  => true,
       #
-      instance_usage_audit => true,
+      instance_usage_audit              => true,
       instance_usage_audit_period       => 'hour',
     }
 
@@ -256,16 +281,16 @@ class openstack::y005_nova (
 
   if $::hostname == $bootstrap_node {
     class { '::nova::keystone::auth':
-      password            => $nova_password,
-      auth_name           => 'nova',
+      password            => $password_1,
+      auth_name           => $user_1,
       service_name        => 'nova',
       service_description => 'Openstack Compute Service',
       region              => 'RegionOne',
       tenant              => 'services',
-      email               => 'nova@localhost',
-      public_url          => "http://${api_public_vip}:8774/v2.1",
-      internal_url        => "http://${api_internal_vip}:8774/v2.1",
-      admin_url           => "http://${api_internal_vip}:8774/v2.1",
+      email               => "$user_1@localhost",
+      public_url          => "http://${public_vip}:8774/v2.1",
+      internal_url        => "http://${internal_vip}:8774/v2.1",
+      admin_url           => "http://${internal_vip}:8774/v2.1",
       configure_endpoint  => true,
       configure_user      => true,
       configure_user_role => true,

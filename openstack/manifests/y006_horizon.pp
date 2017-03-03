@@ -1,11 +1,21 @@
 class openstack::y006_horizon (
-  $bind_address     = $ipaddress_vlan53,
-  $servername       = $::hostname, # 'openstack.example.com',
-  $server_aliases   = ['*'],
-  $allowed_hosts    = ['*'],
-  $cluster_nodes    = ['172.17.53.101', '172.17.53.102', '172.17.53.103'],
-  $secret_key       = 'd872760ce14ffd0919ad',
-  $api_internal_vip = '172.17.53.100',) {
+  $bind_address                 = hiera('internal_interface'),
+  $servername                   = $::hostname, # 'openstack.example.com',
+  $server_aliases               = '',
+  $allowed_hosts                = '',
+  $cluster_nodes                = [
+    hiera('controller_1_internal_ip'),
+    hiera('controller_2_internal_ip'),
+    hiera('controller_3_internal_ip')],
+  $secret_key                   = hiera('horizon_secret_key'),
+  $internal_vip                 = hiera('internal_vip'),
+  $api_result_limit             = '',
+  $keystone_multidomain_support = false,
+  $keystone_default_domain      = '',
+  $timezone                     = '',
+  $session_timeout              = '',
+  $neutron_options              = {},
+) {
   class { '::horizon':
     bind_address                 => $bind_address,
     servername                   => $servername,
@@ -20,27 +30,21 @@ class openstack::y006_horizon (
     cache_server_ip              => $cluster_nodes,
     cache_server_port            => '11211',
     secret_key                   => $secret_key,
-    keystone_url                 => "http://${api_internal_vip}:5000",
+    keystone_url                 => "http://${internal_vip}:5000",
     keystone_default_role        => '_member_',
     django_debug                 => false,
-    api_result_limit             => '2000',
+    api_result_limit             => $api_result_limit,
     compress_offline             => true,
     api_versions                 => {
       identity => '3',
     }
     ,
-    keystone_multidomain_support => true,
-    keystone_default_domain      => 'default',
-    timezone                     => 'Asia/Shanghai',
-    session_timeout              => '1800',
+    keystone_multidomain_support => $keystone_multidomain_support,
+    keystone_default_domain      => $keystone_default_domain,
+    timezone                     => $timezone,
+    session_timeout              => $session_timeout,
     cache_backend                => 'django.core.cache.backends.memcached.MemcachedCache',
     django_session_engine        => 'django.contrib.sessions.backends.cache',
-    neutron_options              => {
-      enable_lb        => true,
-      enable_firewall  => true,
-      enable_vpn       => true,
-      enable_ha_router => true,
-    }
-    ,
+    neutron_options              => $neutron_options,
   }
 }

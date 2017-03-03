@@ -1,3 +1,2 @@
 openstack::x010_mongodb::manage_package_repo: false
-openstack::x010_mongodb::replset: openstack
 openstack::x010_mongodb::smallfiles: true

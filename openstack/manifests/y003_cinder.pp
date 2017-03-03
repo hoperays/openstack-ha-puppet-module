@@ -1,56 +1,61 @@
 class openstack::y003_cinder (
-  $bootstrap_node   = 'controller-1',
-  $cinder_password  = 'cinder1234',
-  $allowed_hosts    = ['%'],
-  $username         = 'cinder',
-  $api_public_vip   = '172.17.52.100',
-  $api_internal_vip = '172.17.53.100',
-  $controller_1     = '172.17.53.101',
-  $controller_2     = '172.17.53.102',
-  $controller_3     = '172.17.53.103',
-  $rbd_secret_uuid  = '2ad6a20f-ffdd-460d-afba-04ab286f365f',) {
+  $bootstrap_node           = hiera('controller_1_hostname'),
+  $rabbit_userid            = hiera('rabbit_username'),
+  $rabbit_password          = hiera('rabbit_password'),
+  $dbname                   = hiera('cinder_dbname'),
+  $user                     = hiera('cinder_username'),
+  $password                 = hiera('cinder_password'),
+  $public_vip               = hiera('public_vip'),
+  $internal_vip             = hiera('internal_vip'),
+  $controller_1_internal_ip = hiera('controller_1_internal_ip'),
+  $controller_2_internal_ip = hiera('controller_2_internal_ip'),
+  $controller_3_internal_ip = hiera('controller_3_internal_ip'),
+  $internal_interface       = hiera('internal_interface'),
+  $rbd_secret_uuid          = hiera('rbd_secret_uuid'),
+) {
   if $::hostname == $bootstrap_node {
-    Exec['galera-ready'] ->
     class { '::cinder::db::mysql':
-      password      => $cinder_password,
+      dbname        => $dbname,
+      user          => $user,
+      password      => $password,
       host          => 'localhost',
-      allowed_hosts => $allowed_hosts,
+      allowed_hosts => [$controller_1_internal_ip, $controller_2_internal_ip, $controller_3_internal_ip],
     }
     $sync_db = true
     Anchor['cinder::dbsync::end'] ->
-    exec { "${username}-db-ready-echo":
+    exec { "${dbname}-db-ready-echo":
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/usr/bin/ssh controller-2 'echo ok > /tmp/${username}-db-ready' && \
-                    /usr/bin/ssh controller-3 'echo ok > /tmp/${username}-db-ready'",
-      unless    => "/usr/bin/ssh controller-2 'echo ok > /tmp/${username}-db-ready' && \
-                    /usr/bin/ssh controller-3 'echo ok > /tmp/${username}-db-ready'",
+      command   => "/bin/ssh ${controller_2_internal_ip} 'echo ok > /tmp/${dbname}-db-ready' && \
+                    /bin/ssh ${controller_3_internal_ip} 'echo ok > /tmp/${dbname}-db-ready'",
+      unless    => "/bin/ssh ${controller_2_internal_ip} 'echo ok > /tmp/${dbname}-db-ready' && \
+                    /bin/ssh ${controller_3_internal_ip} 'echo ok > /tmp/${dbname}-db-ready'",
     }
   } else {
     $sync_db = false
     Anchor['cinder::config::end'] ->
-    exec { "${username}-db-ready":
+    exec { "${dbname}-db-ready":
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/usr/bin/cat /tmp/${username}-db-ready | grep ok",
-      unless    => "/usr/bin/cat /tmp/${username}-db-ready | grep ok",
+      command   => "/bin/cat /tmp/${dbname}-db-ready | grep ok",
+      unless    => "/bin/cat /tmp/${dbname}-db-ready | grep ok",
     } ->
     Anchor['cinder::service::begin'] ->
-    exec { "${username}-db-ready-rm":
+    exec { "${dbname}-db-ready-rm":
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/usr/bin/rm -f /tmp/${username}-db-ready",
-      unless    => "/usr/bin/rm -f /tmp/${username}-db-ready",
+      command   => "/bin/rm -f /tmp/${dbname}-db-ready",
+      unless    => "/bin/rm -f /tmp/${dbname}-db-ready",
     }
   }
 
   class { '::cinder::db':
     database_max_retries    => '-1',
     database_db_max_retries => '-1',
-    database_connection     => "mysql+pymysql://cinder:${cinder_password}@${api_internal_vip}/cinder",
+    database_connection     => "mysql+pymysql://${user}:${password}@${internal_vip}/${dbname}",
   }
 
   class { '::cinder':
@@ -63,11 +68,13 @@ class openstack::y003_cinder (
     control_exchange => 'openstack',
     api_paste_config => '/etc/cinder/api-paste.ini',
     lock_path        => '/var/lib/cinder/tmp',
-    #
-    rabbit_hosts     => ["${controller_1}:5672", "${controller_2}:5672", "${controller_3}:5672"],
+    rabbit_hosts     => [
+      "${controller_1_internal_ip}:5672",
+      "${controller_2_internal_ip}:5672",
+      "${controller_3_internal_ip}:5672"],
     rabbit_use_ssl   => false,
-    rabbit_password  => 'guest',
-    rabbit_userid    => 'guest',
+    rabbit_password  => $rabbit_password,
+    rabbit_userid    => $rabbit_userid,
     rabbit_ha_queues => true,
     rabbit_heartbeat_timeout_threshold => '60',
     #
@@ -75,28 +82,30 @@ class openstack::y003_cinder (
   }
 
   class { '::cinder::keystone::authtoken':
-    auth_uri            => "http://${api_internal_vip}:5000",
-    auth_url            => "http://${api_internal_vip}:35357",
-    memcached_servers   => ["${controller_1}:11211", "${controller_2}:11211", "${controller_3}:11211"],
+    auth_uri            => "http://${internal_vip}:5000",
+    auth_url            => "http://${internal_vip}:35357",
+    memcached_servers   => [
+      "${controller_1_internal_ip}:11211",
+      "${controller_2_internal_ip}:11211",
+      "${controller_3_internal_ip}:11211"],
     auth_type           => 'password',
     project_domain_name => 'default',
     user_domain_name    => 'default',
     project_name        => 'services',
-    username            => 'cinder',
-    password            => $cinder_password,
+    username            => $user,
+    password            => $password,
   }
 
   class { '::cinder::api':
-    bind_host           => $::ipaddress_vlan53, # osapi_volume_listen
-    default_volume_type => 'rbd',
-    nova_catalog_info   => 'compute:Compute Service:publicURL',
+    bind_host                    => $internal_interface, # osapi_volume_listen
+    default_volume_type          => 'rbd',
+    nova_catalog_info            => 'compute:Compute Service:publicURL',
     nova_catalog_admin_info      => 'compute:Compute Service:adminURL',
-    #
-    keystone_enabled    => false,
-    auth_strategy       => 'keystone',
+    keystone_enabled             => false,
+    auth_strategy                => 'keystone',
     enable_proxy_headers_parsing => true,
     #
-    sync_db             => $sync_db,
+    sync_db                      => $sync_db,
   }
 
   class { '::cinder::scheduler':
@@ -104,7 +113,7 @@ class openstack::y003_cinder (
   }
 
   class { '::cinder::glance':
-    glance_api_servers => "http://${api_internal_vip}:9292",
+    glance_api_servers => "http://${internal_vip}:9292",
     glance_api_version => '2',
   }
 
@@ -152,27 +161,27 @@ class openstack::y003_cinder (
 
   if $::hostname == $bootstrap_node {
     class { '::cinder::keystone::auth':
-      password               => $cinder_password,
+      password               => $password,
       password_user_v2       => undef,
       password_user_v3       => undef,
-      auth_name              => 'cinder',
+      auth_name              => $user,
       auth_name_v2           => 'cinderv2',
       auth_name_v3           => 'cinderv3',
       tenant                 => 'services',
       tenant_user_v2         => 'services',
       tenant_user_v3         => 'services',
-      email                  => 'cinder@localhost',
+      email                  => "$user@localhost",
       email_user_v2          => undef,
       email_user_v3          => undef,
-      public_url             => "http://${api_public_vip}:8776/v1/%(tenant_id)s",
-      internal_url           => "http://${api_internal_vip}:8776/v1/%(tenant_id)s",
-      admin_url              => "http://${api_internal_vip}:8776/v1/%(tenant_id)s",
-      public_url_v2          => "http://${api_public_vip}:8776/v2/%(tenant_id)s",
-      internal_url_v2        => "http://${api_internal_vip}:8776/v2/%(tenant_id)s",
-      admin_url_v2           => "http://${api_internal_vip}:8776/v2/%(tenant_id)s",
-      public_url_v3          => "http://${api_public_vip}:8776/v3/%(tenant_id)s",
-      internal_url_v3        => "http://${api_internal_vip}:8776/v3/%(tenant_id)s",
-      admin_url_v3           => "http://${api_internal_vip}:8776/v3/%(tenant_id)s",
+      public_url             => "http://${public_vip}:8776/v1/%(tenant_id)s",
+      internal_url           => "http://${internal_vip}:8776/v1/%(tenant_id)s",
+      admin_url              => "http://${internal_vip}:8776/v1/%(tenant_id)s",
+      public_url_v2          => "http://${public_vip}:8776/v2/%(tenant_id)s",
+      internal_url_v2        => "http://${internal_vip}:8776/v2/%(tenant_id)s",
+      admin_url_v2           => "http://${internal_vip}:8776/v2/%(tenant_id)s",
+      public_url_v3          => "http://${public_vip}:8776/v3/%(tenant_id)s",
+      internal_url_v3        => "http://${internal_vip}:8776/v3/%(tenant_id)s",
+      admin_url_v3           => "http://${internal_vip}:8776/v3/%(tenant_id)s",
       configure_endpoint     => true,
       configure_endpoint_v2  => true,
       configure_endpoint_v3  => true,
@@ -192,7 +201,8 @@ class openstack::y003_cinder (
       service_description_v2 => 'Cinder Service v2',
       service_description_v3 => 'Cinder Service v3',
       region                 => 'RegionOne',
-    } ->
+    }
+
     Anchor['cinder::dbsync::end'] ->
     pacemaker::resource::service { 'openstack-cinder-volume': op_params => 'start timeout=200s stop timeout=200s', } ->
     pacemaker::resource::service { 'openstack-cinder-backup': op_params => 'start timeout=200s stop timeout=200s', } ->

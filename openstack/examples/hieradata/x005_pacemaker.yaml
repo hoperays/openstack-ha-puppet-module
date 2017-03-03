@@ -1,6 +1,4 @@
-openstack::x005_pacemaker::hacluster_pwd: e06657a8167e0efeaec061e39b885f87
 openstack::x005_pacemaker::cluster_name: openstack_cluster
-openstack::x005_pacemaker::remote_authkey: 5c60a06aaa290d3cb9e1a84daba46008
 openstack::x005_pacemaker::manage_fw: false
 openstack::x005_pacemaker::pacemaker_propertys:
   maintenance-mode:

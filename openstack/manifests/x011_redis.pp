@@ -1,7 +1,7 @@
 class openstack::x011_redis (
   $bootstrap_node   = hiera('controller_1_hostname'),
   $bind             = hiera('internal_interface'),
-  $redis_password   = '',
+  $redis_password   = hiera('redis_password'),
   $redis_file_limit = '',
   $manage_resources = false,
 ) {

@@ -1,0 +1,5 @@
+openstack::y008_gnocchi::resource_id: 694470c3-11a3-4e34-a3d2-e3f85b7b96f4
+openstack::y008_gnocchi::user_id: ad938629-e7d6-466b-a96b-e2c3d8024d19
+openstack::y008_gnocchi::project_id: 77e10849-0e36-466a-9396-50d39fa200b1
+openstack::y008_gnocchi::archive_policy_name: low
+openstack::y008_gnocchi::flush_delay: 10

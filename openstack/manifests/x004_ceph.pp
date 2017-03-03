@@ -30,6 +30,8 @@ class openstack::x004_ceph (
   $novacompute_keys            = {},
   $osds                        = {},
   $pools                       = {},
+  $controller_as_cephstorage   = hiera('controller_as_cephstorage'),
+  $novacompute_as_cephstorage  = hiera('novacompute_as_cephstorage'),
 ) {
   class { '::ceph':
     fsid                   => $fsid,
@@ -73,11 +75,24 @@ class openstack::x004_ceph (
       inject_keyring => "/var/lib/ceph/mon/ceph-${::hostname}/keyring",
     }
     create_resources('ceph::key', merge($controller_keys, $cephstorage_keys, $novacompute_keys))
-  } elsif $::hostname =~ /^*cephstorage-\d*$/ {
+
+    if $controller_as_cephstorage {
+      create_resources('ceph::osd', $osds)
+    }
+  }
+
+  if $::hostname =~ /^*novacompute-\d*$/ {
+    create_resources('ceph::key', $novacompute_keys)
+
+    if $novacompute_as_cephstorage {
+      create_resources('ceph::key', $cephstorage_keys)
+      create_resources('ceph::osd', $osds)
+    }
+  }
+
+  if $::hostname =~ /^*cephstorage-\d*$/ {
     create_resources('ceph::key', $cephstorage_keys)
     create_resources('ceph::osd', $osds)
-  } elsif $::hostname =~ /^*novacompute-\d*$/ {
-    create_resources('ceph::key', $novacompute_keys)
   }
 
   if $::hostname == $bootstrap_node {

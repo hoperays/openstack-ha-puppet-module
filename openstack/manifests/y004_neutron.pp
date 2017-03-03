@@ -1,82 +1,99 @@
 class openstack::y004_neutron (
-  $bootstrap_node   = 'controller-1',
-  $neutron_password = 'neutron1234',
-  $nova_password    = 'nova1234',
-  $allowed_hosts    = ['%'],
-  $username         = 'neutron',
-  $api_public_vip   = '172.17.52.100',
-  $api_internal_vip = '172.17.53.100',
-  $controller_1     = '172.17.53.101',
-  $controller_2     = '172.17.53.102',
-  $controller_3     = '172.17.53.103',
-  $metadata_secret  = 'metadata1234',
-  $bridge_mappings  = ['cloud:br-bond0']) {
+  $bootstrap_node           = hiera('controller_1_hostname'),
+  $rabbit_user              = hiera('rabbit_username'),
+  $rabbit_password          = hiera('rabbit_password'),
+  $dbname                   = hiera('neutron_dbname'),
+  $user                     = hiera('neutron_username'),
+  $password                 = hiera('neutron_password'),
+  $public_vip               = hiera('public_vip'),
+  $internal_vip             = hiera('internal_vip'),
+  $controller_1_internal_ip = hiera('controller_1_internal_ip'),
+  $controller_2_internal_ip = hiera('controller_2_internal_ip'),
+  $controller_3_internal_ip = hiera('controller_3_internal_ip'),
+  $internal_interface       = hiera('internal_interface'),
+  $metadata_secret          = hiera('metadata_secret'),
+  $nova_username            = hiera('nova_username'),
+  $nova_password            = hiera('nova_password'),
+  $service_plugins          = [],
+  $service_providers        = [],
+  $global_physnet_mtu       = '',
+  $dhcp_agents_per_network  = '',
+  $bridge_mappings          = [],
+  $l3_ha                    = false,
+  $max_l3_agents_per_router = '',
+  $type_drivers             = [],
+  $tenant_network_types     = [],
+  $mechanism_drivers        = [],
+  $extension_drivers        = [],
+  $flat_networks            = '',
+  $network_vlan_ranges      = [],
+  $tunnel_id_ranges         = [],
+  $vxlan_group              = '',
+  $vni_ranges               = '',
+) {
   if $::hostname == $bootstrap_node {
-    Exec['galera-ready'] ->
     class { '::neutron::db::mysql':
-      password      => $neutron_password,
+      dbname        => $dbname,
+      user          => $user,
+      password      => $password,
       host          => 'localhost',
-      allowed_hosts => $allowed_hosts,
+      allowed_hosts => [$controller_1_internal_ip, $controller_2_internal_ip, $controller_3_internal_ip],
     }
     $sync_db = true
     Anchor['neutron::dbsync::end'] ->
-    exec { "${username}-db-ready-echo":
+    exec { "${dbname}-db-ready-echo":
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/usr/bin/ssh controller-2 'echo ok > /tmp/${username}-db-ready' && \
-                    /usr/bin/ssh controller-3 'echo ok > /tmp/${username}-db-ready'",
-      unless    => "/usr/bin/ssh controller-2 'echo ok > /tmp/${username}-db-ready' && \
-                    /usr/bin/ssh controller-3 'echo ok > /tmp/${username}-db-ready'",
+      command   => "/bin/ssh ${controller_2_internal_ip} 'echo ok > /tmp/${dbname}-db-ready' && \
+                    /bin/ssh ${controller_3_internal_ip} 'echo ok > /tmp/${dbname}-db-ready'",
+      unless    => "/bin/ssh ${controller_2_internal_ip} 'echo ok > /tmp/${dbname}-db-ready' && \
+                    /bin/ssh ${controller_3_internal_ip} 'echo ok > /tmp/${dbname}-db-ready'",
     }
-  } elsif $::hostname =~ /^controller-\d+$/ {
+  } elsif $::hostname =~ /^*controller-\d*$/ {
     $sync_db = false
     Anchor['neutron::config::end'] ->
-    exec { "${username}-db-ready":
+    exec { "${dbname}-db-ready":
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/usr/bin/cat /tmp/${username}-db-ready | grep ok",
-      unless    => "/usr/bin/cat /tmp/${username}-db-ready | grep ok",
+      command   => "/bin/cat /tmp/${dbname}-db-ready | grep ok",
+      unless    => "/bin/cat /tmp/${dbname}-db-ready | grep ok",
     } ->
     Anchor['neutron::service::begin'] ->
-    exec { "${username}-db-ready-rm":
+    exec { "${dbname}-db-ready-rm":
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/usr/bin/rm -f /tmp/${username}-db-ready",
-      unless    => "/usr/bin/rm -f /tmp/${username}-db-ready",
+      command   => "/bin/rm -f /tmp/${dbname}-db-ready",
+      unless    => "/bin/rm -f /tmp/${dbname}-db-ready",
     }
   }
 
   class { '::neutron':
-    bind_host               => $::ipaddress_vlan53,
+    bind_host               => $internal_interface,
     auth_strategy           => 'keystone',
     core_plugin             => 'neutron.plugins.ml2.plugin.Ml2Plugin',
-    service_plugins         => [
-      'router',
-      'qos',
-      'trunk',
-      'firewall',
-      'vpnaas',
-      'neutron_lbaas.services.loadbalancer.plugin.LoadBalancerPluginv2',
-      'metering'],
+    service_plugins         => $service_plugins,
     allow_overlapping_ips   => true,
     host                    => $::hostname,
-    global_physnet_mtu      => '1500',
+    global_physnet_mtu      => $global_physnet_mtu,
     log_dir                 => '/var/log/neutron',
     rpc_backend             => 'rabbit',
     control_exchange        => 'neutron',
     root_helper             => 'sudo neutron-rootwrap /etc/neutron/rootwrap.conf',
     #
-    rabbit_hosts            => ["${controller_1}:5672", "${controller_2}:5672", "${controller_3}:5672"],
+    rabbit_hosts            => [
+      "${controller_1_internal_ip}:5672",
+      "${controller_2_internal_ip}:5672",
+      "${controller_3_internal_ip}:5672"],
     rabbit_use_ssl          => false,
-    rabbit_user             => 'guest',
-    rabbit_password         => 'guest',
+    rabbit_user             => $rabbit_user,
+    rabbit_password         => $rabbit_password,
     rabbit_ha_queues        => true,
     rabbit_heartbeat_timeout_threshold => '60',
     #
-    dhcp_agents_per_network => '3',
+    dhcp_agents_per_network => $dhcp_agents_per_network,
     #
     purge_config            => true,
   }
@@ -91,73 +108,73 @@ class openstack::y004_neutron (
     extensions                 => ['qos'],
     integration_bridge         => 'br-int',
     tunnel_bridge              => 'br-tun',
-    local_ip                   => $::ipaddress_vlan54,
+    local_ip                   => hiera('tenant_interface'),
     bridge_mappings            => $bridge_mappings,
     firewall_driver            => 'neutron.agent.linux.iptables_firewall.OVSHybridIptablesFirewallDriver',
     #
     purge_config               => true,
   }
 
-  if $::hostname =~ /^controller-\d+$/ {
+  if $::hostname =~ /^*controller-\d*$/ {
     class { '::neutron::keystone::authtoken':
-      auth_uri            => "http://${api_internal_vip}:5000",
-      auth_url            => "http://${api_internal_vip}:35357",
-      memcached_servers   => ["${controller_1}:11211", "${controller_2}:11211", "${controller_3}:11211"],
+      auth_uri            => "http://${internal_vip}:5000",
+      auth_url            => "http://${internal_vip}:35357",
+      memcached_servers   => [
+        "${controller_1_internal_ip}:11211",
+        "${controller_2_internal_ip}:11211",
+        "${controller_3_internal_ip}:11211"],
       auth_type           => 'password',
       project_domain_name => 'default',
       user_domain_name    => 'default',
       project_name        => 'services',
-      username            => 'neutron',
-      password            => $neutron_password,
+      username            => $user,
+      password            => $password,
     }
 
     class { '::neutron::db':
       database_max_retries    => '-1',
       database_db_max_retries => '-1',
-      database_connection     => "mysql+pymysql://neutron:${neutron_password}@${api_internal_vip}/neutron",
+      database_connection     => "mysql+pymysql://${user}:${password}@${internal_vip}/${dbname}",
     }
 
     class { '::neutron::server':
-      service_providers  => [
-        'FIREWALL:Iptables:neutron.agent.linux.iptables_firewall.OVSHybridIptablesFirewallDriver:default',
-        'LOADBALANCERV2:Haproxy:neutron_lbaas.drivers.haproxy.plugin_driver.HaproxyOnHostPluginDriver:default',
-        'VPN:openswan:neutron_vpnaas.services.vpn.service_drivers.ipsec.IPsecVPNDriver:default'],
+      service_providers  => $service_providers,
       auth_strategy      => 'keystone',
       enable_proxy_headers_parsing => true,
       #
       router_distributed => false,
       router_scheduler_driver      => 'neutron.scheduler.l3_agent_scheduler.ChanceScheduler',
       #
-      l3_ha              => true,
-      max_l3_agents_per_router     => '3',
+      l3_ha              => $l3_ha,
+      max_l3_agents_per_router     => $max_l3_agents_per_router,
       #
       sync_db            => $sync_db,
     }
 
     class { '::neutron::server::notifications':
-      auth_url          => "http://${api_internal_vip}:35357/v3",
+      auth_url          => "http://${internal_vip}:35357/v3",
       auth_type         => 'password',
       project_domain_id => 'default',
       user_domain_id    => 'default',
       project_name      => 'services',
-      username          => 'nova',
+      username          => $nova_username,
       password          => $nova_password,
       #
-      nova_url          => "http://${api_internal_vip}:8774/v2.1",
+      nova_url          => "http://${internal_vip}:8774/v2.1",
       notify_nova_on_port_status_changes => true,
       notify_nova_on_port_data_changes   => true,
     }
 
     class { '::neutron::plugins::ml2':
-      type_drivers         => ['local', 'flat', 'vlan', 'gre', 'vxlan'],
-      tenant_network_types => ['vlan', 'vxlan'],
-      mechanism_drivers    => ['openvswitch'],
-      extension_drivers    => ['port_security', 'qos'],
-      flat_networks        => '*',
-      network_vlan_ranges  => ['cloud:1:1', 'cloud:100:599'],
-      tunnel_id_ranges     => ['100:599'],
-      vxlan_group          => '224.0.0.1',
-      vni_ranges           => ['100:599'],
+      type_drivers         => $type_drivers,
+      tenant_network_types => $tenant_network_types,
+      mechanism_drivers    => $mechanism_drivers,
+      extension_drivers    => $extension_drivers,
+      flat_networks        => $flat_networks,
+      network_vlan_ranges  => $network_vlan_ranges,
+      tunnel_id_ranges     => $tunnel_id_ranges,
+      vxlan_group          => $vxlan_group,
+      vni_ranges           => $vni_ranges,
       #
       purge_config         => true,
     }
@@ -204,7 +221,7 @@ class openstack::y004_neutron (
     neutron_l3_agent_config { 'AGENT/extensions': value => join(any2array(['fwaas']), ','); }
 
     class { '::neutron::agents::metadata':
-      metadata_ip   => $api_internal_vip,
+      metadata_ip   => $internal_vip,
       shared_secret => $metadata_secret,
       #
       purge_config  => true,
@@ -238,9 +255,9 @@ class openstack::y004_neutron (
 
   if $::hostname == $bootstrap_node {
     class { '::neutron::keystone::auth':
-      password            => $neutron_password,
-      auth_name           => 'neutron',
-      email               => 'neutron@localhost',
+      password            => $password,
+      auth_name           => $user,
+      email               => "$user@localhost",
       tenant              => 'services',
       configure_endpoint  => true,
       configure_user      => true,
@@ -249,9 +266,9 @@ class openstack::y004_neutron (
       service_type        => 'network',
       service_description => 'Neutron Networking Service',
       region              => 'RegionOne',
-      public_url          => "http://${api_public_vip}:9696",
-      admin_url           => "http://${api_internal_vip}:9696",
-      internal_url        => "http://${api_internal_vip}:9696",
+      public_url          => "http://${public_vip}:9696",
+      admin_url           => "http://${internal_vip}:9696",
+      internal_url        => "http://${internal_vip}:9696",
     }
   }
 }

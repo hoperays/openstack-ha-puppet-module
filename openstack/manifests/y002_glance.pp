@@ -1,94 +1,101 @@
 class openstack::y002_glance (
-  $bootstrap_node   = 'controller-1',
-  $glance_password  = 'glance1234',
-  $allowed_hosts    = ['%'],
-  $username         = 'glance',
-  $api_public_vip   = '172.17.52.100',
-  $api_internal_vip = '172.17.53.100',
-  $controller_1     = '172.17.53.101',
-  $controller_2     = '172.17.53.102',
-  $controller_3     = '172.17.53.103',) {
+  $bootstrap_node           = hiera('controller_1_hostname'),
+  $rabbit_userid            = hiera('rabbit_username'),
+  $rabbit_password          = hiera('rabbit_password'),
+  $dbname                   = hiera('glance_dbname'),
+  $user                     = hiera('glance_username'),
+  $password                 = hiera('glance_password'),
+  $public_vip               = hiera('public_vip'),
+  $internal_vip             = hiera('internal_vip'),
+  $controller_1_internal_ip = hiera('controller_1_internal_ip'),
+  $controller_2_internal_ip = hiera('controller_2_internal_ip'),
+  $controller_3_internal_ip = hiera('controller_3_internal_ip'),
+  $internal_interface       = hiera('internal_interface'),
+) {
   if $::hostname == $bootstrap_node {
-    Exec['galera-ready'] ->
     class { '::glance::db::mysql':
-      password      => $glance_password,
+      dbname        => $dbname,
+      user          => $user,
+      password      => $password,
       host          => 'localhost',
-      allowed_hosts => $allowed_hosts,
+      allowed_hosts => [$controller_1_internal_ip, $controller_2_internal_ip, $controller_3_internal_ip],
     }
     $sync_db = true
     Anchor['glance::dbsync::end'] ->
-    exec { "${username}-db-ready-echo":
+    exec { "${dbname}-db-ready-echo":
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/usr/bin/ssh controller-2 'echo ok > /tmp/${username}-db-ready' && \
-                    /usr/bin/ssh controller-3 'echo ok > /tmp/${username}-db-ready'",
-      unless    => "/usr/bin/ssh controller-2 'echo ok > /tmp/${username}-db-ready' && \
-                    /usr/bin/ssh controller-3 'echo ok > /tmp/${username}-db-ready'",
+      command   => "/bin/ssh ${controller_2_internal_ip} 'echo ok > /tmp/${dbname}-db-ready' && \
+                    /bin/ssh ${controller_3_internal_ip} 'echo ok > /tmp/${dbname}-db-ready'",
+      unless    => "/bin/ssh ${controller_2_internal_ip} 'echo ok > /tmp/${dbname}-db-ready' && \
+                    /bin/ssh ${controller_3_internal_ip} 'echo ok > /tmp/${dbname}-db-ready'",
     }
   } else {
     $sync_db = false
     Anchor['glance::config::end'] ->
-    exec { "${username}-db-ready":
+    exec { "${dbname}-db-ready":
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/usr/bin/cat /tmp/${username}-db-ready | grep ok",
-      unless    => "/usr/bin/cat /tmp/${username}-db-ready | grep ok",
+      command   => "/bin/cat /tmp/${dbname}-db-ready | grep ok",
+      unless    => "/bin/cat /tmp/${dbname}-db-ready | grep ok",
     } ->
     Anchor['glance::service::begin'] ->
-    exec { "${username}-db-ready-rm":
+    exec { "${dbname}-db-ready-rm":
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/usr/bin/rm -f /tmp/${username}-db-ready",
-      unless    => "/usr/bin/rm -f /tmp/${username}-db-ready",
+      command   => "/bin/rm -f /tmp/${dbname}-db-ready",
+      unless    => "/bin/rm -f /tmp/${dbname}-db-ready",
     }
   }
 
   class { '::glance::api::authtoken':
-    auth_uri            => "http://${api_internal_vip}:5000",
-    auth_url            => "http://${api_internal_vip}:35357",
-    memcached_servers   => ["${controller_1}:11211", "${controller_2}:11211", "${controller_3}:11211"],
+    auth_uri            => "http://${internal_vip}:5000",
+    auth_url            => "http://${internal_vip}:35357",
+    memcached_servers   => [
+      "${controller_1_internal_ip}:11211",
+      "${controller_2_internal_ip}:11211",
+      "${controller_3_internal_ip}:11211"],
     auth_type           => 'password',
     project_domain_name => 'default',
     user_domain_name    => 'default',
     project_name        => 'services',
-    username            => 'glance',
-    password            => $glance_password,
+    username            => $user,
+    password            => $password,
   }
 
   class { '::glance::api':
     show_image_direct_url        => true,
     show_multiple_locations      => true,
-    bind_host       => $::ipaddress_vlan53,
-    bind_port       => '9292',
-    image_cache_dir => '/var/lib/glance/image-cache',
-    registry_host   => $api_internal_vip,
+    bind_host                    => $internal_interface,
+    bind_port                    => '9292',
+    image_cache_dir              => '/var/lib/glance/image-cache',
+    registry_host                => $internal_vip,
     registry_client_protocol     => 'http',
-    log_file        => '/var/log/glance/api.log',
-    log_dir         => '/var/log/glance',
-    # rpc_backend   => 'rabbit',
-    database_connection          => "mysql+pymysql://glance:${glance_password}@${api_internal_vip}/glance",
-    #
-    stores          => ['glance.store.http.Store', 'glance.store.rbd.Store'],
-    default_store   => 'rbd',
-    os_region_name  => 'RegionOne',
-    #
+    log_file                     => '/var/log/glance/api.log',
+    log_dir                      => '/var/log/glance',
+    database_connection          => "mysql+pymysql://${user}:${password}@${internal_vip}/${dbname}",
+    stores                       => ['glance.store.http.Store', 'glance.store.rbd.Store'],
+    default_store                => 'rbd',
+    os_region_name               => 'RegionOne',
     enable_proxy_headers_parsing => true,
-    pipeline        => 'keystone',
-    auth_strategy   => 'keystone',
+    pipeline                     => 'keystone',
+    auth_strategy                => 'keystone',
+    multi_store                  => true,
     #
-    multi_store     => true,
-    #
-    purge_config    => true,
+    purge_config                 => true,
   }
 
   class { '::glance::notify::rabbitmq':
-    rabbit_hosts        => ["${controller_1}:5672", "${controller_2}:5672", "${controller_3}:5672"],
+    rabbit_hosts        => [
+      "${controller_1_internal_ip}:5672",
+      "${controller_2_internal_ip}:5672",
+      "${controller_3_internal_ip}:5672"],
     rabbit_use_ssl      => false,
-    rabbit_password     => 'guest',
-    rabbit_userid       => 'guest',
+    rabbit_password     => $rabbit_password,
+    rabbit_userid       => $rabbit_userid,
     rabbit_ha_queues    => true,
     notification_driver => 'messagingv2',
   }
@@ -103,33 +110,33 @@ class openstack::y002_glance (
   }
 
   class { '::glance::registry::authtoken':
-    auth_uri            => "http://${api_internal_vip}:5000",
-    auth_url            => "http://${api_internal_vip}:35357",
-    memcached_servers   => ["${controller_1}:11211", "${controller_2}:11211", "${controller_3}:11211"],
+    auth_uri            => "http://${internal_vip}:5000",
+    auth_url            => "http://${internal_vip}:35357",
+    memcached_servers   => [
+      "${controller_1_internal_ip}:11211",
+      "${controller_2_internal_ip}:11211",
+      "${controller_3_internal_ip}:11211"],
     auth_type           => 'password',
     project_domain_name => 'default',
     user_domain_name    => 'default',
     project_name        => 'services',
-    username            => 'glance',
-    password            => $glance_password,
+    username            => $user,
+    password            => $password,
   }
 
   class { '::glance::registry::db':
     database_max_retries    => '-1',
     database_db_max_retries => '-1',
-    database_connection     => "mysql+pymysql://glance:${glance_password}@${api_internal_vip}/glance",
+    database_connection     => "mysql+pymysql://${user}:${password}@${internal_vip}/${dbname}",
   }
 
   class { '::glance::registry':
-    bind_host     => $::ipaddress_vlan53,
+    bind_host     => $internal_interface,
     bind_port     => '9191',
     log_file      => '/var/log/glance/registry.log',
     log_dir       => '/var/log/glance',
-    # rpc_backend => 'rabbit',
-    #
     pipeline      => 'keystone',
     auth_strategy => 'keystone',
-    #
     sync_db       => $sync_db,
     #
     purge_config  => true,
@@ -137,9 +144,9 @@ class openstack::y002_glance (
 
   if $::hostname == $bootstrap_node {
     class { '::glance::keystone::auth':
-      email               => 'glance@localhost',
-      password            => $glance_password,
-      auth_name           => 'glance',
+      email               => "$user@localhost",
+      password            => $password,
+      auth_name           => $user,
       configure_endpoint  => true,
       configure_user      => true,
       configure_user_role => true,
@@ -148,9 +155,9 @@ class openstack::y002_glance (
       region              => 'RegionOne',
       tenant              => 'services',
       service_description => 'OpenStack Image Service',
-      public_url          => "http://${api_public_vip}:9292",
-      admin_url           => "http://${api_internal_vip}:9292",
-      internal_url        => "http://${api_internal_vip}:9292",
+      public_url          => "http://${public_vip}:9292",
+      admin_url           => "http://${internal_vip}:9292",
+      internal_url        => "http://${internal_vip}:9292",
     }
   }
 }

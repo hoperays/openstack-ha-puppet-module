@@ -30,6 +30,19 @@ openstack::x001_firewall::post_rules:
   999 drop all:
     proto: all
     action: drop
+openstack::x001_firewall::zabbix_rules:
+  300 allow inbound zabbix agent:
+    dport:
+    - 10050
+    proto: tcp
+    action: accept
+    provider: iptables
+  300 allow inbound zabbix snmp:
+    dport:
+    - 161
+    proto: udp
+    action: accept
+    provider: iptables
 openstack::x001_firewall::controller_rules:
   100 allow inbound ntp:
     dport:
@@ -222,18 +235,6 @@ openstack::x001_firewall::controller_rules:
     proto: tcp
     action: accept
     provider: iptables
-  300 allow inbound zabbix agent:
-    dport:
-    - 10050
-    proto: tcp
-    action: accept
-    provider: iptables
-  300 allow inbound zabbix snmp:
-    dport:
-    - 161
-    proto: udp
-    action: accept
-    provider: iptables
 openstack::x001_firewall::novacompute_rules:
   102 allow inbound pacemaker:
     dport:
@@ -260,34 +261,10 @@ openstack::x001_firewall::novacompute_rules:
     proto: tcp
     action: accept
     provider: iptables
-  300 allow inbound zabbix agent:
-    dport:
-    - 10050
-    proto: tcp
-    action: accept
-    provider: iptables
-  300 allow inbound zabbix snmp:
-    dport:
-    - 161
-    proto: udp
-    action: accept
-    provider: iptables
 openstack::x001_firewall::cephstorage_rules:
   101 allow inbound ceph osd:
     dport:
     - 6800-7300
     proto: tcp
-    action: accept
-    provider: iptables
-  300 allow inbound zabbix agent:
-    dport:
-    - 10050
-    proto: tcp
-    action: accept
-    provider: iptables
-  300 allow inbound zabbix snmp:
-    dport:
-    - 161
-    proto: udp
     action: accept
     provider: iptables

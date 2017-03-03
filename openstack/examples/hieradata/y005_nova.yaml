@@ -1,0 +1,5 @@
+openstack::y005_nova::cpu_allocation_ratio: 4.0
+openstack::y005_nova::ram_allocation_ratio: 1.0
+openstack::y005_nova::disk_allocation_ratio: 0.8
+openstack::y005_nova::openstack_key: AQB+RUpYfv+aIRAA4AbRb+XICXx+x+shF5AeZQ==
+openstack::y005_nova::reserved_host_memory: 2048
