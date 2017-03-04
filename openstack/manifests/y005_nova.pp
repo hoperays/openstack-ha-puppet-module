@@ -237,7 +237,7 @@ class openstack::y005_nova (
   if $::hostname =~ /^*novacompute-\d*$/ or $controller_as_novacompute {
     class { '::nova::compute':
       vnc_enabled                       => true,
-      vncserver_proxyclient_address     => $internal_vip,
+      vncserver_proxyclient_address     => $internal_interface,
       vncproxy_host                     => $public_vip,
       vncproxy_protocol                 => 'https',
       vncproxy_port                     => '13080',
