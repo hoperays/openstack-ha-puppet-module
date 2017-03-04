@@ -2,6 +2,7 @@ class openstack::y002_glance (
   $bootstrap_node           = hiera('controller_1_hostname'),
   $rabbit_userid            = hiera('rabbit_username'),
   $rabbit_password          = hiera('rabbit_password'),
+  $email                    = hiera('glance_email'),
   $dbname                   = hiera('glance_dbname'),
   $user                     = hiera('glance_username'),
   $password                 = hiera('glance_password'),
@@ -144,7 +145,7 @@ class openstack::y002_glance (
 
   if $::hostname == $bootstrap_node {
     class { '::glance::keystone::auth':
-      email               => "$user@localhost",
+      email               => $email,
       password            => $password,
       auth_name           => $user,
       configure_endpoint  => true,

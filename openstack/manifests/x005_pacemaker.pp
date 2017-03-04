@@ -1,15 +1,15 @@
 class openstack::x005_pacemaker (
-  $bootstrap_node              = hiera('controller_1_hostname'),
-  $cluster_members             = join(any2array([
+  $bootstrap_node             = hiera('controller_1_hostname'),
+  $cluster_members            = join(any2array([
     hiera('controller_1_hostname'),
     hiera('controller_2_hostname'),
     hiera('controller_3_hostname')]), ' '),
-  $cluster_name                = '',
-  $hacluster_pwd               = hiera('hacluster_password'),
-  $remote_authkey              = hiera('remote_authkey'),
-  $manage_fw                   = false,
-  $pacemaker_propertys         = {},
-  $pacemaker_resource_defaults = {},
+  $cluster_name               = '',
+  $hacluster_pwd              = hiera('hacluster_password'),
+  $remote_authkey             = hiera('remote_authkey'),
+  $manage_fw                  = false,
+  $pacemaker_property         = {},
+  $pacemaker_resource_default = {},
 ) {
   if $::hostname == $bootstrap_node {
     $setup_cluster = true
@@ -51,7 +51,7 @@ class openstack::x005_pacemaker (
   }
 
   if $::hostname == $bootstrap_node {
-    create_resources('pacemaker_property', $pacemaker_propertys)
-    create_resources('pacemaker_resource_default', $pacemaker_resource_defaults)
+    create_resources('pacemaker_property', $pacemaker_property)
+    create_resources('pacemaker_resource_default', $pacemaker_resource_default)
   }
 }

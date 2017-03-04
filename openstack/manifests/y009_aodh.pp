@@ -2,6 +2,7 @@ class openstack::y009_aodh (
   $bootstrap_node           = hiera('controller_1_hostname'),
   $rabbit_userid            = hiera('rabbit_username'),
   $rabbit_password          = hiera('rabbit_password'),
+  $email                    = hiera('aodh_email'),
   $dbname                   = hiera('aodh_dbname'),
   $user                     = hiera('aodh_username'),
   $password                 = hiera('aodh_password'),
@@ -83,10 +84,10 @@ class openstack::y009_aodh (
   }
 
   class { '::aodh::auth':
+    auth_user         => $user,
     auth_password     => $password,
     auth_url          => "http://${internal_vip}:5000",
     auth_region       => 'RegionOne',
-    auth_user         => $user,
     auth_tenant_name  => 'services',
     project_domain_id => 'default',
     user_domain_id    => 'default',
@@ -110,7 +111,7 @@ class openstack::y009_aodh (
     class { '::aodh::keystone::auth':
       password            => $password,
       auth_name           => $user,
-      email               => "$user@localhost",
+      email               => $email,
       tenant              => 'services',
       configure_endpoint  => true,
       configure_user      => true,

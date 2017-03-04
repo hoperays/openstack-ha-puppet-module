@@ -2,6 +2,7 @@ class openstack::y004_neutron (
   $bootstrap_node           = hiera('controller_1_hostname'),
   $rabbit_user              = hiera('rabbit_username'),
   $rabbit_password          = hiera('rabbit_password'),
+  $email                    = hiera('neutron_email'),
   $dbname                   = hiera('neutron_dbname'),
   $user                     = hiera('neutron_username'),
   $password                 = hiera('neutron_password'),
@@ -138,17 +139,17 @@ class openstack::y004_neutron (
     }
 
     class { '::neutron::server':
-      service_providers  => $service_providers,
-      auth_strategy      => 'keystone',
+      service_providers            => $service_providers,
+      auth_strategy                => 'keystone',
       enable_proxy_headers_parsing => true,
       #
-      router_distributed => false,
+      router_distributed           => false,
       router_scheduler_driver      => 'neutron.scheduler.l3_agent_scheduler.ChanceScheduler',
       #
-      l3_ha              => $l3_ha,
+      l3_ha                        => $l3_ha,
       max_l3_agents_per_router     => $max_l3_agents_per_router,
       #
-      sync_db            => $sync_db,
+      sync_db                      => $sync_db,
     }
 
     class { '::neutron::server::notifications':
@@ -200,7 +201,7 @@ class openstack::y004_neutron (
       interface_driver         => 'neutron.agent.linux.interface.OVSInterfaceDriver',
       dhcp_driver              => 'neutron.agent.linux.dhcp.Dnsmasq',
       root_helper              => 'sudo neutron-rootwrap /etc/neutron/rootwrap.conf',
-      # dnsmasq_config_file      => '/etc/neutron/dnsmasq-neutron.conf',
+      # dnsmasq_config_file    => '/etc/neutron/dnsmasq-neutron.conf',
       enable_force_metadata    => true,
       enable_isolated_metadata => true,
       enable_metadata_network  => true,
@@ -257,7 +258,7 @@ class openstack::y004_neutron (
     class { '::neutron::keystone::auth':
       password            => $password,
       auth_name           => $user,
-      email               => "$user@localhost",
+      email               => $email,
       tenant              => 'services',
       configure_endpoint  => true,
       configure_user      => true,

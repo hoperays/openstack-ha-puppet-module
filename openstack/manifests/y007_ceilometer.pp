@@ -2,6 +2,7 @@ class openstack::y007_ceilometer (
   $bootstrap_node            = hiera('controller_1_hostname'),
   $rabbit_userid             = hiera('rabbit_username'),
   $rabbit_password           = hiera('rabbit_password'),
+  $email                     = hiera('ceilometer_email'),
   $dbname                    = hiera('ceilometer_dbname'),
   $user                      = hiera('ceilometer_username'),
   $password                  = hiera('ceilometer_password'),
@@ -123,7 +124,7 @@ class openstack::y007_ceilometer (
   if $::hostname == $bootstrap_node {
     class { '::ceilometer::keystone::auth':
       password            => $password,
-      email               => "$user@localhost",
+      email               => $email,
       auth_name           => $user,
       configure_user      => true,
       configure_user_role => true,

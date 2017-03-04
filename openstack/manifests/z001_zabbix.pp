@@ -1,13 +1,15 @@
 class openstack::z001_zabbix (
-  $bootstrap_node   = 'controller-1',
-  $zabbix_password  = 'zabbix1234',
-  $allowed_hosts    = ['%'],
-  $username         = 'zabbix',
-  $api_public_vip   = '172.17.52.100',
-  $api_internal_vip = '172.17.53.100',
-  $controller_1     = '172.17.53.101',
-  $controller_2     = '172.17.53.102',
-  $controller_3     = '172.17.53.103',) {
+  $bootstrap_node           = hiera('controller_1_hostname'),
+  $dbname                   = hiera('zabbix_dbname'),
+  $user                     = hiera('zabbix_username'),
+  $password                 = hiera('zabbix_password'),
+  $public_vip               = hiera('public_vip'),
+  $internal_vip             = hiera('internal_vip'),
+  $controller_1_internal_ip = hiera('controller_1_internal_ip'),
+  $controller_2_internal_ip = hiera('controller_2_internal_ip'),
+  $controller_3_internal_ip = hiera('controller_3_internal_ip'),
+  $internal_interface       = hiera('internal_interface'),
+) {
   if $::hostname == $bootstrap_node {
     $manage_database = true
   } else {
@@ -27,7 +29,7 @@ class openstack::z001_zabbix (
   }
 
   class { 'zabbix::agent':
-    server => $api_internal_vip,
+    server => $internal_vip,
   }
 
   if $::hostname == $bootstrap_node {

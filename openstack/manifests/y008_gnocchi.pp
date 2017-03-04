@@ -1,5 +1,6 @@
 class openstack::y008_gnocchi (
   $bootstrap_node           = hiera('controller_1_hostname'),
+  $email                    = hiera('gnocchi_email'),
   $dbname                   = hiera('gnocchi_dbname'),
   $user                     = hiera('gnocchi_username'),
   $password                 = hiera('gnocchi_password'),
@@ -96,7 +97,7 @@ class openstack::y008_gnocchi (
     class { '::gnocchi::keystone::auth':
       password            => $password,
       auth_name           => $user,
-      email               => "$user@localhost",
+      email               => $email,
       tenant              => 'services',
       configure_endpoint  => true,
       configure_user      => true,

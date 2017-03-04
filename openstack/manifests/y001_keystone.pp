@@ -3,6 +3,7 @@ class openstack::y001_keystone (
   $rabbit_userid            = hiera('rabbit_username'),
   $rabbit_password          = hiera('rabbit_password'),
   $admin_token              = hiera('admin_token'),
+  $admin_email              = hiera('admin_email'),
   $admin_username           = hiera('admin_username'),
   $admin_password           = hiera('admin_password'),
   $dbname                   = hiera('keystone_dbname'),
@@ -165,7 +166,7 @@ class openstack::y001_keystone (
 
   if $::hostname == $bootstrap_node {
     class { '::keystone::roles::admin':
-      email                  => "$admin_username@example.com",
+      email                  => $admin_email,
       password               => $admin_password,
       admin                  => $admin_username,
       admin_tenant           => 'admin',

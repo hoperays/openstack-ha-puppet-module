@@ -1,13 +1,13 @@
 openstack::x005_pacemaker::cluster_name: openstack_cluster
 openstack::x005_pacemaker::manage_fw: false
-openstack::x005_pacemaker::pacemaker_propertys:
+openstack::x005_pacemaker::pacemaker_property:
   maintenance-mode:
     ensure: present
     value: false
   stonith-enabled:
     ensure: present
     value: false
-openstack::x005_pacemaker::pacemaker_resource_defaults:
+openstack::x005_pacemaker::pacemaker_resource_default:
   resource-stickiness:
     ensure: present
     value: INFINITY
