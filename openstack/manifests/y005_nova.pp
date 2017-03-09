@@ -44,59 +44,64 @@ class openstack::y005_nova (
     }
     $sync_db = true
     $sync_db_api = true
+
     Anchor['nova::dbsync::end'] ->
-    exec { "${dbname_1}-db-ready-echo":
+    exec { "${dbname_1}-db-ready":
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/bin/ssh ${controller_2_internal_ip} 'echo ok > /tmp/${dbname_1}-db-ready' && \
-                    /bin/ssh ${controller_3_internal_ip} 'echo ok > /tmp/${dbname_1}-db-ready'",
-      unless    => "/bin/ssh ${controller_2_internal_ip} 'echo ok > /tmp/${dbname_1}-db-ready' && \
-                    /bin/ssh ${controller_3_internal_ip} 'echo ok > /tmp/${dbname_1}-db-ready'",
+      command   => "/bin/ssh ${controller_2_internal_ip} 'touch /tmp/.${dbname_1}-db-ready' && \
+                    /bin/ssh ${controller_3_internal_ip} 'touch /tmp/.${dbname_1}-db-ready'",
+      unless    => "/bin/ssh ${controller_2_internal_ip} 'touch /tmp/.${dbname_1}-db-ready' && \
+                    /bin/ssh ${controller_3_internal_ip} 'touch /tmp/.${dbname_1}-db-ready'",
     }
+
     Anchor['nova::dbsync_api::end'] ->
-    exec { "${dbname_2}-db-ready-echo":
+    exec { "${dbname_2}-db-ready":
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/bin/ssh ${controller_2_internal_ip} 'echo ok > /tmp/${dbname_2}-db-ready' && \
-                    /bin/ssh ${controller_3_internal_ip} 'echo ok > /tmp/${dbname_2}-db-ready'",
-      unless    => "/bin/ssh ${controller_2_internal_ip} 'echo ok > /tmp/${dbname_2}-db-ready' && \
-                    /bin/ssh ${controller_3_internal_ip} 'echo ok > /tmp/${dbname_2}-db-ready'",
+      command   => "/bin/ssh ${controller_2_internal_ip} 'touch /tmp/.${dbname_2}-db-ready' && \
+                    /bin/ssh ${controller_3_internal_ip} 'touch /tmp/.${dbname_2}-db-ready'",
+      unless    => "/bin/ssh ${controller_2_internal_ip} 'touch /tmp/.${dbname_2}-db-ready' && \
+                    /bin/ssh ${controller_3_internal_ip} 'touch /tmp/.${dbname_2}-db-ready'",
+    }
+
+    class { '::nova::keystone::auth':
+      password            => $password_1,
+      auth_name           => $user_1,
+      service_name        => 'nova',
+      service_description => 'Openstack Compute Service',
+      region              => 'RegionOne',
+      tenant              => 'services',
+      email               => $email_1,
+      public_url          => "http://${public_vip}:8774/v2.1",
+      internal_url        => "http://${internal_vip}:8774/v2.1",
+      admin_url           => "http://${internal_vip}:8774/v2.1",
+      configure_endpoint  => true,
+      configure_user      => true,
+      configure_user_role => true,
     }
   } elsif $::hostname =~ /^*controller-\d*$/ {
     $sync_db = false
     $sync_db_api = false
+
     Anchor['nova::config::end'] ->
     exec { "${dbname_1}-db-ready":
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/bin/cat /tmp/${dbname_1}-db-ready | grep ok",
-      unless    => "/bin/cat /tmp/${dbname_1}-db-ready | grep ok",
+      command   => "/bin/ls /tmp/.${dbname_1}-db-ready",
+      unless    => "/bin/ls /tmp/.${dbname_1}-db-ready",
     } ->
     exec { "${dbname_2}-db-ready":
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/bin/cat /tmp/${dbname_2}-db-ready | grep ok",
-      unless    => "/bin/cat /tmp/${dbname_2}-db-ready | grep ok",
+      command   => "/bin/ls /tmp/.${dbname_2}-db-ready",
+      unless    => "/bin/ls /tmp/.${dbname_2}-db-ready",
     } ->
-    Anchor['nova::service::begin'] ->
-    exec { "${dbname_1}-db-ready-rm":
-      timeout   => '3600',
-      tries     => '360',
-      try_sleep => '10',
-      command   => "/bin/rm -f /tmp/${dbname_1}-db-ready",
-      unless    => "/bin/rm -f /tmp/${dbname_1}-db-ready",
-    } ->
-    exec { "${dbname_2}-db-ready-rm":
-      timeout   => '3600',
-      tries     => '360',
-      try_sleep => '10',
-      command   => "/bin/rm -f /tmp/${dbname_2}-db-ready",
-      unless    => "/bin/rm -f /tmp/${dbname_2}-db-ready",
-    }
+    Anchor['nova::service::begin']
   }
 
   class { '::nova::db':
@@ -277,24 +282,6 @@ class openstack::y005_nova (
       rbd_keyring                  => 'client.openstack',
       ephemeral_storage            => true,
       manage_ceph_client           => false,
-    }
-  }
-
-  if $::hostname == $bootstrap_node {
-    class { '::nova::keystone::auth':
-      password            => $password_1,
-      auth_name           => $user_1,
-      service_name        => 'nova',
-      service_description => 'Openstack Compute Service',
-      region              => 'RegionOne',
-      tenant              => 'services',
-      email               => $email_1,
-      public_url          => "http://${public_vip}:8774/v2.1",
-      internal_url        => "http://${internal_vip}:8774/v2.1",
-      admin_url           => "http://${internal_vip}:8774/v2.1",
-      configure_endpoint  => true,
-      configure_user      => true,
-      configure_user_role => true,
     }
   }
 }

@@ -35,3 +35,4 @@ openstack::x006_haproxy::horizon: true
 openstack::x006_haproxy::ceilometer: true
 openstack::x006_haproxy::gnocchi: true
 openstack::x006_haproxy::aodh: true
+openstack::x006_haproxy::zabbix: true

@@ -41,34 +41,46 @@ class openstack::y004_neutron (
       allowed_hosts => [$controller_1_internal_ip, $controller_2_internal_ip, $controller_3_internal_ip],
     }
     $sync_db = true
+
     Anchor['neutron::dbsync::end'] ->
-    exec { "${dbname}-db-ready-echo":
+    exec { "${dbname}-db-ready":
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/bin/ssh ${controller_2_internal_ip} 'echo ok > /tmp/${dbname}-db-ready' && \
-                    /bin/ssh ${controller_3_internal_ip} 'echo ok > /tmp/${dbname}-db-ready'",
-      unless    => "/bin/ssh ${controller_2_internal_ip} 'echo ok > /tmp/${dbname}-db-ready' && \
-                    /bin/ssh ${controller_3_internal_ip} 'echo ok > /tmp/${dbname}-db-ready'",
+      command   => "/bin/ssh ${controller_2_internal_ip} 'touch /tmp/.${dbname}-db-ready' && \
+                    /bin/ssh ${controller_3_internal_ip} 'touch /tmp/.${dbname}-db-ready'",
+      unless    => "/bin/ssh ${controller_2_internal_ip} 'touch /tmp/.${dbname}-db-ready' && \
+                    /bin/ssh ${controller_3_internal_ip} 'touch /tmp/.${dbname}-db-ready'",
+    }
+
+    class { '::neutron::keystone::auth':
+      password            => $password,
+      auth_name           => $user,
+      email               => $email,
+      tenant              => 'services',
+      configure_endpoint  => true,
+      configure_user      => true,
+      configure_user_role => true,
+      service_name        => 'neutron',
+      service_type        => 'network',
+      service_description => 'Neutron Networking Service',
+      region              => 'RegionOne',
+      public_url          => "http://${public_vip}:9696",
+      admin_url           => "http://${internal_vip}:9696",
+      internal_url        => "http://${internal_vip}:9696",
     }
   } elsif $::hostname =~ /^*controller-\d*$/ {
     $sync_db = false
+
     Anchor['neutron::config::end'] ->
     exec { "${dbname}-db-ready":
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/bin/cat /tmp/${dbname}-db-ready | grep ok",
-      unless    => "/bin/cat /tmp/${dbname}-db-ready | grep ok",
+      command   => "/bin/ls /tmp/.${dbname}-db-ready",
+      unless    => "/bin/ls /tmp/.${dbname}-db-ready",
     } ->
-    Anchor['neutron::service::begin'] ->
-    exec { "${dbname}-db-ready-rm":
-      timeout   => '3600',
-      tries     => '360',
-      try_sleep => '10',
-      command   => "/bin/rm -f /tmp/${dbname}-db-ready",
-      unless    => "/bin/rm -f /tmp/${dbname}-db-ready",
-    }
+    Anchor['neutron::service::begin']
   }
 
   class { '::neutron':
@@ -251,25 +263,6 @@ class openstack::y004_neutron (
       report_interval  => '300',
       #
       purge_config     => true,
-    }
-  }
-
-  if $::hostname == $bootstrap_node {
-    class { '::neutron::keystone::auth':
-      password            => $password,
-      auth_name           => $user,
-      email               => $email,
-      tenant              => 'services',
-      configure_endpoint  => true,
-      configure_user      => true,
-      configure_user_role => true,
-      service_name        => 'neutron',
-      service_type        => 'network',
-      service_description => 'Neutron Networking Service',
-      region              => 'RegionOne',
-      public_url          => "http://${public_vip}:9696",
-      admin_url           => "http://${internal_vip}:9696",
-      internal_url        => "http://${internal_vip}:9696",
     }
   }
 }

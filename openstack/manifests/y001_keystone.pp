@@ -30,34 +30,61 @@ class openstack::y001_keystone (
       allowed_hosts => [$controller_1_internal_ip, $controller_2_internal_ip, $controller_3_internal_ip],
     }
     $sync_db = true
+
     Anchor['keystone::dbsync::end'] ->
-    exec { "${dbname}-db-ready-echo":
+    exec { "${dbname}-db-ready":
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/bin/ssh ${controller_2_internal_ip} 'echo ok > /tmp/${dbname}-db-ready' && \
-                    /bin/ssh ${controller_3_internal_ip} 'echo ok > /tmp/${dbname}-db-ready'",
-      unless    => "/bin/ssh ${controller_2_internal_ip} 'echo ok > /tmp/${dbname}-db-ready' && \
-                    /bin/ssh ${controller_3_internal_ip} 'echo ok > /tmp/${dbname}-db-ready'",
+      command   => "/bin/ssh ${controller_2_internal_ip} 'touch /tmp/.${dbname}-db-ready' && \
+                    /bin/ssh ${controller_3_internal_ip} 'touch /tmp/.${dbname}-db-ready'",
+      unless    => "/bin/ssh ${controller_2_internal_ip} 'touch /tmp/.${dbname}-db-ready' && \
+                    /bin/ssh ${controller_3_internal_ip} 'touch /tmp/.${dbname}-db-ready'",
     }
-  } else {
+
+    class { '::keystone::roles::admin':
+      email                  => $admin_email,
+      password               => $admin_password,
+      admin                  => $admin_username,
+      admin_tenant           => 'admin',
+      admin_roles            => ['admin'],
+      service_tenant         => 'services',
+      admin_tenant_desc      => 'admin tenant',
+      service_tenant_desc    => 'Tenant for the openstack services',
+      configure_user         => true,
+      configure_user_role    => true,
+      admin_user_domain      => undef,
+      admin_project_domain   => undef,
+      service_project_domain => undef,
+      target_admin_domain    => undef,
+    }
+
+    class { '::keystone::endpoint':
+      public_url     => "http://${public_vip}:5000",
+      internal_url   => "http://${internal_vip}:5000",
+      admin_url      => "http://${internal_vip}:35357",
+      region         => 'RegionOne',
+      user_domain    => undef,
+      project_domain => undef,
+      default_domain => undef,
+      version        => 'v3',
+    }
+
+    keystone_role { '_member_':
+      ensure => present,
+    }
+  } elsif $::hostname =~ /^*controller-\d*$/ {
     $sync_db = false
+
     Anchor['keystone::config::end'] ->
     exec { "${dbname}-db-ready":
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/bin/cat /tmp/${dbname}-db-ready | grep ok",
-      unless    => "/bin/cat /tmp/${dbname}-db-ready | grep ok",
+      command   => "/bin/ls /tmp/.${dbname}-db-ready",
+      unless    => "/bin/ls /tmp/.${dbname}-db-ready",
     } ->
-    Anchor['keystone::service::begin'] ->
-    exec { "${dbname}-db-ready-rm":
-      timeout   => '3600',
-      tries     => '360',
-      try_sleep => '10',
-      command   => "/bin/rm -f /tmp/${dbname}-db-ready",
-      unless    => "/bin/rm -f /tmp/${dbname}-db-ready",
-    }
+    Anchor['keystone::service::begin']
   }
 
   class { '::keystone::db':
@@ -162,38 +189,6 @@ class openstack::y001_keystone (
 
     'security_compliance/minimum_password_age':
       value => '1';
-  }
-
-  if $::hostname == $bootstrap_node {
-    class { '::keystone::roles::admin':
-      email                  => $admin_email,
-      password               => $admin_password,
-      admin                  => $admin_username,
-      admin_tenant           => 'admin',
-      admin_roles            => ['admin'],
-      service_tenant         => 'services',
-      admin_tenant_desc      => 'admin tenant',
-      service_tenant_desc    => 'Tenant for the openstack services',
-      configure_user         => true,
-      configure_user_role    => true,
-      admin_user_domain      => undef,
-      admin_project_domain   => undef,
-      service_project_domain => undef,
-      target_admin_domain    => undef,
-    }
-
-    class { '::keystone::endpoint':
-      public_url     => "http://${public_vip}:5000",
-      internal_url   => "http://${internal_vip}:5000",
-      admin_url      => "http://${internal_vip}:35357",
-      region         => 'RegionOne',
-      user_domain    => undef,
-      project_domain => undef,
-      default_domain => undef,
-      version        => 'v3',
-    }
-
-    keystone_role { '_member_': ensure => present, }
   }
 
   file { '/root/keystonerc_admin':

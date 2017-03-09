@@ -26,6 +26,23 @@ class openstack::y008_gnocchi (
       allowed_hosts => [$controller_1_internal_ip, $controller_2_internal_ip, $controller_3_internal_ip],
     }
     $sync_db = true
+
+    class { '::gnocchi::keystone::auth':
+      password            => $password,
+      auth_name           => $user,
+      email               => $email,
+      tenant              => 'services',
+      configure_endpoint  => true,
+      configure_user      => true,
+      configure_user_role => true,
+      service_name        => 'gnocchi',
+      service_type        => 'metric',
+      region              => 'RegionOne',
+      public_url          => "http://${public_vip}:8041",
+      internal_url        => "http://${internal_vip}:8041",
+      admin_url           => "http://${internal_vip}:8041",
+      service_description => 'Openstack Metric Service',
+    }
   } else {
     $sync_db = false
   }
@@ -91,24 +108,5 @@ class openstack::y008_gnocchi (
   }
 
   class { '::gnocchi::client':
-  }
-
-  if $::hostname == $bootstrap_node {
-    class { '::gnocchi::keystone::auth':
-      password            => $password,
-      auth_name           => $user,
-      email               => $email,
-      tenant              => 'services',
-      configure_endpoint  => true,
-      configure_user      => true,
-      configure_user_role => true,
-      service_name        => 'gnocchi',
-      service_type        => 'metric',
-      region              => 'RegionOne',
-      public_url          => "http://${public_vip}:8041",
-      internal_url        => "http://${internal_vip}:8041",
-      admin_url           => "http://${internal_vip}:8041",
-      service_description => 'Openstack Metric Service',
-    }
   }
 }

@@ -51,7 +51,7 @@ metadata_secret: 5c4acba4f10c9094dfdd28ff0ea3a83c
 nova_email: nova@localhost
 nova_dbname: nova
 nova_username: nova
-nova_password: ee588b0305429a130ec411d082900231
+nova_password: 5ef3a08c3df36545b186abf07b51ae04
 nova_api_dbname: nova_api
 nova_api_username: nova_api
 nova_api_password: 71b6e028c5489864e1e64ec56130cec3
@@ -69,3 +69,8 @@ aodh_email: aodh@localhost
 aodh_dbname: aodh
 aodh_username: aodh
 aodh_password: 2823cce1d76d21321663531f861df382
+zabbix_api_username: admin
+zabbix_api_password: d4bda88416aa213bca489a9ce0e173ba
+zabbix_dbname: zabbix
+zabbix_username: zabbix
+zabbix_password: 38f50636412e3d04af7cb1d7ec9b1c8d

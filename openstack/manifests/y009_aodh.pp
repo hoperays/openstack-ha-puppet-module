@@ -23,6 +23,22 @@ class openstack::y009_aodh (
       allowed_hosts => [$controller_1_internal_ip, $controller_2_internal_ip, $controller_3_internal_ip],
     }
     $sync_db = true
+
+    class { '::aodh::keystone::auth':
+      password            => $password,
+      auth_name           => $user,
+      email               => $email,
+      tenant              => 'services',
+      configure_endpoint  => true,
+      configure_user      => true,
+      configure_user_role => true,
+      service_name        => 'aodh',
+      service_type        => 'alarming',
+      region              => 'RegionOne',
+      public_url          => "http://${public_vip}:8042",
+      internal_url        => "http://${internal_vip}:8042",
+      admin_url           => "http://${internal_vip}:8042",
+    }
   } else {
     $sync_db = false
   }
@@ -105,23 +121,5 @@ class openstack::y009_aodh (
   }
 
   class { '::aodh::client':
-  }
-
-  if $::hostname == $bootstrap_node {
-    class { '::aodh::keystone::auth':
-      password            => $password,
-      auth_name           => $user,
-      email               => $email,
-      tenant              => 'services',
-      configure_endpoint  => true,
-      configure_user      => true,
-      configure_user_role => true,
-      service_name        => 'aodh',
-      service_type        => 'alarming',
-      region              => 'RegionOne',
-      public_url          => "http://${public_vip}:8042",
-      internal_url        => "http://${internal_vip}:8042",
-      admin_url           => "http://${internal_vip}:8042",
-    }
   }
 }

@@ -22,34 +22,46 @@ class openstack::y002_glance (
       allowed_hosts => [$controller_1_internal_ip, $controller_2_internal_ip, $controller_3_internal_ip],
     }
     $sync_db = true
+
     Anchor['glance::dbsync::end'] ->
-    exec { "${dbname}-db-ready-echo":
+    exec { "${dbname}-db-ready":
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/bin/ssh ${controller_2_internal_ip} 'echo ok > /tmp/${dbname}-db-ready' && \
-                    /bin/ssh ${controller_3_internal_ip} 'echo ok > /tmp/${dbname}-db-ready'",
-      unless    => "/bin/ssh ${controller_2_internal_ip} 'echo ok > /tmp/${dbname}-db-ready' && \
-                    /bin/ssh ${controller_3_internal_ip} 'echo ok > /tmp/${dbname}-db-ready'",
+      command   => "/bin/ssh ${controller_2_internal_ip} 'touch /tmp/.${dbname}-db-ready' && \
+                    /bin/ssh ${controller_3_internal_ip} 'touch /tmp/.${dbname}-db-ready'",
+      unless    => "/bin/ssh ${controller_2_internal_ip} 'touch /tmp/.${dbname}-db-ready' && \
+                    /bin/ssh ${controller_3_internal_ip} 'touch /tmp/.${dbname}-db-ready'",
     }
-  } else {
+
+    class { '::glance::keystone::auth':
+      email               => $email,
+      password            => $password,
+      auth_name           => $user,
+      configure_endpoint  => true,
+      configure_user      => true,
+      configure_user_role => true,
+      service_name        => 'glance',
+      service_type        => 'image',
+      region              => 'RegionOne',
+      tenant              => 'services',
+      service_description => 'OpenStack Image Service',
+      public_url          => "http://${public_vip}:9292",
+      admin_url           => "http://${internal_vip}:9292",
+      internal_url        => "http://${internal_vip}:9292",
+    }
+  } elsif $::hostname =~ /^*controller-\d*$/ {
     $sync_db = false
+
     Anchor['glance::config::end'] ->
     exec { "${dbname}-db-ready":
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/bin/cat /tmp/${dbname}-db-ready | grep ok",
-      unless    => "/bin/cat /tmp/${dbname}-db-ready | grep ok",
+      command   => "/bin/ls /tmp/.${dbname}-db-ready",
+      unless    => "/bin/ls /tmp/.${dbname}-db-ready",
     } ->
-    Anchor['glance::service::begin'] ->
-    exec { "${dbname}-db-ready-rm":
-      timeout   => '3600',
-      tries     => '360',
-      try_sleep => '10',
-      command   => "/bin/rm -f /tmp/${dbname}-db-ready",
-      unless    => "/bin/rm -f /tmp/${dbname}-db-ready",
-    }
+    Anchor['glance::service::begin']
   }
 
   class { '::glance::api::authtoken':
@@ -141,24 +153,5 @@ class openstack::y002_glance (
     sync_db       => $sync_db,
     #
     purge_config  => true,
-  }
-
-  if $::hostname == $bootstrap_node {
-    class { '::glance::keystone::auth':
-      email               => $email,
-      password            => $password,
-      auth_name           => $user,
-      configure_endpoint  => true,
-      configure_user      => true,
-      configure_user_role => true,
-      service_name        => 'glance',
-      service_type        => 'image',
-      region              => 'RegionOne',
-      tenant              => 'services',
-      service_description => 'OpenStack Image Service',
-      public_url          => "http://${public_vip}:9292",
-      admin_url           => "http://${internal_vip}:9292",
-      internal_url        => "http://${internal_vip}:9292",
-    }
   }
 }

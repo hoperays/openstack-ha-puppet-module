@@ -17,6 +17,25 @@ class openstack::y007_ceilometer (
   $replicaset                = hiera('mongodb_replset'),
   $controller_as_novacompute = hiera('controller_as_novacompute'),
 ) {
+  if $::hostname == $bootstrap_node {
+    class { '::ceilometer::keystone::auth':
+      password            => $password,
+      email               => $email,
+      auth_name           => $user,
+      configure_user      => true,
+      configure_user_role => true,
+      service_name        => 'ceilometer',
+      service_type        => 'metering',
+      service_description => 'Openstack Metering Service',
+      region              => 'RegionOne',
+      tenant              => 'services',
+      configure_endpoint  => true,
+      public_url          => "http://${public_vip}:8777",
+      admin_url           => "http://${internal_vip}:8777",
+      internal_url        => "http://${internal_vip}:8777",
+    }
+  }
+
   class { '::ceilometer':
     http_timeout          => '600',
     log_dir               => '/var/log/ceilometer',
@@ -119,24 +138,5 @@ class openstack::y007_ceilometer (
 
   if $::hostname =~ /^*novacompute-\d*$/ or $controller_as_novacompute {
     class { '::ceilometer::agent::compute': }
-  }
-
-  if $::hostname == $bootstrap_node {
-    class { '::ceilometer::keystone::auth':
-      password            => $password,
-      email               => $email,
-      auth_name           => $user,
-      configure_user      => true,
-      configure_user_role => true,
-      service_name        => 'ceilometer',
-      service_type        => 'metering',
-      service_description => 'Openstack Metering Service',
-      region              => 'RegionOne',
-      tenant              => 'services',
-      configure_endpoint  => true,
-      public_url          => "http://${public_vip}:8777",
-      admin_url           => "http://${internal_vip}:8777",
-      internal_url        => "http://${internal_vip}:8777",
-    }
   }
 }

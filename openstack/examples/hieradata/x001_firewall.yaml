@@ -235,6 +235,13 @@ openstack::x001_firewall::controller_rules:
     proto: tcp
     action: accept
     provider: iptables
+  300 allow inbound zabbix web:
+    dport:
+    - 180
+    - 1443
+    proto: tcp
+    action: accept
+    provider: iptables
 openstack::x001_firewall::novacompute_rules:
   102 allow inbound pacemaker:
     dport:

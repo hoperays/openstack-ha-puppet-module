@@ -39,6 +39,7 @@ class openstack::x006_haproxy (
   $ceilometer       = false,
   $gnocchi          = false,
   $aodh             = false,
+  $zabbix           = false,
 ) {
   class { '::haproxy':
     service_ensure   => $manage_resources,
@@ -371,19 +372,71 @@ class openstack::x006_haproxy (
     }
   }
 
+  if $zabbix {
+    haproxy::listen { 'zabbix_server':
+      bind => {
+        "$internal_vip:10051" => $haproxy_listen_bind_param
+      }
+      ,
+    }
+
+    haproxy::balancermember { 'zabbix_server':
+      listening_service => 'zabbix_server',
+      ports             => '10051',
+    }
+
+    haproxy::listen { 'zabbix_web':
+      bind    => {
+        "$public_vip:180"  => $haproxy_listen_bind_param,
+        "$public_vip:1443" => union($haproxy_listen_bind_param, [
+          'ssl',
+          'crt',
+          $service_certificate])
+      }
+      ,
+      mode    => 'http',
+      options => {
+        cookie       => 'SERVERID insert indirect nocache',
+        option       => ['forwardfor', 'httpclose'],
+        acl          => ["clear dst_port 180", "secure dst_port 1443"],
+        http-request => ["redirect prefix https://$public_vip:1443 unless { ssl_fc } secure"],
+      }
+    }
+
+    haproxy::balancermember { 'zabbix_web':
+      listening_service => 'zabbix_web',
+      ports             => '180',
+      define_cookies    => true,
+    }
+  }
+
   if $::hostname == $bootstrap_node {
     Class['::haproxy'] ->
-    pacemaker::resource::ip { "ip-$admin_vip": ip_address => $admin_vip, } ->
-    pacemaker::resource::ip { "ip-$public_vip": ip_address => $public_vip, } ->
-    pacemaker::resource::ip { "ip-$internal_vip": ip_address => $internal_vip, } ->
+    pacemaker::resource::ip { "ip-$admin_vip":
+      ip_address => $admin_vip,
+    } ->
+    pacemaker::resource::ip { "ip-$public_vip":
+      ip_address => $public_vip,
+    } ->
+    pacemaker::resource::ip { "ip-$internal_vip":
+      ip_address => $internal_vip,
+    } ->
     exec { 'haproxy-ready':
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/bin/scp ${controller_2_hostname}:/etc/haproxy/haproxy.cfg /tmp/haproxy.cfg2 && diff /etc/haproxy/haproxy.cfg /tmp/haproxy.cfg2 && \
-                    /bin/scp ${controller_3_hostname}:/etc/haproxy/haproxy.cfg /tmp/haproxy.cfg3 && diff /etc/haproxy/haproxy.cfg /tmp/haproxy.cfg3",
-      unless    => "/bin/scp ${controller_2_hostname}:/etc/haproxy/haproxy.cfg /tmp/haproxy.cfg2 && diff /etc/haproxy/haproxy.cfg /tmp/haproxy.cfg2 && \
-                    /bin/scp ${controller_3_hostname}:/etc/haproxy/haproxy.cfg /tmp/haproxy.cfg3 && diff /etc/haproxy/haproxy.cfg /tmp/haproxy.cfg3",
+      command   => "/bin/scp ${controller_2_hostname}:/etc/haproxy/haproxy.cfg /tmp/haproxy.cfg2 && \
+                                                 diff /etc/haproxy/haproxy.cfg /tmp/haproxy.cfg2 && \
+                                                                         rm -f /tmp/haproxy.cfg2 && \
+                         scp ${controller_3_hostname}:/etc/haproxy/haproxy.cfg /tmp/haproxy.cfg3 && \
+                                                 diff /etc/haproxy/haproxy.cfg /tmp/haproxy.cfg3 && \
+                                                                         rm -f /tmp/haproxy.cfg3",
+      unless    => "/bin/scp ${controller_2_hostname}:/etc/haproxy/haproxy.cfg /tmp/haproxy.cfg2 && \
+                                                 diff /etc/haproxy/haproxy.cfg /tmp/haproxy.cfg2 && \
+                                                                         rm -f /tmp/haproxy.cfg2 && \
+                         scp ${controller_3_hostname}:/etc/haproxy/haproxy.cfg /tmp/haproxy.cfg3 && \
+                                                 diff /etc/haproxy/haproxy.cfg /tmp/haproxy.cfg3 && \
+                                                                         rm -f /tmp/haproxy.cfg3",
     } ->
     pacemaker::resource::service { 'haproxy':
       op_params    => 'start timeout=200s stop timeout=200s',
@@ -427,15 +480,6 @@ class openstack::x006_haproxy (
       source => "ip-$internal_vip",
       target => 'haproxy-clone',
       score  => 'INFINITY',
-    } ->
-    exec { 'haproxy-ready-rm':
-      timeout   => '3600',
-      tries     => '360',
-      try_sleep => '10',
-      command   => "/bin/rm -f /tmp/haproxy.cfg2 && \
-                    /bin/rm -f /tmp/haproxy.cfg3",
-      unless    => "/bin/rm -f /tmp/haproxy.cfg2 && \
-                    /bin/rm -f /tmp/haproxy.cfg3",
     }
   }
 }

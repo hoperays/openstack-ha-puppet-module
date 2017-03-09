@@ -13,6 +13,8 @@ class openstack::x005_pacemaker (
 ) {
   if $::hostname == $bootstrap_node {
     $setup_cluster = true
+    create_resources('pacemaker_property', $pacemaker_property)
+    create_resources('pacemaker_resource_default', $pacemaker_resource_default)
   } else {
     $setup_cluster = false
   }
@@ -48,10 +50,5 @@ class openstack::x005_pacemaker (
       ensure => 'stopped',
       enable => false,
     }
-  }
-
-  if $::hostname == $bootstrap_node {
-    create_resources('pacemaker_property', $pacemaker_property)
-    create_resources('pacemaker_resource_default', $pacemaker_resource_default)
   }
 }

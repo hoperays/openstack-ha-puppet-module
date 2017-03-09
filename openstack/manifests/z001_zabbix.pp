@@ -3,35 +3,154 @@ class openstack::z001_zabbix (
   $dbname                   = hiera('zabbix_dbname'),
   $user                     = hiera('zabbix_username'),
   $password                 = hiera('zabbix_password'),
-  $public_vip               = hiera('public_vip'),
+  $api_user                 = hiera('zabbix_api_username'),
+  $api_password             = hiera('zabbix_api_password'),
   $internal_vip             = hiera('internal_vip'),
   $controller_1_internal_ip = hiera('controller_1_internal_ip'),
   $controller_2_internal_ip = hiera('controller_2_internal_ip'),
   $controller_3_internal_ip = hiera('controller_3_internal_ip'),
   $internal_interface       = hiera('internal_interface'),
+  $zabbix_servers           = join(any2array([
+    hiera('controller_1_internal_ip'),
+    hiera('controller_2_internal_ip'),
+    hiera('controller_3_internal_ip')]), ','),
+  $manage_firewall          = false,
+  $manage_repo              = false,
+  $refreshactivechecks      = '',
+  $unsafeuserparameters     = '',
+  $userparameter            = {},
+  $zabbix_url               = '',
+  $zabbix_server            = '',
+  $database_type            = '',
+  $zabbix_timezone          = '',
+  $manage_service           = false,
+  $pacemaker                = false,
+  $pacemaker_resource       = '',
+  $apache_listenport        = '',
 ) {
   if $::hostname == $bootstrap_node {
-    $manage_database = true
-  } else {
+    $manage_database  = true
+    $api_password_md5 = md5($api_password)
+
+    mysql_database { $dbname:
+      ensure  => present,
+      charset => 'utf8',
+      collate => 'utf8_general_ci',
+    } ->
+    mysql_user {
+      "${user}@localhost":
+        password_hash => mysql_password($password),;
+      "${user}@${$controller_1_internal_ip}":
+        password_hash => mysql_password($password),;
+      "${user}@${$controller_2_internal_ip}":
+        password_hash => mysql_password($password),;
+      "${user}@${$controller_3_internal_ip}":
+        password_hash => mysql_password($password),
+    } ->
+    mysql_grant {
+      "${user}@localhost/${dbname}.*":
+        options    => ['GRANT'],
+        privileges => ['ALL'],
+        table      => "${dbname}.*",
+        user       => "${user}@localhost",;
+      "${user}@${$controller_1_internal_ip}/${dbname}.*":
+        options    => ['GRANT'],
+        privileges => ['ALL'],
+        table      => "${dbname}.*",
+        user       => "${user}@${$controller_1_internal_ip}",;
+      "${user}@${$controller_2_internal_ip}/${dbname}.*":
+        options    => ['GRANT'],
+        privileges => ['ALL'],
+        table      => "${dbname}.*",
+        user       => "${user}@${$controller_2_internal_ip}",;
+      "${user}@${$controller_3_internal_ip}/${dbname}.*":
+        options    => ['GRANT'],
+        privileges => ['ALL'],
+        table      => "${dbname}.*",
+        user       => "${user}@${$controller_3_internal_ip}",
+    } ->
+    Class['::zabbix::database::mysql'] ->
+    exec { "update administrator's password":
+      command => "/bin/echo \"UPDATE $dbname.users SET passwd = '$api_password_md5' WHERE userid = '1';\" | \
+                  /bin/mysql",
+      unless  => "/bin/echo \"UPDATE $dbname.users SET passwd = '$api_password_md5' WHERE userid = '1';\" | \
+                  /bin/mysql",
+    } ->
+    exec { 'zabbix-ready':
+      timeout   => '3600',
+      tries     => '360',
+      try_sleep => '10',
+      command   => "/bin/scp ${controller_2_internal_ip}:/etc/zabbix/zabbix_server.conf /tmp/zabbix_server.conf2 && \
+                                                    diff /etc/zabbix/zabbix_server.conf /tmp/zabbix_server.conf2 | \
+                                                                         grep -v 'ListenIP' | wc -l | grep '^2$' && \
+                                                                                  rm -f /tmp/zabbix_server.conf2 && \
+                         scp ${controller_3_internal_ip}:/etc/zabbix/zabbix_server.conf /tmp/zabbix_server.conf3 && \
+                                                    diff /etc/zabbix/zabbix_server.conf /tmp/zabbix_server.conf3 | \
+                                                                         grep -v 'ListenIP' | wc -l | grep '^2$' && \
+                                                                                  rm -f /tmp/zabbix_server.conf3",
+      unless    => "/bin/scp ${controller_2_internal_ip}:/etc/zabbix/zabbix_server.conf /tmp/zabbix_server.conf2 && \
+                                                    diff /etc/zabbix/zabbix_server.conf /tmp/zabbix_server.conf2 | \
+                                                                         grep -v 'ListenIP' | wc -l | grep '^2$' && \
+                                                                                  rm -f /tmp/zabbix_server.conf2 && \
+                         scp ${controller_3_internal_ip}:/etc/zabbix/zabbix_server.conf /tmp/zabbix_server.conf3 && \
+                                                    diff /etc/zabbix/zabbix_server.conf /tmp/zabbix_server.conf3 | \
+                                                                         grep -v 'ListenIP' | wc -l | grep '^2$' && \
+                                                                                  rm -f /tmp/zabbix_server.conf3",
+    } ->
+    pacemaker::resource::service { "$pacemaker_resource":
+      op_params => 'start timeout=200s stop timeout=200s',
+      require   => [Class['::zabbix::server'],
+                    Class['::apache::mod::php'],
+                    Class['::zabbix::web']],
+    }
+  } elsif $::hostname =~ /^*controller-\d*$/ {
     $manage_database = false
   }
 
-  class { 'apache':
-    mpm_module => 'prefork',
-  }
-  include apache::mod::php
-
-  class { 'mysql::server': }
-
-  class { 'zabbix':
-    zabbix_url    => 'zabbix.example.com',
-    database_type => 'mysql',
-  }
-
-  class { 'zabbix::agent':
-    server => $internal_vip,
+  class { '::zabbix::agent':
+    manage_firewall      => $manage_firewall,
+    manage_repo          => $manage_repo,
+    sourceip             => $internal_interface,
+    listenip             => $internal_interface,
+    server               => $zabbix_servers,
+    serveractive         => $zabbix_servers,
+    hostname             => $::hostname,
+    refreshactivechecks  => $refreshactivechecks,
+    unsafeuserparameters => $unsafeuserparameters,
+    userparameter        => $userparameter,
   }
 
-  if $::hostname == $bootstrap_node {
+  if $::hostname =~ /^*controller-\d*$/ {
+    class { '::zabbix::server':
+      manage_repo        => $manage_repo,
+      manage_firewall    => $manage_firewall,
+      manage_database    => $manage_database,
+      database_type      => $database_type,
+      database_host      => $internal_vip,
+      database_name      => $dbname,
+      database_user      => $user,
+      database_password  => $password,
+      listenip           => $internal_interface,
+      manage_service     => $manage_service,
+      pacemaker          => $pacemaker,
+      pacemaker_resource => $pacemaker_resource,
+    }
+
+    class { '::apache::mod::php': }
+    class { '::zabbix::web':
+      manage_repo       => $manage_repo,
+      zabbix_url        => $zabbix_url,
+      zabbix_server     => $zabbix_server,
+      database_type     => $database_type,
+      database_host     => $internal_vip,
+      database_name     => $dbname,
+      database_user     => $user,
+      database_password => $password,
+      zabbix_timezone   => $zabbix_timezone,
+      apache_listen_ip  => $internal_interface,
+      apache_listenport => $apache_listenport,
+      zabbix_api_user   => $api_user,
+      zabbix_api_pass   => $api_password,
+    }
   }
 }

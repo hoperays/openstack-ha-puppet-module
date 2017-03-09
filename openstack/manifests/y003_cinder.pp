@@ -23,34 +23,80 @@ class openstack::y003_cinder (
       allowed_hosts => [$controller_1_internal_ip, $controller_2_internal_ip, $controller_3_internal_ip],
     }
     $sync_db = true
+
     Anchor['cinder::dbsync::end'] ->
-    exec { "${dbname}-db-ready-echo":
+    exec { "${dbname}-db-ready":
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/bin/ssh ${controller_2_internal_ip} 'echo ok > /tmp/${dbname}-db-ready' && \
-                    /bin/ssh ${controller_3_internal_ip} 'echo ok > /tmp/${dbname}-db-ready'",
-      unless    => "/bin/ssh ${controller_2_internal_ip} 'echo ok > /tmp/${dbname}-db-ready' && \
-                    /bin/ssh ${controller_3_internal_ip} 'echo ok > /tmp/${dbname}-db-ready'",
+      command   => "/bin/ssh ${controller_2_internal_ip} 'touch /tmp/.${dbname}-db-ready' && \
+                    /bin/ssh ${controller_3_internal_ip} 'touch /tmp/.${dbname}-db-ready'",
+      unless    => "/bin/ssh ${controller_2_internal_ip} 'touch /tmp/.${dbname}-db-ready' && \
+                    /bin/ssh ${controller_3_internal_ip} 'touch /tmp/.${dbname}-db-ready'",
     }
-  } else {
+
+    class { '::cinder::keystone::auth':
+      password               => $password,
+      password_user_v2       => undef,
+      password_user_v3       => undef,
+      auth_name              => $user,
+      auth_name_v2           => 'cinderv2',
+      auth_name_v3           => 'cinderv3',
+      tenant                 => 'services',
+      tenant_user_v2         => 'services',
+      tenant_user_v3         => 'services',
+      email                  => $email,
+      email_user_v2          => undef,
+      email_user_v3          => undef,
+      public_url             => "http://${public_vip}:8776/v1/%(tenant_id)s",
+      internal_url           => "http://${internal_vip}:8776/v1/%(tenant_id)s",
+      admin_url              => "http://${internal_vip}:8776/v1/%(tenant_id)s",
+      public_url_v2          => "http://${public_vip}:8776/v2/%(tenant_id)s",
+      internal_url_v2        => "http://${internal_vip}:8776/v2/%(tenant_id)s",
+      admin_url_v2           => "http://${internal_vip}:8776/v2/%(tenant_id)s",
+      public_url_v3          => "http://${public_vip}:8776/v3/%(tenant_id)s",
+      internal_url_v3        => "http://${internal_vip}:8776/v3/%(tenant_id)s",
+      admin_url_v3           => "http://${internal_vip}:8776/v3/%(tenant_id)s",
+      configure_endpoint     => true,
+      configure_endpoint_v2  => true,
+      configure_endpoint_v3  => true,
+      configure_user         => true,
+      configure_user_v2      => false,
+      configure_user_v3      => false,
+      configure_user_role    => true,
+      configure_user_role_v2 => false,
+      configure_user_role_v3 => false,
+      service_name           => 'cinder',
+      service_name_v2        => 'cinderv2',
+      service_name_v3        => 'cinderv3',
+      service_type           => 'volume',
+      service_type_v2        => 'volumev2',
+      service_type_v3        => 'volumev3',
+      service_description    => 'Cinder Service',
+      service_description_v2 => 'Cinder Service v2',
+      service_description_v3 => 'Cinder Service v3',
+      region                 => 'RegionOne',
+    }
+
+    Anchor['cinder::dbsync::end'] ->
+    pacemaker::resource::service { 'openstack-cinder-volume': op_params => 'start timeout=200s stop timeout=200s', } ->
+    pacemaker::resource::service { 'openstack-cinder-backup': op_params => 'start timeout=200s stop timeout=200s', } ->
+    cinder_type { 'rbd':
+      ensure     => present,
+      properties => ["volume_backend_name=rbd"],
+    }
+  } elsif $::hostname =~ /^*controller-\d*$/ {
     $sync_db = false
+
     Anchor['cinder::config::end'] ->
     exec { "${dbname}-db-ready":
       timeout   => '3600',
       tries     => '360',
       try_sleep => '10',
-      command   => "/bin/cat /tmp/${dbname}-db-ready | grep ok",
-      unless    => "/bin/cat /tmp/${dbname}-db-ready | grep ok",
+      command   => "/bin/ls /tmp/.${dbname}-db-ready",
+      unless    => "/bin/ls /tmp/.${dbname}-db-ready",
     } ->
-    Anchor['cinder::service::begin'] ->
-    exec { "${dbname}-db-ready-rm":
-      timeout   => '3600',
-      tries     => '360',
-      try_sleep => '10',
-      command   => "/bin/rm -f /tmp/${dbname}-db-ready",
-      unless    => "/bin/rm -f /tmp/${dbname}-db-ready",
-    }
+    Anchor['cinder::service::begin']
   }
 
   class { '::cinder::db':
@@ -158,58 +204,5 @@ class openstack::y003_cinder (
   class { '::cinder::ceilometer':
     notification_transport_url => undef,
     notification_driver        => 'messagingv2',
-  }
-
-  if $::hostname == $bootstrap_node {
-    class { '::cinder::keystone::auth':
-      password               => $password,
-      password_user_v2       => undef,
-      password_user_v3       => undef,
-      auth_name              => $user,
-      auth_name_v2           => 'cinderv2',
-      auth_name_v3           => 'cinderv3',
-      tenant                 => 'services',
-      tenant_user_v2         => 'services',
-      tenant_user_v3         => 'services',
-      email                  => $email,
-      email_user_v2          => undef,
-      email_user_v3          => undef,
-      public_url             => "http://${public_vip}:8776/v1/%(tenant_id)s",
-      internal_url           => "http://${internal_vip}:8776/v1/%(tenant_id)s",
-      admin_url              => "http://${internal_vip}:8776/v1/%(tenant_id)s",
-      public_url_v2          => "http://${public_vip}:8776/v2/%(tenant_id)s",
-      internal_url_v2        => "http://${internal_vip}:8776/v2/%(tenant_id)s",
-      admin_url_v2           => "http://${internal_vip}:8776/v2/%(tenant_id)s",
-      public_url_v3          => "http://${public_vip}:8776/v3/%(tenant_id)s",
-      internal_url_v3        => "http://${internal_vip}:8776/v3/%(tenant_id)s",
-      admin_url_v3           => "http://${internal_vip}:8776/v3/%(tenant_id)s",
-      configure_endpoint     => true,
-      configure_endpoint_v2  => true,
-      configure_endpoint_v3  => true,
-      configure_user         => true,
-      configure_user_v2      => false,
-      configure_user_v3      => false,
-      configure_user_role    => true,
-      configure_user_role_v2 => false,
-      configure_user_role_v3 => false,
-      service_name           => 'cinder',
-      service_name_v2        => 'cinderv2',
-      service_name_v3        => 'cinderv3',
-      service_type           => 'volume',
-      service_type_v2        => 'volumev2',
-      service_type_v3        => 'volumev3',
-      service_description    => 'Cinder Service',
-      service_description_v2 => 'Cinder Service v2',
-      service_description_v3 => 'Cinder Service v3',
-      region                 => 'RegionOne',
-    }
-
-    Anchor['cinder::dbsync::end'] ->
-    pacemaker::resource::service { 'openstack-cinder-volume': op_params => 'start timeout=200s stop timeout=200s', } ->
-    pacemaker::resource::service { 'openstack-cinder-backup': op_params => 'start timeout=200s stop timeout=200s', } ->
-    cinder_type { 'rbd':
-      ensure     => present,
-      properties => ["volume_backend_name=rbd"],
-    }
   }
 }
