@@ -15,6 +15,7 @@ openstack::x004_ceph::osd_crush_chooseleaf_type: 1
 openstack::x004_ceph::mon_key: AQDuZ+xXWjN8JhAAEBD7j3EaFVhXQBJzjLdf2Q==
 openstack::x004_ceph::controller_keys:
   client.admin:
+    mode: '0644'
     secret: AQDtZ+xX3678NxAAnWIyLVy2dVQ0wZePqWG09Q==
     cap_mon: allow *
     cap_osd: allow *

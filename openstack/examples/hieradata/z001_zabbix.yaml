@@ -1,8 +1,8 @@
 openstack::z001_zabbix::manage_firewall: false
 openstack::z001_zabbix::manage_repo: false
+openstack::z001_zabbix::manage_resources: true
 openstack::z001_zabbix::refreshactivechecks: 120
 openstack::z001_zabbix::unsafeuserparameters: 1
-openstack::z001_zabbix::userparameter: null
 openstack::z001_zabbix::zabbix_url: zabbix_vhost
 openstack::z001_zabbix::zabbix_server: examplecloud.internal.localdomain
 openstack::z001_zabbix::database_type: mysql
@@ -11,3 +11,20 @@ openstack::z001_zabbix::manage_service: false
 openstack::z001_zabbix::pacemaker: true
 openstack::z001_zabbix::pacemaker_resource: zabbix-server
 openstack::z001_zabbix::apache_listenport: 180
+openstack::z001_zabbix::userparameters:
+  disk_io_status:
+    source: puppet:///zabbix/disk_io_status.conf
+  tcp_connect_status:
+    source: puppet:///zabbix/tcp_connect_status.conf
+  ceph_status:
+    source: puppet:///zabbix/ceph_status.conf
+    script: puppet:///zabbix/ceph_status.sh
+    script_ext: .sh
+    script_dir: /opt
+openstack::z001_zabbix::templates:
+  template_os_linux:
+    templ_source: puppet:///zabbix/template_os_linux.xml
+  template_app_tcp_connection:
+    templ_source: puppet:///zabbix/template_app_tcp_connection.xml
+  zbx_ceph_cluster_template:
+    templ_source: puppet:///zabbix/zbx_ceph_cluster_template.xml

@@ -16,9 +16,9 @@ class openstack::z001_zabbix (
     hiera('controller_3_internal_ip')]), ','),
   $manage_firewall          = false,
   $manage_repo              = false,
+  $manage_resources         = false,
   $refreshactivechecks      = '',
   $unsafeuserparameters     = '',
-  $userparameter            = {},
   $zabbix_url               = '',
   $zabbix_server            = '',
   $database_type            = '',
@@ -27,6 +27,8 @@ class openstack::z001_zabbix (
   $pacemaker                = false,
   $pacemaker_resource       = '',
   $apache_listenport        = '',
+  $userparameters           = {},
+  $templates                = {},
 ) {
   if $::hostname == $bootstrap_node {
     $manage_database  = true
@@ -103,6 +105,8 @@ class openstack::z001_zabbix (
                     Class['::apache::mod::php'],
                     Class['::zabbix::web']],
     }
+
+    create_resources('zabbix::template', $templates)
   } elsif $::hostname =~ /^*controller-\d*$/ {
     $manage_database = false
   }
@@ -110,6 +114,7 @@ class openstack::z001_zabbix (
   class { '::zabbix::agent':
     manage_firewall      => $manage_firewall,
     manage_repo          => $manage_repo,
+    manage_resources     => $manage_resources,
     sourceip             => $internal_interface,
     listenip             => $internal_interface,
     server               => $zabbix_servers,
@@ -119,6 +124,8 @@ class openstack::z001_zabbix (
     unsafeuserparameters => $unsafeuserparameters,
     userparameter        => $userparameter,
   }
+
+  create_resources('zabbix::userparameters', $userparameters)
 
   if $::hostname =~ /^*controller-\d*$/ {
     class { '::zabbix::server':
@@ -134,11 +141,11 @@ class openstack::z001_zabbix (
       manage_service     => $manage_service,
       pacemaker          => $pacemaker,
       pacemaker_resource => $pacemaker_resource,
-    }
-
-    class { '::apache::mod::php': }
+    } ->
+    class { '::apache::mod::php': } ->
     class { '::zabbix::web':
       manage_repo       => $manage_repo,
+      manage_resources  => $manage_resources,
       zabbix_url        => $zabbix_url,
       zabbix_server     => $zabbix_server,
       database_type     => $database_type,
