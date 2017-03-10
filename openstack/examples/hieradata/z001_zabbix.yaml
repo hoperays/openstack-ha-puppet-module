@@ -28,3 +28,4 @@ openstack::z001_zabbix::templates:
     templ_source: puppet:///zabbix/template_app_tcp_connection.xml
   zbx_ceph_cluster_template:
     templ_source: puppet:///zabbix/zbx_ceph_cluster_template.xml
+openstack::z001_zabbix::sendemail_source: puppet:///zabbix/sendEmail

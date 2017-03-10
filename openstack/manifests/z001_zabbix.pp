@@ -5,6 +5,10 @@ class openstack::z001_zabbix (
   $password                 = hiera('zabbix_password'),
   $api_user                 = hiera('zabbix_api_username'),
   $api_password             = hiera('zabbix_api_password'),
+  $mail_from                = hiera('zabbix_mail_from'),
+  $mail_server              = hiera('zabbix_mail_server'),
+  $mail_username            = hiera('zabbix_mail_username'),
+  $mail_password            = hiera('zabbix_mail_password'),
   $internal_vip             = hiera('internal_vip'),
   $controller_1_internal_ip = hiera('controller_1_internal_ip'),
   $controller_2_internal_ip = hiera('controller_2_internal_ip'),
@@ -29,6 +33,7 @@ class openstack::z001_zabbix (
   $apache_listenport        = '',
   $userparameters           = {},
   $templates                = {},
+  $sendemail_source         = '',
 ) {
   if $::hostname == $bootstrap_node {
     $manage_database  = true
@@ -158,6 +163,32 @@ class openstack::z001_zabbix (
       apache_listenport => $apache_listenport,
       zabbix_api_user   => $api_user,
       zabbix_api_pass   => $api_password,
+    } ->
+    file { '/usr/lib/zabbix/alertscripts/sendEmail':
+      ensure  => file,
+      mode    => '0755',
+      owner   => 'root',
+      group   => 'root',
+      source  => $sendemail_source,
+    } ->
+    file { '/usr/lib/zabbix/alertscripts/sendEmail.sh':
+      ensure  => file,
+      mode    => '0755',
+      owner   => 'root',
+      group   => 'root',
+      content => "#!/bin/bash
+
+/usr/lib/zabbix/alertscripts/sendEmail \\
+-f $mail_from \\
+-s $mail_server \\
+-xu $mail_username \\
+-xp $mail_password \\
+-t \"\$1\" \\
+-u \"\$2\" \\
+-m \"\$3\" \\
+-o message-content-type=html \\
+-o message-charset=utf8
+",
     }
   }
 }

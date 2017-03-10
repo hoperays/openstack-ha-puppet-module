@@ -71,6 +71,10 @@ aodh_username: aodh
 aodh_password: 2823cce1d76d21321663531f861df382
 zabbix_api_username: admin
 zabbix_api_password: d4bda88416aa213bca489a9ce0e173ba
+zabbix_mail_from: zabbix@example.com
+zabbix_mail_server: smtp.example.com
+zabbix_mail_username: zabbix@example.com
+zabbix_mail_password: fe4f61bdaaad1052934bbc689557bf58
 zabbix_dbname: zabbix
 zabbix_username: zabbix
 zabbix_password: 38f50636412e3d04af7cb1d7ec9b1c8d
