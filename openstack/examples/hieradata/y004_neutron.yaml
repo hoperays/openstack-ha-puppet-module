@@ -13,7 +13,7 @@ openstack::y004_neutron::service_providers:
 openstack::y004_neutron::global_physnet_mtu: 1500
 openstack::y004_neutron::dhcp_agents_per_network: 3
 openstack::y004_neutron::bridge_mappings:
-- cloud:br-ex
+- examplecloud:br-ex
 openstack::y004_neutron::l3_ha: true
 openstack::y004_neutron::max_l3_agents_per_router: 3
 openstack::y004_neutron::type_drivers:
