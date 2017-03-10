@@ -32,7 +32,7 @@ openstack::y004_neutron::extension_drivers:
 - qos
 openstack::y004_neutron::flat_networks: '*'
 openstack::y004_neutron::network_vlan_ranges:
-- cloud:200:299
+- examplecloud:200:299
 openstack::y004_neutron::tunnel_id_ranges:
 - 200:299
 openstack::y004_neutron::vxlan_group: 224.0.0.1

@@ -33,6 +33,7 @@ class openstack::z001_zabbix (
   $apache_listenport        = '',
   $userparameters           = {},
   $templates                = {},
+  $alertscriptspath         = '',
   $sendemail_source         = '',
 ) {
   if $::hostname == $bootstrap_node {
@@ -164,14 +165,14 @@ class openstack::z001_zabbix (
       zabbix_api_user   => $api_user,
       zabbix_api_pass   => $api_password,
     } ->
-    file { '/usr/lib/zabbix/alertscripts/sendEmail':
+    file { "$alertscriptspath/sendEmail":
       ensure  => file,
       mode    => '0755',
       owner   => 'root',
       group   => 'root',
       source  => $sendemail_source,
     } ->
-    file { '/usr/lib/zabbix/alertscripts/sendEmail.sh':
+    file { "$alertscriptspath/sendEmail.sh":
       ensure  => file,
       mode    => '0755',
       owner   => 'root',
