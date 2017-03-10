@@ -147,6 +147,7 @@ class openstack::z001_zabbix (
       manage_service     => $manage_service,
       pacemaker          => $pacemaker,
       pacemaker_resource => $pacemaker_resource,
+      alertscriptspath   => $alertscriptspath,
     } ->
     class { '::apache::mod::php': } ->
     class { '::zabbix::web':
@@ -165,12 +166,17 @@ class openstack::z001_zabbix (
       zabbix_api_user   => $api_user,
       zabbix_api_pass   => $api_password,
     } ->
+    file { $alertscriptspath:
+      ensure => directory,
+      owner  => 'root',
+      group  => 'root',
+    } ->
     file { "$alertscriptspath/sendEmail":
-      ensure  => file,
-      mode    => '0755',
-      owner   => 'root',
-      group   => 'root',
-      source  => $sendemail_source,
+      ensure => file,
+      mode   => '0755',
+      owner  => 'root',
+      group  => 'root',
+      source => $sendemail_source,
     } ->
     file { "$alertscriptspath/sendEmail.sh":
       ensure  => file,
@@ -179,7 +185,7 @@ class openstack::z001_zabbix (
       group   => 'root',
       content => "#!/bin/bash
 
-/usr/lib/zabbix/alertscripts/sendEmail \\
+$alertscriptspath/sendEmail \\
 -f $mail_from \\
 -s $mail_server \\
 -xu $mail_username \\
