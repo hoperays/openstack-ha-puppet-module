@@ -35,6 +35,8 @@ class openstack::z001_zabbix (
   $templates                = {},
   $alertscriptspath         = '',
   $sendemail_source         = '',
+  $startpollers             = '',
+  $startdiscoverers         = '',
 ) {
   if $::hostname == $bootstrap_node {
     $manage_database  = true
@@ -148,6 +150,8 @@ class openstack::z001_zabbix (
       pacemaker          => $pacemaker,
       pacemaker_resource => $pacemaker_resource,
       alertscriptspath   => $alertscriptspath,
+      startpollers       => $startpollers,
+      startdiscoverers   => $startdiscoverers,
     } ->
     class { '::apache::mod::php': } ->
     class { '::zabbix::web':
