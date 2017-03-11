@@ -12,9 +12,9 @@ openstack::z001_zabbix::pacemaker: true
 openstack::z001_zabbix::pacemaker_resource: zabbix-server
 openstack::z001_zabbix::apache_listenport: 180
 openstack::z001_zabbix::userparameters:
-  ceph_cluster_status:
-    source: puppet:///zabbix/ceph_cluster_status.conf
-    script: puppet:///zabbix/ceph_cluster_status.sh
+  ceph_status:
+    source: puppet:///zabbix/ceph_status.conf
+    script: puppet:///zabbix/ceph_status.sh
     script_ext: .sh
     script_dir: /opt
   disk_io_status:

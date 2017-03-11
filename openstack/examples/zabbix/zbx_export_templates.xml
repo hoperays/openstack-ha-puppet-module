@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <zabbix_export>
     <version>3.0</version>
-    <date>2017-03-11T03:32:31Z</date>
+    <date>2017-03-11T04:27:54Z</date>
     <groups>
         <group>
             <name>Templates</name>
@@ -4391,7 +4391,7 @@
             <dependencies/>
         </trigger>
         <trigger>
-            <expression>{zbx_os_linux_template:proc.num[].avg(5m)}&gt;600</expression>
+            <expression>{zbx_os_linux_template:proc.num[].avg(5m)}&gt;900</expression>
             <name>Too many processes on {HOST.NAME}</name>
             <url/>
             <status>0</status>
@@ -4401,7 +4401,7 @@
             <dependencies/>
         </trigger>
         <trigger>
-            <expression>{zbx_os_linux_template:proc.num[,,run].avg(5m)}&gt;60</expression>
+            <expression>{zbx_os_linux_template:proc.num[,,run].avg(5m)}&gt;30</expression>
             <name>Too many processes running on {HOST.NAME}</name>
             <url/>
             <status>0</status>
