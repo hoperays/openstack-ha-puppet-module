@@ -12,23 +12,19 @@ openstack::z001_zabbix::pacemaker: true
 openstack::z001_zabbix::pacemaker_resource: zabbix-server
 openstack::z001_zabbix::apache_listenport: 180
 openstack::z001_zabbix::userparameters:
-  disk_io_status:
-    source: puppet:///zabbix/disk_io_status.conf
-  tcp_connect_status:
-    source: puppet:///zabbix/tcp_connect_status.conf
-  ceph_status:
-    source: puppet:///zabbix/ceph_status.conf
-    script: puppet:///zabbix/ceph_status.sh
+  ceph_cluster_status:
+    source: puppet:///zabbix/ceph_cluster_status.conf
+    script: puppet:///zabbix/ceph_cluster_status.sh
     script_ext: .sh
     script_dir: /opt
+  disk_io_status:
+    source: puppet:///zabbix/disk_io_status.conf
+  tcp_connection_status:
+    source: puppet:///zabbix/tcp_connection_status.conf
 openstack::z001_zabbix::templates:
-  template_os_linux:
-    templ_source: puppet:///zabbix/template_os_linux.xml
-  template_app_tcp_connection:
-    templ_source: puppet:///zabbix/template_app_tcp_connection.xml
-  zbx_ceph_cluster_template:
-    templ_source: puppet:///zabbix/zbx_ceph_cluster_template.xml
+  zbx_export_templates:
+    templ_source: puppet:///zabbix/zbx_export_templates.xml
 openstack::z001_zabbix::alertscriptspath: /etc/zabbix/alertscripts
 openstack::z001_zabbix::sendemail_source: puppet:///zabbix/sendEmail
-openstack::z001_zabbix::startpollers: 5
+openstack::z001_zabbix::startpollers: 10
 openstack::z001_zabbix::startdiscoverers: 5
