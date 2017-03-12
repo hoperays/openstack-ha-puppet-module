@@ -373,18 +373,6 @@ class openstack::x006_haproxy (
   }
 
   if $zabbix {
-    haproxy::listen { 'zabbix_server':
-      bind => {
-        "$internal_vip:10051" => $haproxy_listen_bind_param
-      }
-      ,
-    }
-
-    haproxy::balancermember { 'zabbix_server':
-      listening_service => 'zabbix_server',
-      ports             => '10051',
-    }
-
     haproxy::listen { 'zabbix_web':
       bind    => {
         "$public_vip:180"  => $haproxy_listen_bind_param,

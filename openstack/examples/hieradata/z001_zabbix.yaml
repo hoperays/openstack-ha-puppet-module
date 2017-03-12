@@ -26,5 +26,6 @@ openstack::z001_zabbix::templates:
     templ_source: puppet:///zabbix/zbx_export_templates.xml
 openstack::z001_zabbix::alertscriptspath: /etc/zabbix/alertscripts
 openstack::z001_zabbix::sendemail_source: puppet:///zabbix/sendEmail
-openstack::z001_zabbix::startpollers: 10
+openstack::z001_zabbix::startpollers: 30
+openstack::z001_zabbix::startpollersunreachable: 5
 openstack::z001_zabbix::startdiscoverers: 5

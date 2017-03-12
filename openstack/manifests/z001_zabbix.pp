@@ -10,14 +10,9 @@ class openstack::z001_zabbix (
   $mail_username            = hiera('zabbix_mail_username'),
   $mail_password            = hiera('zabbix_mail_password'),
   $internal_vip             = hiera('internal_vip'),
-  $controller_1_internal_ip = hiera('controller_1_internal_ip'),
   $controller_2_internal_ip = hiera('controller_2_internal_ip'),
   $controller_3_internal_ip = hiera('controller_3_internal_ip'),
   $internal_interface       = hiera('internal_interface'),
-  $zabbix_servers           = join(any2array([
-    hiera('controller_1_internal_ip'),
-    hiera('controller_2_internal_ip'),
-    hiera('controller_3_internal_ip')]), ','),
   $manage_firewall          = false,
   $manage_repo              = false,
   $manage_resources         = false,
@@ -36,49 +31,13 @@ class openstack::z001_zabbix (
   $alertscriptspath         = '',
   $sendemail_source         = '',
   $startpollers             = '',
+  $startpollersunreachable  = '',
   $startdiscoverers         = '',
 ) {
   if $::hostname == $bootstrap_node {
     $manage_database  = true
     $api_password_md5 = md5($api_password)
 
-    mysql_database { $dbname:
-      ensure  => present,
-      charset => 'utf8',
-      collate => 'utf8_general_ci',
-    } ->
-    mysql_user {
-      "${user}@localhost":
-        password_hash => mysql_password($password),;
-      "${user}@${$controller_1_internal_ip}":
-        password_hash => mysql_password($password),;
-      "${user}@${$controller_2_internal_ip}":
-        password_hash => mysql_password($password),;
-      "${user}@${$controller_3_internal_ip}":
-        password_hash => mysql_password($password),
-    } ->
-    mysql_grant {
-      "${user}@localhost/${dbname}.*":
-        options    => ['GRANT'],
-        privileges => ['ALL'],
-        table      => "${dbname}.*",
-        user       => "${user}@localhost",;
-      "${user}@${$controller_1_internal_ip}/${dbname}.*":
-        options    => ['GRANT'],
-        privileges => ['ALL'],
-        table      => "${dbname}.*",
-        user       => "${user}@${$controller_1_internal_ip}",;
-      "${user}@${$controller_2_internal_ip}/${dbname}.*":
-        options    => ['GRANT'],
-        privileges => ['ALL'],
-        table      => "${dbname}.*",
-        user       => "${user}@${$controller_2_internal_ip}",;
-      "${user}@${$controller_3_internal_ip}/${dbname}.*":
-        options    => ['GRANT'],
-        privileges => ['ALL'],
-        table      => "${dbname}.*",
-        user       => "${user}@${$controller_3_internal_ip}",
-    } ->
     Class['::zabbix::database::mysql'] ->
     exec { "update administrator's password":
       command => "/bin/echo \"UPDATE $dbname.users SET passwd = '$api_password_md5' WHERE userid = '1';\" | \
@@ -91,20 +50,16 @@ class openstack::z001_zabbix (
       tries     => '360',
       try_sleep => '10',
       command   => "/bin/scp ${controller_2_internal_ip}:/etc/zabbix/zabbix_server.conf /tmp/zabbix_server.conf2 && \
-                                                    diff /etc/zabbix/zabbix_server.conf /tmp/zabbix_server.conf2 | \
-                                                                         grep -v 'ListenIP' | wc -l | grep '^2$' && \
+                                                    diff /etc/zabbix/zabbix_server.conf /tmp/zabbix_server.conf2 && \
                                                                                   rm -f /tmp/zabbix_server.conf2 && \
                          scp ${controller_3_internal_ip}:/etc/zabbix/zabbix_server.conf /tmp/zabbix_server.conf3 && \
-                                                    diff /etc/zabbix/zabbix_server.conf /tmp/zabbix_server.conf3 | \
-                                                                         grep -v 'ListenIP' | wc -l | grep '^2$' && \
+                                                    diff /etc/zabbix/zabbix_server.conf /tmp/zabbix_server.conf3 && \
                                                                                   rm -f /tmp/zabbix_server.conf3",
       unless    => "/bin/scp ${controller_2_internal_ip}:/etc/zabbix/zabbix_server.conf /tmp/zabbix_server.conf2 && \
-                                                    diff /etc/zabbix/zabbix_server.conf /tmp/zabbix_server.conf2 | \
-                                                                         grep -v 'ListenIP' | wc -l | grep '^2$' && \
+                                                    diff /etc/zabbix/zabbix_server.conf /tmp/zabbix_server.conf2 && \
                                                                                   rm -f /tmp/zabbix_server.conf2 && \
                          scp ${controller_3_internal_ip}:/etc/zabbix/zabbix_server.conf /tmp/zabbix_server.conf3 && \
-                                                    diff /etc/zabbix/zabbix_server.conf /tmp/zabbix_server.conf3 | \
-                                                                         grep -v 'ListenIP' | wc -l | grep '^2$' && \
+                                                    diff /etc/zabbix/zabbix_server.conf /tmp/zabbix_server.conf3 && \
                                                                                   rm -f /tmp/zabbix_server.conf3",
     } ->
     pacemaker::resource::service { "$pacemaker_resource":
@@ -112,6 +67,19 @@ class openstack::z001_zabbix (
       require   => [Class['::zabbix::server'],
                     Class['::apache::mod::php'],
                     Class['::zabbix::web']],
+    } ->
+    pacemaker::constraint::base { "order-ip-$internal_vip-$pacemaker_resource-Optional":
+      constraint_type   => 'order',
+      first_action      => 'start',
+      first_resource    => "ip-$internal_vip",
+      second_action     => 'start',
+      second_resource   => "$pacemaker_resource",
+      constraint_params => 'kind=Optional',
+    } ->
+    pacemaker::constraint::colocation { "colocation-$pacemaker_resource-ip-$internal_vip-INFINITY":
+      source => "$pacemaker_resource",
+      target => "ip-$internal_vip",
+      score  => 'INFINITY',
     }
 
     create_resources('zabbix::template', $templates)
@@ -125,8 +93,8 @@ class openstack::z001_zabbix (
     manage_resources     => $manage_resources,
     sourceip             => $internal_interface,
     listenip             => $internal_interface,
-    server               => $zabbix_servers,
-    serveractive         => $zabbix_servers,
+    server               => $internal_vip,
+    serveractive         => $internal_vip,
     hostname             => $::hostname,
     refreshactivechecks  => $refreshactivechecks,
     unsafeuserparameters => $unsafeuserparameters,
@@ -136,22 +104,30 @@ class openstack::z001_zabbix (
   create_resources('zabbix::userparameters', $userparameters)
 
   if $::hostname =~ /^*controller-\d*$/ {
+    class { '::zabbix::database':
+      manage_database   => $manage_database,
+      database_type     => $database_type,
+      database_name     => $dbname,
+      database_user     => $user,
+      database_password => $password,
+    } ->
     class { '::zabbix::server':
-      manage_repo        => $manage_repo,
-      manage_firewall    => $manage_firewall,
-      manage_database    => $manage_database,
-      database_type      => $database_type,
-      database_host      => $internal_vip,
-      database_name      => $dbname,
-      database_user      => $user,
-      database_password  => $password,
-      listenip           => $internal_interface,
-      manage_service     => $manage_service,
-      pacemaker          => $pacemaker,
-      pacemaker_resource => $pacemaker_resource,
-      alertscriptspath   => $alertscriptspath,
-      startpollers       => $startpollers,
-      startdiscoverers   => $startdiscoverers,
+      manage_repo             => $manage_repo,
+      manage_firewall         => $manage_firewall,
+      manage_database         => $manage_database,
+      database_type           => $database_type,
+      database_name           => $dbname,
+      database_user           => $user,
+      database_password       => $password,
+      sourceip                => $internal_vip,
+      listenip                => $internal_vip,
+      manage_service          => $manage_service,
+      pacemaker               => $pacemaker,
+      pacemaker_resource      => $pacemaker_resource,
+      alertscriptspath        => $alertscriptspath,
+      startpollers            => $startpollers,
+      startpollersunreachable => $startpollersunreachable,
+      startdiscoverers        => $startdiscoverers,
     } ->
     class { '::apache::mod::php': } ->
     class { '::zabbix::web':
@@ -160,7 +136,6 @@ class openstack::z001_zabbix (
       zabbix_url        => $zabbix_url,
       zabbix_server     => $zabbix_server,
       database_type     => $database_type,
-      database_host     => $internal_vip,
       database_name     => $dbname,
       database_user     => $user,
       database_password => $password,
@@ -172,21 +147,21 @@ class openstack::z001_zabbix (
     } ->
     file { $alertscriptspath:
       ensure => directory,
-      owner  => 'root',
-      group  => 'root',
+      owner  => 'zabbix',
+      group  => 'zabbix',
     } ->
     file { "$alertscriptspath/sendEmail":
       ensure => file,
       mode   => '0755',
-      owner  => 'root',
-      group  => 'root',
+      owner  => 'zabbix',
+      group  => 'zabbix',
       source => $sendemail_source,
     } ->
     file { "$alertscriptspath/sendEmail.sh":
       ensure  => file,
       mode    => '0755',
-      owner   => 'root',
-      group   => 'root',
+      owner   => 'zabbix',
+      group   => 'zabbix',
       content => "#!/bin/bash
 
 $alertscriptspath/sendEmail \\
