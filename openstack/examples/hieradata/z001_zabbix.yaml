@@ -29,3 +29,4 @@ openstack::z001_zabbix::sendemail_source: puppet:///zabbix/sendEmail
 openstack::z001_zabbix::startpollers: 30
 openstack::z001_zabbix::startpollersunreachable: 5
 openstack::z001_zabbix::startdiscoverers: 5
+openstack::z001_zabbix::timeout: 30

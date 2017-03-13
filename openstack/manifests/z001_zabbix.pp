@@ -33,6 +33,7 @@ class openstack::z001_zabbix (
   $startpollers             = '',
   $startpollersunreachable  = '',
   $startdiscoverers         = '',
+  $timeout                  = '',
 ) {
   if $::hostname == $bootstrap_node {
     $manage_database  = true
@@ -99,6 +100,7 @@ class openstack::z001_zabbix (
     refreshactivechecks  => $refreshactivechecks,
     unsafeuserparameters => $unsafeuserparameters,
     userparameter        => $userparameter,
+    timeout              => $timeout,
   }
 
   create_resources('zabbix::userparameters', $userparameters)
@@ -128,6 +130,7 @@ class openstack::z001_zabbix (
       startpollers            => $startpollers,
       startpollersunreachable => $startpollersunreachable,
       startdiscoverers        => $startdiscoverers,
+      timeout                 => $timeout,
     } ->
     class { '::apache::mod::php': } ->
     class { '::zabbix::web':
