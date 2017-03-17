@@ -39,7 +39,7 @@ class openstack::y009_aodh (
       internal_url        => "http://${internal_vip}:8042",
       admin_url           => "http://${internal_vip}:8042",
     }
-  } else {
+  } elsif $::hostname =~ /^*controller-\d*$/ {
     $sync_db = false
   }
 

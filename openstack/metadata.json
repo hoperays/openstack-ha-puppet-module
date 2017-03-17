@@ -1,13 +1,115 @@
 {
-  "author": "",
-  "dependencies": [],
-  "license": "",
-  "name": "chengql-openstack",
-  "operatingsystem_support": [],
-  "project_page": "",
-  "requirements": [],
-  "source": "",
-  "summary": "",
-  "tags": [],
-  "version": "0.1.0"
+	"name": "hoperays-openstack",
+	"version": "0.1.1",
+	"author": "hoperays",
+	"summary": "Installs and configures OpenStack Platform.",
+	"license": "Apache-2.0",
+	"source": "https://github.com/hoperays/openstack-ha-puppet-module.git",
+	"project_page": "https://github.com/hoperays/openstack-ha-puppet-module",
+	"issues_url": "https://github.com/hoperays/openstack-ha-puppet-module/issues",
+	"requirements": [
+		{
+			"name": "pe",
+			"version_requirement": "3.x"
+		},
+		{
+			"name": "puppet",
+			"version_requirement": "3.x"
+		}
+	],
+	"operatingsystem_support": [
+		{
+			"operatingsystem": "CentOS",
+			"operatingsystemrelease": [ "7"
+			]
+		},
+		{
+			"operatingsystem": "RedHat",
+			"operatingsystemrelease": [ "7"
+			]
+		}
+	],
+	"dependencies": [
+		{
+			"name": "puppetlabs/firewall",
+			"version_requirement": ">=1.8.2 <2.0.0"
+		},
+		{
+			"name": "puppetlabs/ntp",
+			"version_requirement": ">=4.2.0 <5.0.0"
+		},
+		{
+			"name": "openstack/ceph",
+			"version_requirement": ">=2.3.0 <3.0.0"
+		},
+		{
+			"name": "openstack/pacemaker",
+			"version_requirement": ">=0.5.0 <1.0.0"
+		},
+		{
+			"name": "puppetlabs/haproxy",
+			"version_requirement": ">=1.5.0 <2.0.0"
+		},
+		{
+			"name": "puppetlabs/mysql",
+			"version_requirement": ">=3.10.0 <4.0.0"
+		},
+		{
+			"name": "puppetlabs/rabbitmq",
+			"version_requirement": ">=5.6.0 <6.0.0"
+		},
+		{
+			"name": "saz/memcached",
+			"version_requirement": ">=2.8.1 <3.0.0"
+		},
+		{
+			"name": "puppetlabs/mongodb",
+			"version_requirement": ">=0.17.0 <1.0.0"
+		},
+		{
+			"name": "arioch/redis",
+			"version_requirement": ">=1.2.4 <2.0.0"
+		},
+		{
+			"name": "openstack/keystone",
+			"version_requirement": ">=9.5.0 <10.0.0"
+		},
+		{
+			"name": "openstack/glance",
+			"version_requirement": ">=9.5.0 <10.0.0"
+		},
+		{
+			"name": "openstack/cinder",
+			"version_requirement": ">=9.5.0 <10.0.0"
+		},
+		{
+			"name": "openstack/neutron",
+			"version_requirement": ">=9.5.0 <10.0.0"
+		},
+		{
+			"name": "openstack/nova",
+			"version_requirement": ">=9.5.0 <10.0.0"
+		},
+		{
+			"name": "openstack/horizon",
+			"version_requirement": ">=9.5.0 <10.0.0"
+		},
+		{
+			"name": "openstack/ceilometer",
+			"version_requirement": ">=9.5.0 <10.0.0"
+		},
+		{
+			"name": "openstack/gnocchi",
+			"version_requirement": ">=9.5.0 <10.0.0"
+		},
+		{
+			"name": "openstack/aodh",
+			"version_requirement": ">=9.5.0 <10.0.0"
+		},
+		{
+			"name": "puppet/zabbix",
+			"version_requirement": ">=3.0.0 <4.0.0"
+		}
+	],
+	"tags": []
 }

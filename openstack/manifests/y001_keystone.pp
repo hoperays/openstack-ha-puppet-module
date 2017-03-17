@@ -20,6 +20,7 @@ class openstack::y001_keystone (
   $token_driver             = '',
   $credential_keys_0        = '',
   $credential_keys_1        = '',
+  $version                  = '',
 ) {
   if $::hostname == $bootstrap_node {
     class { '::keystone::db::mysql':
@@ -67,7 +68,7 @@ class openstack::y001_keystone (
       user_domain    => undef,
       project_domain => undef,
       default_domain => undef,
-      version        => 'v3',
+      version        => $version,
     }
 
     keystone_role { '_member_':

@@ -1,3 +1,3 @@
 # openstack-ha-puppet-module
 
-tuning
+Installs and configures OpenStack Platform.

@@ -18,6 +18,8 @@ class openstack::y007_ceilometer (
   $controller_as_novacompute = hiera('controller_as_novacompute'),
 ) {
   if $::hostname == $bootstrap_node {
+    $sync_db = true
+
     class { '::ceilometer::keystone::auth':
       password            => $password,
       email               => $email,
@@ -34,6 +36,8 @@ class openstack::y007_ceilometer (
       admin_url           => "http://${internal_vip}:8777",
       internal_url        => "http://${internal_vip}:8777",
     }
+  } elsif $::hostname =~ /^*controller-\d*$/ {
+    $sync_db = false
   }
 
   class { '::ceilometer':
@@ -75,12 +79,10 @@ class openstack::y007_ceilometer (
       database_max_retries    => '-1',
       database_db_max_retries => '-1',
       database_connection     => "mongodb://${controller_1_internal_ip}:27017,${controller_2_internal_ip}:27017,${controller_3_internal_ip}:27017/${dbname}?replicaSet=${replicaset}",
+      sync_db                 => $sync_db,
     }
 
     class { '::ceilometer::client':
-    }
-
-    class { '::ceilometer::expirer':
     }
 
     class { '::ceilometer::agent::central':
@@ -133,6 +135,16 @@ class openstack::y007_ceilometer (
       archive_policy => 'low',
       resources_definition_file => 'gnocchi_resources.yaml',
       url            => "http://${internal_vip}:8041",
+    }
+
+    exec { "disable-metering-panel":
+      timeout   => '3600',
+      tries     => '360',
+      try_sleep => '10',
+      command   => "/bin/echo -e '\n# Disable metering panel when using gnocchi\nREMOVE_PANEL = True' >> \
+                    /usr/share/openstack-dashboard/openstack_dashboard/enabled/_2030_admin_metering_panel.py",
+      unless    => "/bin/cat /usr/share/openstack-dashboard/openstack_dashboard/enabled/_2030_admin_metering_panel.py | \
+                    grep 'REMOVE_PANEL = True'",
     }
   }
 

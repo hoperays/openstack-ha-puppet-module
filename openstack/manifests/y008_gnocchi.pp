@@ -43,7 +43,7 @@ class openstack::y008_gnocchi (
       admin_url           => "http://${internal_vip}:8041",
       service_description => 'Openstack Metric Service',
     }
-  } else {
+  } elsif $::hostname =~ /^*controller-\d*$/ {
     $sync_db = false
   }
 
