@@ -18,8 +18,8 @@ class openstack::y001_keystone (
   $token_expiration         = '',
   $token_provider           = '',
   $token_driver             = '',
-  $credential_keys_0        = '',
-  $credential_keys_1        = '',
+  $fernet_keys              = {},
+  $credential_keys          = {},
   $version                  = '',
 ) {
   if $::hostname == $bootstrap_node {
@@ -119,26 +119,21 @@ class openstack::y001_keystone (
     rabbit_heartbeat_timeout_threshold => '60',
     enable_proxy_headers_parsing       => true,
     token_expiration      => $token_expiration,
-    token_provider        => $token_provider, # fernet
-    token_driver          => $token_driver,
+    token_provider        => $token_provider, # fernet,uuid
+    token_driver          => $token_driver, # memcache,sql
+    memcache_servers      => [
+      "${controller_1_internal_ip}:11211",
+      "${controller_2_internal_ip}:11211",
+      "${controller_3_internal_ip}:11211"],
     revoke_by_id          => true,
     enable_ssl            => false,
     #
     sync_db               => $sync_db,
     enable_bootstrap      => $sync_db,
-    # enable_fernet_setup => $sync_db,
+    enable_fernet_setup   => true,
+    fernet_keys           => $fernet_keys,
     enable_credential_setup            => true,
-    credential_keys       => {
-      '/etc/keystone/credential-keys/0' => {
-        content => $credential_keys_0,
-      }
-      ,
-      '/etc/keystone/credential-keys/1' => {
-        content => $credential_keys_1,
-      }
-      ,
-    }
-    ,
+    credential_keys       => $credential_keys,
     service_name          => 'httpd',
     #
     purge_config          => true,

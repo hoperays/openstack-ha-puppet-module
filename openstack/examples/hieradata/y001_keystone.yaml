@@ -1,5 +1,13 @@
 openstack::y001_keystone::token_expiration: 3600
-openstack::y001_keystone::token_provider: uuid
-openstack::y001_keystone::token_driver: sql
-openstack::y001_keystone::credential_keys_0: d_9esDjvKlaN_Og7ZCqEbvnv9iXphnjOfnt2ZfXq4C4=
-openstack::y001_keystone::credential_keys_1: 17tl2C3zlfMbDwaNpdiufd2zjsXpDPLF3i5Hm1Rd1rQ=
+openstack::y001_keystone::token_provider: fernet
+openstack::y001_keystone::token_driver: memcache
+openstack::y001_keystone::fernet_keys:
+  /etc/keystone/fernet-keys/0:
+    content: fB9se22lP3hDfcIJN6eQS2ygjzwNS_Ws816LcwDMP0g=
+  /etc/keystone/fernet-keys/1:
+    content: JOPffZ53AIDFffEkFI4IXw0WDiBuqrgmX3cioZXcNhk=
+openstack::y001_keystone::credential_keys:
+  /etc/keystone/credential-keys/0:
+    content: MLfwC7URNBcvYB3uE8_0sQiOOZEh8DIh_xHWjONrBms=
+  /etc/keystone/credential-keys/1:
+    content: vwuxa7GeUPrkOiT-wlqGap4YBn3pkxfXeREy9YK5Pm4=
