@@ -16,6 +16,7 @@ class openstack::y007_ceilometer (
   $telemetry_secret          = hiera('telemetry_secret'),
   $replicaset                = hiera('mongodb_replset'),
   $controller_as_novacompute = hiera('controller_as_novacompute'),
+  $region                    = hiera('region_name'),
 ) {
   if $::hostname == $bootstrap_node {
     $sync_db = true
@@ -29,7 +30,7 @@ class openstack::y007_ceilometer (
       service_name        => 'ceilometer',
       service_type        => 'metering',
       service_description => 'Openstack Metering Service',
-      region              => 'RegionOne',
+      region              => $region,
       tenant              => 'services',
       configure_endpoint  => true,
       public_url          => "http://${public_vip}:8777",
@@ -68,7 +69,7 @@ class openstack::y007_ceilometer (
     auth_type                => 'password',
     auth_user_domain_name    => 'default',
     auth_project_domain_name => 'default',
-    auth_region              => 'RegionOne',
+    auth_region              => $region,
     auth_tenant_name         => 'services',
     auth_user                => $user,
     auth_password            => $password,
@@ -107,6 +108,7 @@ class openstack::y007_ceilometer (
       project_name        => 'services',
       username            => $user,
       password            => $password,
+      region_name         => $region,
     }
 
     class { '::ceilometer::api':

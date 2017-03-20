@@ -27,6 +27,7 @@ clustercheck_password: 994f210390468f4cd0cc603d7350c769
 rabbit_username: guest
 rabbit_password: 7282863f484f9230a8d24b4a3f472ed4
 mongodb_replset: openstack
+region_name: RegionOne
 admin_token: 5d979d080d73443e1adcc0eb5c0b37d5
 admin_email: admin@example.com
 admin_username: admin

@@ -31,6 +31,7 @@ class openstack::y004_neutron (
   $tunnel_id_ranges         = [],
   $vxlan_group              = '',
   $vni_ranges               = '',
+  $region                   = hiera('region_name'),
 ) {
   if $::hostname == $bootstrap_node {
     class { '::neutron::db::mysql':
@@ -64,7 +65,7 @@ class openstack::y004_neutron (
       service_name        => 'neutron',
       service_type        => 'network',
       service_description => 'Neutron Networking Service',
-      region              => 'RegionOne',
+      region              => $region,
       public_url          => "http://${public_vip}:9696",
       admin_url           => "http://${internal_vip}:9696",
       internal_url        => "http://${internal_vip}:9696",
@@ -142,6 +143,7 @@ class openstack::y004_neutron (
       project_name        => 'services',
       username            => $user,
       password            => $password,
+      region_name         => $region,
     }
 
     class { '::neutron::db':
@@ -172,6 +174,7 @@ class openstack::y004_neutron (
       project_name      => 'services',
       username          => $nova_username,
       password          => $nova_password,
+      region_name       => $region,
       #
       nova_url          => "http://${internal_vip}:8774/v2.1",
       notify_nova_on_port_status_changes => true,

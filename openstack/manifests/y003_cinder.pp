@@ -13,6 +13,7 @@ class openstack::y003_cinder (
   $controller_3_internal_ip = hiera('controller_3_internal_ip'),
   $internal_interface       = hiera('internal_interface'),
   $rbd_secret_uuid          = hiera('rbd_secret_uuid'),
+  $region                   = hiera('region_name'),
 ) {
   if $::hostname == $bootstrap_node {
     class { '::cinder::db::mysql':
@@ -75,7 +76,7 @@ class openstack::y003_cinder (
       service_description    => 'Cinder Service',
       service_description_v2 => 'Cinder Service v2',
       service_description_v3 => 'Cinder Service v3',
-      region                 => 'RegionOne',
+      region                 => $region,
     }
 
     Anchor['cinder::dbsync::end'] ->
@@ -141,6 +142,7 @@ class openstack::y003_cinder (
     project_name        => 'services',
     username            => $user,
     password            => $password,
+    region_name         => $region,
   }
 
   class { '::cinder::api':
@@ -153,6 +155,7 @@ class openstack::y003_cinder (
     enable_proxy_headers_parsing => true,
     #
     sync_db                      => $sync_db,
+    os_region_name               => $region,
   }
 
   class { '::cinder::scheduler':

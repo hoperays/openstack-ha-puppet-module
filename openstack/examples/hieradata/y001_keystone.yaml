@@ -11,3 +11,30 @@ openstack::y001_keystone::credential_keys:
     content: MLfwC7URNBcvYB3uE8_0sQiOOZEh8DIh_xHWjONrBms=
   /etc/keystone/credential-keys/1:
     content: vwuxa7GeUPrkOiT-wlqGap4YBn3pkxfXeREy9YK5Pm4=
+openstack::y001_keystone::security_compliance:
+  security_compliance/lockout_failure_attempts:
+    value: 6
+  security_compliance/lockout_duration:
+    value: 1800
+  security_compliance/password_regex:
+    value: ^(?=.*\d)(?=.*[a-zA-Z]).{7,}$
+  security_compliance/password_regex_description:
+    value: Passwords must contain at least 1 letter, 1 digit, and be a minimum length of 7 characters.
+  security_compliance/unique_last_password_count:
+    value: 5
+  security_compliance/minimum_password_age:
+    value: 1
+#  security_compliance/disable_user_account_days_inactive:
+#    value: 90
+#  security_compliance/password_expires_days:
+#    value: 90
+#  security_compliance/password_expires_ignore_user_ids:
+#    value:
+#    - 11bf7e09088e4170b07e796193eb592d
+#    - 1e99428eeb2d414d94ca9705a5907067
+#    - 27047fa6230a49cebc133a37215211e4
+#    - 5db0b8f306ea4a2c903361dc0fe291d6
+#    - 99b91a0230d34c98a4629332819af9e8
+#    - a4464e458ae34f5daf78b4f522146f9f
+#    - d006ab74f54b4ffe83284594bbb6f9d4
+#    - fea5dd35a7e74ebb822b5b78ba590c10

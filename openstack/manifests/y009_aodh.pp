@@ -13,6 +13,7 @@ class openstack::y009_aodh (
   $controller_3_internal_ip = hiera('controller_3_internal_ip'),
   $internal_interface       = hiera('internal_interface'),
   $redis_password           = hiera('redis_password'),
+  $region                   = hiera('region_name'),
 ) {
   if $::hostname == $bootstrap_node {
     class { '::aodh::db::mysql':
@@ -34,7 +35,7 @@ class openstack::y009_aodh (
       configure_user_role => true,
       service_name        => 'aodh',
       service_type        => 'alarming',
-      region              => 'RegionOne',
+      region              => $region,
       public_url          => "http://${public_vip}:8042",
       internal_url        => "http://${internal_vip}:8042",
       admin_url           => "http://${internal_vip}:8042",
@@ -79,6 +80,7 @@ class openstack::y009_aodh (
     project_name        => 'services',
     username            => $user,
     password            => $password,
+    region_name         => $region,
   }
 
   class { '::aodh::api':
@@ -103,7 +105,7 @@ class openstack::y009_aodh (
     auth_user         => $user,
     auth_password     => $password,
     auth_url          => "http://${internal_vip}:5000",
-    auth_region       => 'RegionOne',
+    auth_region       => $region,
     auth_tenant_name  => 'services',
     project_domain_id => 'default',
     user_domain_id    => 'default',

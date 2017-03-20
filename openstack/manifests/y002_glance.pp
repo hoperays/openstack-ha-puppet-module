@@ -12,6 +12,7 @@ class openstack::y002_glance (
   $controller_2_internal_ip = hiera('controller_2_internal_ip'),
   $controller_3_internal_ip = hiera('controller_3_internal_ip'),
   $internal_interface       = hiera('internal_interface'),
+  $region                   = hiera('region_name'),
 ) {
   if $::hostname == $bootstrap_node {
     class { '::glance::db::mysql':
@@ -43,7 +44,7 @@ class openstack::y002_glance (
       configure_user_role => true,
       service_name        => 'glance',
       service_type        => 'image',
-      region              => 'RegionOne',
+      region              => $region,
       tenant              => 'services',
       service_description => 'OpenStack Image Service',
       public_url          => "http://${public_vip}:9292",
@@ -77,6 +78,7 @@ class openstack::y002_glance (
     project_name        => 'services',
     username            => $user,
     password            => $password,
+    region_name         => $region,
   }
 
   class { '::glance::api':
@@ -92,7 +94,7 @@ class openstack::y002_glance (
     database_connection          => "mysql+pymysql://${user}:${password}@${internal_vip}/${dbname}",
     stores                       => ['glance.store.http.Store', 'glance.store.rbd.Store'],
     default_store                => 'rbd',
-    os_region_name               => 'RegionOne',
+    os_region_name               => $region,
     enable_proxy_headers_parsing => true,
     pipeline                     => 'keystone',
     auth_strategy                => 'keystone',
@@ -135,6 +137,7 @@ class openstack::y002_glance (
     project_name        => 'services',
     username            => $user,
     password            => $password,
+    region_name         => $region,
   }
 
   class { '::glance::registry::db':
@@ -144,14 +147,15 @@ class openstack::y002_glance (
   }
 
   class { '::glance::registry':
-    bind_host     => $internal_interface,
-    bind_port     => '9191',
-    log_file      => '/var/log/glance/registry.log',
-    log_dir       => '/var/log/glance',
-    pipeline      => 'keystone',
-    auth_strategy => 'keystone',
-    sync_db       => $sync_db,
+    bind_host      => $internal_interface,
+    bind_port      => '9191',
+    log_file       => '/var/log/glance/registry.log',
+    log_dir        => '/var/log/glance',
+    pipeline       => 'keystone',
+    auth_strategy  => 'keystone',
+    sync_db        => $sync_db,
+    os_region_name => $region,
     #
-    purge_config  => true,
+    purge_config   => true,
   }
 }

@@ -16,6 +16,7 @@ class openstack::y008_gnocchi (
   $project_id               = '',
   $archive_policy_name      = '',
   $flush_delay              = '',
+  $region                   = hiera('region_name'),
 ) {
   if $::hostname == $bootstrap_node {
     class { '::gnocchi::db::mysql':
@@ -37,7 +38,7 @@ class openstack::y008_gnocchi (
       configure_user_role => true,
       service_name        => 'gnocchi',
       service_type        => 'metric',
-      region              => 'RegionOne',
+      region              => $region,
       public_url          => "http://${public_vip}:8041",
       internal_url        => "http://${internal_vip}:8041",
       admin_url           => "http://${internal_vip}:8041",
@@ -67,6 +68,7 @@ class openstack::y008_gnocchi (
     project_name        => 'services',
     username            => $user,
     password            => $password,
+    region_name         => $region,
   }
 
   class { '::gnocchi::api':

@@ -21,6 +21,8 @@ class openstack::y001_keystone (
   $fernet_keys              = {},
   $credential_keys          = {},
   $version                  = '',
+  $region                   = hiera('region_name'),
+  $security_compliance      = {},
 ) {
   if $::hostname == $bootstrap_node {
     class { '::keystone::db::mysql':
@@ -64,7 +66,7 @@ class openstack::y001_keystone (
       public_url     => "http://${public_vip}:5000",
       internal_url   => "http://${internal_vip}:5000",
       admin_url      => "http://${internal_vip}:35357",
-      region         => 'RegionOne',
+      region         => $region,
       user_domain    => undef,
       project_domain => undef,
       default_domain => undef,
@@ -149,43 +151,7 @@ class openstack::y001_keystone (
     admin_bind_host => $internal_interface,
   }
 
-  class { '::keystone::cors':
-  }
-
-  class { '::keystone::cron::token_flush':
-  }
-
-  keystone_config {
-    'ec2/driver':
-      value => 'keystone.contrib.ec2.backends.sql.Ec2';
-
-    'security_compliance/lockout_failure_attempts':
-      value => '6';
-
-    'security_compliance/lockout_duration':
-      value => '1800';
-
-    # 'security_compliance/disable_user_account_days_inactive':
-    #   value => '90';
-
-    # 'security_compliance/password_expires_days':
-    #   value => '90';
-
-    # 'security_compliance/password_expires_ignore_user_ids':
-    #   value => ['3a54353c9dcc44f690975ea768512f6a'];
-
-    'security_compliance/password_regex':
-      value => '^(?=.*\d)(?=.*[a-zA-Z]).{7,}$';
-
-    'security_compliance/password_regex_description':
-      value => 'Passwords must contain at least 1 letter, 1 digit, and be a minimum length of 7 characters.';
-
-    'security_compliance/unique_last_password_count':
-      value => '5';
-
-    'security_compliance/minimum_password_age':
-      value => '1';
-  }
+  create_resources('keystone_config', $security_compliance)
 
   file { '/root/keystonerc_admin':
     ensure  => file,
