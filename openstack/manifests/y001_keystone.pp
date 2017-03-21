@@ -9,8 +9,19 @@ class openstack::y001_keystone (
   $dbname                   = hiera('keystone_dbname'),
   $user                     = hiera('keystone_username'),
   $password                 = hiera('keystone_password'),
-  $public_vip               = hiera('public_vip'),
-  $internal_vip             = hiera('internal_vip'),
+  $admin_identity_fqdn      = join(any2array([
+    hiera('admin_identity'),
+    hiera('domain_name')]), '.'),
+  $public_identity_fqdn     = join(any2array([
+    hiera('public_identity'),
+    hiera('domain_name')]), '.'),
+  $internal_identity_fqdn   = join(any2array([
+    hiera('internal_identity'),
+    hiera('domain_name')]), '.'),
+  $internal_api_fqdn        = join(any2array([
+    hiera('internal_api'),
+    hiera('region_name'),
+    hiera('domain_name')]), '.'),
   $controller_1_internal_ip = hiera('controller_1_internal_ip'),
   $controller_2_internal_ip = hiera('controller_2_internal_ip'),
   $controller_3_internal_ip = hiera('controller_3_internal_ip'),
@@ -63,9 +74,9 @@ class openstack::y001_keystone (
     }
 
     class { '::keystone::endpoint':
-      public_url     => "http://${public_vip}:5000",
-      internal_url   => "http://${internal_vip}:5000",
-      admin_url      => "http://${internal_vip}:35357",
+      admin_url      => "http://${admin_identity_fqdn}:35357",
+      public_url     => "http://${public_identity_fqdn}:5000",
+      internal_url   => "http://${internal_identity_fqdn}:5000",
       region         => $region,
       user_domain    => undef,
       project_domain => undef,
@@ -93,7 +104,7 @@ class openstack::y001_keystone (
   class { '::keystone::db':
     database_max_retries    => '-1',
     database_db_max_retries => '-1',
-    database_connection     => "mysql+pymysql://${user}:${password}@${internal_vip}/${dbname}",
+    database_connection     => "mysql+pymysql://${user}:${password}@${internal_api_fqdn}/${dbname}",
   }
 
   class { '::keystone':
@@ -165,9 +176,10 @@ export OS_USER_DOMAIN_NAME=default
 export OS_PROJECT_NAME=admin
 export OS_USERNAME=${admin_username}
 export OS_PASSWORD=${admin_password}
-export OS_AUTH_URL=http://${internal_vip}:35357/v3
+export OS_AUTH_URL=http://${admin_identity_fqdn}:35357/v3
 export OS_IDENTITY_API_VERSION=3
 export OS_IMAGE_API_VERSION=2
+export OS_REGION_NAME=${region}
 export PS1='[\u@\h \W(keystone_admin)]# '
 ",
   }

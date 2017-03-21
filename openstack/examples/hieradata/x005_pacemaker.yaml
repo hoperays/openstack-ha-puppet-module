@@ -1,4 +1,3 @@
-openstack::x005_pacemaker::cluster_name: openstack_cluster
 openstack::x005_pacemaker::manage_fw: false
 openstack::x005_pacemaker::pacemaker_property:
   maintenance-mode:

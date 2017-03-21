@@ -8,7 +8,12 @@ class openstack::y006_horizon (
     hiera('controller_2_internal_ip'),
     hiera('controller_3_internal_ip')],
   $secret_key                   = hiera('horizon_secret_key'),
-  $internal_vip                 = hiera('internal_vip'),
+  $public_identity_fqdn         = join(any2array([
+    hiera('public_identity'),
+    hiera('domain_name')]), '.'),
+  $internal_identity_fqdn       = join(any2array([
+    hiera('internal_identity'),
+    hiera('domain_name')]), '.'),
   $api_result_limit             = '',
   $keystone_multidomain_support = false,
   $keystone_default_domain      = '',
@@ -30,7 +35,7 @@ class openstack::y006_horizon (
     cache_server_ip              => $cluster_nodes,
     cache_server_port            => '11211',
     secret_key                   => $secret_key,
-    keystone_url                 => "http://${internal_vip}:5000",
+    keystone_url                 => "http://${internal_identity_fqdn}:5000",
     keystone_default_role        => '_member_',
     django_debug                 => false,
     api_result_limit             => $api_result_limit,

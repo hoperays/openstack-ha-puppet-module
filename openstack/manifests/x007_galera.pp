@@ -6,6 +6,9 @@ class openstack::x007_galera (
     hiera('controller_1_hostname'),
     hiera('controller_2_hostname'),
     hiera('controller_3_hostname')]), ','),
+  $cluster_name          = join(any2array([
+    hiera('cloud_name'),
+    hiera('region_name')]), '-'),
   $gmcast_listen_addr    = hiera('internal_interface'),
   $clustercheck_username = hiera('clustercheck_username'),
   $clustercheck_password = hiera('clustercheck_password'),
@@ -28,7 +31,7 @@ class openstack::x007_galera (
       'open_files_limit'               => '-1',
       'wsrep_on'                       => 'ON',
       'wsrep_provider'                 => '/usr/lib64/galera/libgalera_smm.so',
-      'wsrep_cluster_name'             => 'galera_cluster',
+      'wsrep_cluster_name'             => $cluster_name,
       'wsrep_cluster_address'          => "gcomm://${galera_nodes}",
       'wsrep_slave_threads'            => '1',
       'wsrep_certify_nonPK'            => '1',

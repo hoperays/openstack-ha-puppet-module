@@ -4,7 +4,9 @@ class openstack::x005_pacemaker (
     hiera('controller_1_hostname'),
     hiera('controller_2_hostname'),
     hiera('controller_3_hostname')]), ' '),
-  $cluster_name               = '',
+  $cluster_name               = join(any2array([
+    hiera('cloud_name'),
+    hiera('region_name')]), '-'),
   $hacluster_pwd              = hiera('hacluster_password'),
   $remote_authkey             = hiera('remote_authkey'),
   $manage_fw                  = false,

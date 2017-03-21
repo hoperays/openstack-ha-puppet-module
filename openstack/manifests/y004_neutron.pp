@@ -6,7 +6,27 @@ class openstack::y004_neutron (
   $dbname                   = hiera('neutron_dbname'),
   $user                     = hiera('neutron_username'),
   $password                 = hiera('neutron_password'),
-  $public_vip               = hiera('public_vip'),
+  $admin_identity_fqdn      = join(any2array([
+    hiera('admin_identity'),
+    hiera('domain_name')]), '.'),
+  $public_identity_fqdn     = join(any2array([
+    hiera('public_identity'),
+    hiera('domain_name')]), '.'),
+  $internal_identity_fqdn   = join(any2array([
+    hiera('internal_identity'),
+    hiera('domain_name')]), '.'),
+  $admin_api_fqdn           = join(any2array([
+    hiera('admin_api'),
+    hiera('region_name'),
+    hiera('domain_name')]), '.'),
+  $public_api_fqdn          = join(any2array([
+    hiera('public_api'),
+    hiera('region_name'),
+    hiera('domain_name')]), '.'),
+  $internal_api_fqdn        = join(any2array([
+    hiera('internal_api'),
+    hiera('region_name'),
+    hiera('domain_name')]), '.'),
   $internal_vip             = hiera('internal_vip'),
   $controller_1_internal_ip = hiera('controller_1_internal_ip'),
   $controller_2_internal_ip = hiera('controller_2_internal_ip'),
@@ -66,9 +86,9 @@ class openstack::y004_neutron (
       service_type        => 'network',
       service_description => 'Neutron Networking Service',
       region              => $region,
-      public_url          => "http://${public_vip}:9696",
-      admin_url           => "http://${internal_vip}:9696",
-      internal_url        => "http://${internal_vip}:9696",
+      admin_url           => "http://${admin_api_fqdn}:9696",
+      public_url          => "http://${public_api_fqdn}:9696",
+      internal_url        => "http://${internal_api_fqdn}:9696",
     }
   } elsif $::hostname =~ /^*controller-\d*$/ {
     $sync_db = false
@@ -131,8 +151,8 @@ class openstack::y004_neutron (
 
   if $::hostname =~ /^*controller-\d*$/ {
     class { '::neutron::keystone::authtoken':
-      auth_uri            => "http://${internal_vip}:5000",
-      auth_url            => "http://${internal_vip}:35357",
+      auth_uri            => "http://${internal_identity_fqdn}:5000",
+      auth_url            => "http://${admin_identity_fqdn}:35357",
       memcached_servers   => [
         "${controller_1_internal_ip}:11211",
         "${controller_2_internal_ip}:11211",
@@ -149,7 +169,7 @@ class openstack::y004_neutron (
     class { '::neutron::db':
       database_max_retries    => '-1',
       database_db_max_retries => '-1',
-      database_connection     => "mysql+pymysql://${user}:${password}@${internal_vip}/${dbname}",
+      database_connection     => "mysql+pymysql://${user}:${password}@${internal_api_fqdn}/${dbname}",
     }
 
     class { '::neutron::server':
@@ -167,7 +187,7 @@ class openstack::y004_neutron (
     }
 
     class { '::neutron::server::notifications':
-      auth_url          => "http://${internal_vip}:35357/v3",
+      auth_url          => "http://${admin_identity_fqdn}:35357/v3",
       auth_type         => 'password',
       project_domain_id => 'default',
       user_domain_id    => 'default',
@@ -176,7 +196,7 @@ class openstack::y004_neutron (
       password          => $nova_password,
       region_name       => $region,
       #
-      nova_url          => "http://${internal_vip}:8774/v2.1",
+      nova_url          => "http://${internal_api_fqdn}:8774/v2.1",
       notify_nova_on_port_status_changes => true,
       notify_nova_on_port_data_changes   => true,
     }

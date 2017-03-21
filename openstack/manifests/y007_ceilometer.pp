@@ -6,15 +6,36 @@ class openstack::y007_ceilometer (
   $dbname                    = hiera('ceilometer_dbname'),
   $user                      = hiera('ceilometer_username'),
   $password                  = hiera('ceilometer_password'),
-  $public_vip                = hiera('public_vip'),
-  $internal_vip              = hiera('internal_vip'),
+  $admin_identity_fqdn      = join(any2array([
+    hiera('admin_identity'),
+    hiera('domain_name')]), '.'),
+  $public_identity_fqdn     = join(any2array([
+    hiera('public_identity'),
+    hiera('domain_name')]), '.'),
+  $internal_identity_fqdn   = join(any2array([
+    hiera('internal_identity'),
+    hiera('domain_name')]), '.'),
+  $admin_api_fqdn           = join(any2array([
+    hiera('admin_api'),
+    hiera('region_name'),
+    hiera('domain_name')]), '.'),
+  $public_api_fqdn          = join(any2array([
+    hiera('public_api'),
+    hiera('region_name'),
+    hiera('domain_name')]), '.'),
+  $internal_api_fqdn        = join(any2array([
+    hiera('internal_api'),
+    hiera('region_name'),
+    hiera('domain_name')]), '.'),
   $controller_1_internal_ip  = hiera('controller_1_internal_ip'),
   $controller_2_internal_ip  = hiera('controller_2_internal_ip'),
   $controller_3_internal_ip  = hiera('controller_3_internal_ip'),
   $internal_interface        = hiera('internal_interface'),
   $redis_password            = hiera('redis_password'),
   $telemetry_secret          = hiera('telemetry_secret'),
-  $replicaset                = hiera('mongodb_replset'),
+  $replicaset                = join(any2array([
+    hiera('cloud_name'),
+    hiera('region_name')]), '-'),
   $controller_as_novacompute = hiera('controller_as_novacompute'),
   $region                    = hiera('region_name'),
 ) {
@@ -33,9 +54,9 @@ class openstack::y007_ceilometer (
       region              => $region,
       tenant              => 'services',
       configure_endpoint  => true,
-      public_url          => "http://${public_vip}:8777",
-      admin_url           => "http://${internal_vip}:8777",
-      internal_url        => "http://${internal_vip}:8777",
+      admin_url           => "http://${admin_api_fqdn}:8777",
+      public_url          => "http://${public_api_fqdn}:8777",
+      internal_url        => "http://${internal_api_fqdn}:8777",
     }
   } elsif $::hostname =~ /^*controller-\d*$/ {
     $sync_db = false
@@ -64,7 +85,7 @@ class openstack::y007_ceilometer (
   }
 
   class { '::ceilometer::agent::auth':
-    auth_url                 => "http://${internal_vip}:5000",
+    auth_url                 => "http://${internal_identity_fqdn}:5000",
     auth_endpoint_type       => 'internalURL',
     auth_type                => 'password',
     auth_user_domain_name    => 'default',
@@ -87,7 +108,7 @@ class openstack::y007_ceilometer (
     }
 
     class { '::ceilometer::agent::central':
-      coordination_url => "redis://:${redis_password}@${internal_vip}:6379",
+      coordination_url => "redis://:${redis_password}@${internal_api_fqdn}:6379",
     }
 
     class { '::ceilometer::agent::notification':
@@ -96,8 +117,8 @@ class openstack::y007_ceilometer (
     }
 
     class { '::ceilometer::keystone::authtoken':
-      auth_uri            => "http://${internal_vip}:5000",
-      auth_url            => "http://${internal_vip}:35357",
+      auth_uri            => "http://${internal_identity_fqdn}:5000",
+      auth_url            => "http://${admin_identity_fqdn}:35357",
       memcached_servers   => [
         "${controller_1_internal_ip}:11211",
         "${controller_2_internal_ip}:11211",
@@ -136,7 +157,7 @@ class openstack::y007_ceilometer (
       filter_project => 'services',
       archive_policy => 'low',
       resources_definition_file => 'gnocchi_resources.yaml',
-      url            => "http://${internal_vip}:8041",
+      url            => "http://${internal_api_fqdn}:8041",
     }
 
     exec { "disable-metering-panel":

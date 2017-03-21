@@ -1,53 +1,62 @@
 openstack::x002_hosts::hosts:
-  pxeserver.localdomain:
+  pxeserver.cn-dl-1.examplecloud.com:
     ip: 172.17.101.2
     host_aliases:
     - pxeserver
-  examplecloud.admin.localdomain:
-    ip: 172.17.101.50
-    comment: FQDN of the admin VIP
-  examplecloud.public.localdomain:
-    ip: 172.17.102.50
-    comment: FQDN of the public VIP
-  examplecloud.internal.localdomain:
+  admin.identity.examplecloud.com:
     ip: 172.17.103.50
-    comment: FQDN of the internal VIP
-  examplecloud-controller-1.localdomain:
+  public.identity.examplecloud.com:
+    ip: 172.17.102.50
+  internal.identity.examplecloud.com:
+    ip: 172.17.103.50
+  admin.api.cn-dl-1.examplecloud.com:
+    ip: 172.17.103.50
+    host_aliases:
+    - admin.api
+  public.api.cn-dl-1.examplecloud.com:
+    ip: 172.17.102.50
+    host_aliases:
+    - public.api
+  internal.api.cn-dl-1.examplecloud.com:
+    ip: 172.17.103.50
+    host_aliases:
+    - internal.api
+  controller-1.cn-dl-1.examplecloud.com:
     ip: 172.17.103.51
     host_aliases:
-    - examplecloud-controller-1
-  examplecloud-controller-2.localdomain:
+    - controller-1
+  controller-2.cn-dl-1.examplecloud.com:
     ip: 172.17.103.52
     host_aliases:
-    - examplecloud-controller-2
-  examplecloud-controller-3.localdomain:
+    - controller-2
+  controller-3.cn-dl-1.examplecloud.com:
     ip: 172.17.103.53
     host_aliases:
-    - examplecloud-controller-3
-  examplecloud-novacompute-1.localdomain:
+    - controller-3
+  novacompute-1.cn-dl-1.examplecloud.com:
     ip: 172.17.103.54
     host_aliases:
-    - examplecloud-novacompute-1
-  examplecloud-novacompute-2.localdomain:
+    - novacompute-1
+  novacompute-2.cn-dl-1.examplecloud.com:
     ip: 172.17.103.55
     host_aliases:
-    - examplecloud-novacompute-2
-  examplecloud-novacompute-3.localdomain:
+    - novacompute-2
+  novacompute-3.cn-dl-1.examplecloud.com:
     ip: 172.17.103.56
     host_aliases:
-    - examplecloud-novacompute-3
-  examplecloud-cephstorage-1.localdomain:
+    - novacompute-3
+  cephstorage-1.cn-dl-1.examplecloud.com:
     ip: 172.17.103.151
     host_aliases:
-    - examplecloud-cephstorage-1
-  examplecloud-cephstorage-2.localdomain:
+    - cephstorage-1
+  cephstorage-2.cn-dl-1.examplecloud.com:
     ip: 172.17.103.152
     host_aliases:
-    - examplecloud-cephstorage-2
-  examplecloud-cephstorage-3.localdomain:
+    - cephstorage-2
+  cephstorage-3.cn-dl-1.examplecloud.com:
     ip: 172.17.103.153
     host_aliases:
-    - examplecloud-cephstorage-3
+    - cephstorage-3
 openstack::x002_hosts::id_rsa: |-
   -----BEGIN RSA PRIVATE KEY-----
   MIIEpAIBAAKCAQEAz+F5DwS48IGevS+E2TQ9PNdwVuDjFINyLrYHKUuuu7FM6Wx5

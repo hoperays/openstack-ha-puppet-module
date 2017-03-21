@@ -2,7 +2,9 @@ class openstack::x010_mongodb (
   $bootstrap_node           = hiera('controller_1_hostname'),
   $manage_package_repo      = false,
   $bind_ip                  = hiera('internal_interface'),
-  $replset                  = hiera('mongodb_replset'),
+  $replset                  = join(any2array([
+    hiera('cloud_name'),
+    hiera('region_name')]), '-'),
   $smallfiles               = false,
   $controller_1_internal_ip = hiera('controller_1_internal_ip'),
   $controller_2_internal_ip = hiera('controller_2_internal_ip'),

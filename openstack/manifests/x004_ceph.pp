@@ -2,6 +2,9 @@ class openstack::x004_ceph (
   $bootstrap_node              = hiera('controller_1_hostname'),
   # uuidgen
   $fsid                        = '',
+  $cluster_name                = join(any2array([
+    hiera('cloud_name'),
+    hiera('region_name')]), '-'),
   $mon_initial_members         = join(any2array([
     hiera('controller_1_hostname'),
     hiera('controller_2_hostname'),
@@ -24,7 +27,7 @@ class openstack::x004_ceph (
   $osd_mount_options_xfs       = '',
   $osd_crush_chooseleaf_type   = '',
   # ceph-authtool --gen-print-key
-  $mon_key  = '',
+  $mon_key                     = '',
   $controller_keys             = {},
   $cephstorage_keys            = {},
   $novacompute_keys            = {},
@@ -32,18 +35,25 @@ class openstack::x004_ceph (
   $pools                       = {},
   $controller_as_cephstorage   = hiera('controller_as_cephstorage'),
   $novacompute_as_cephstorage  = hiera('novacompute_as_cephstorage'),
+  # throttling backfill and recovery
+  $osd_max_backfills           = '',
+  $osd_recovery_max_active     = '',
+  $osd_recovery_op_priority    = '',
 ) {
   class { '::ceph':
-    fsid                   => $fsid,
-    mon_initial_members    => $mon_initial_members,
-    mon_host               => $mon_host,
-    authentication_type    => $authentication_type,
-    public_network         => $public_network,
-    cluster_network        => $cluster_network,
-    mon_osd_full_ratio     => $mon_osd_full_ratio,
-    mon_osd_nearfull_ratio => $mon_osd_nearfull_ratio,
-    osd_pool_default_size  => $osd_pool_default_size,
-    osd_journal_size       => $osd_journal_size,
+    fsid                     => $fsid,
+    mon_initial_members      => $mon_initial_members,
+    mon_host                 => $mon_host,
+    authentication_type      => $authentication_type,
+    public_network           => $public_network,
+    cluster_network          => $cluster_network,
+    mon_osd_full_ratio       => $mon_osd_full_ratio,
+    mon_osd_nearfull_ratio   => $mon_osd_nearfull_ratio,
+    osd_pool_default_size    => $osd_pool_default_size,
+    osd_journal_size         => $osd_journal_size,
+    osd_max_backfills        => $osd_max_backfills,
+    osd_recovery_max_active  => $osd_recovery_max_active,
+    osd_recovery_op_priority => $osd_recovery_op_priority,
   }
 
   ceph_config {
@@ -67,7 +77,10 @@ class openstack::x004_ceph (
   }
 
   if $::hostname =~ /^*controller-\d*$/ {
-    ceph::mon { $::hostname: key => $mon_key, }
+    ceph::mon { $::hostname:
+      cluster => $cluster_name,
+      key     => $mon_key,
+    }
 
     Ceph::Key {
       inject         => true,

@@ -6,8 +6,27 @@ class openstack::y009_aodh (
   $dbname                   = hiera('aodh_dbname'),
   $user                     = hiera('aodh_username'),
   $password                 = hiera('aodh_password'),
-  $public_vip               = hiera('public_vip'),
-  $internal_vip             = hiera('internal_vip'),
+  $admin_identity_fqdn      = join(any2array([
+    hiera('admin_identity'),
+    hiera('domain_name')]), '.'),
+  $public_identity_fqdn     = join(any2array([
+    hiera('public_identity'),
+    hiera('domain_name')]), '.'),
+  $internal_identity_fqdn   = join(any2array([
+    hiera('internal_identity'),
+    hiera('domain_name')]), '.'),
+  $admin_api_fqdn           = join(any2array([
+    hiera('admin_api'),
+    hiera('region_name'),
+    hiera('domain_name')]), '.'),
+  $public_api_fqdn          = join(any2array([
+    hiera('public_api'),
+    hiera('region_name'),
+    hiera('domain_name')]), '.'),
+  $internal_api_fqdn        = join(any2array([
+    hiera('internal_api'),
+    hiera('region_name'),
+    hiera('domain_name')]), '.'),
   $controller_1_internal_ip = hiera('controller_1_internal_ip'),
   $controller_2_internal_ip = hiera('controller_2_internal_ip'),
   $controller_3_internal_ip = hiera('controller_3_internal_ip'),
@@ -36,9 +55,9 @@ class openstack::y009_aodh (
       service_name        => 'aodh',
       service_type        => 'alarming',
       region              => $region,
-      public_url          => "http://${public_vip}:8042",
-      internal_url        => "http://${internal_vip}:8042",
-      admin_url           => "http://${internal_vip}:8042",
+      admin_url           => "http://${admin_api_fqdn}:8042",
+      public_url          => "http://${public_api_fqdn}:8042",
+      internal_url        => "http://${internal_api_fqdn}:8042",
     }
   } elsif $::hostname =~ /^*controller-\d*$/ {
     $sync_db = false
@@ -47,7 +66,7 @@ class openstack::y009_aodh (
   class { '::aodh::db':
     database_max_retries    => '-1',
     database_db_max_retries => '-1',
-    database_connection     => "mysql+pymysql://${user}:${password}@${internal_vip}/${dbname}",
+    database_connection     => "mysql+pymysql://${user}:${password}@${internal_api_fqdn}/${dbname}",
   }
 
   class { '::aodh':
@@ -68,8 +87,8 @@ class openstack::y009_aodh (
   }
 
   class { '::aodh::keystone::authtoken':
-    auth_uri            => "http://${internal_vip}:5000",
-    auth_url            => "http://${internal_vip}:35357",
+    auth_uri            => "http://${internal_identity_fqdn}:5000",
+    auth_url            => "http://${admin_identity_fqdn}:35357",
     memcached_servers   => [
       "${controller_1_internal_ip}:11211",
       "${controller_2_internal_ip}:11211",
@@ -104,7 +123,7 @@ class openstack::y009_aodh (
   class { '::aodh::auth':
     auth_user         => $user,
     auth_password     => $password,
-    auth_url          => "http://${internal_vip}:5000",
+    auth_url          => "http://${internal_identity_fqdn}:5000",
     auth_region       => $region,
     auth_tenant_name  => 'services',
     project_domain_id => 'default',
@@ -113,7 +132,7 @@ class openstack::y009_aodh (
   }
 
   class { '::aodh::evaluator':
-    coordination_url => "redis://:${redis_password}@${internal_vip}:6379",
+    coordination_url => "redis://:${redis_password}@${internal_api_fqdn}:6379",
   }
 
   class { '::aodh::notifier':
