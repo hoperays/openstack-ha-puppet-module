@@ -7,24 +7,32 @@ class openstack::y004_neutron (
   $user                     = hiera('neutron_username'),
   $password                 = hiera('neutron_password'),
   $admin_identity_fqdn      = join(any2array([
-    hiera('admin_identity'),
+    'admin.identity',
     hiera('domain_name')]), '.'),
   $public_identity_fqdn     = join(any2array([
-    hiera('public_identity'),
+    'public.identity',
     hiera('domain_name')]), '.'),
   $internal_identity_fqdn   = join(any2array([
-    hiera('internal_identity'),
+    'internal.identity',
     hiera('domain_name')]), '.'),
-  $admin_api_fqdn           = join(any2array([
-    hiera('admin_api'),
+  $admin_network_fqdn       = join(any2array([
+    'admin.network',
     hiera('region_name'),
     hiera('domain_name')]), '.'),
-  $public_api_fqdn          = join(any2array([
-    hiera('public_api'),
+  $public_network_fqdn      = join(any2array([
+    'public.network',
     hiera('region_name'),
     hiera('domain_name')]), '.'),
-  $internal_api_fqdn        = join(any2array([
-    hiera('internal_api'),
+  $internal_network_fqdn    = join(any2array([
+    'internal.network',
+    hiera('region_name'),
+    hiera('domain_name')]), '.'),
+  $internal_fqdn            = join(any2array([
+    'internal',
+    hiera('region_name'),
+    hiera('domain_name')]), '.'),
+  $internal_compute_fqdn    = join(any2array([
+    'internal.compute',
     hiera('region_name'),
     hiera('domain_name')]), '.'),
   $internal_vip             = hiera('internal_vip'),
@@ -86,9 +94,9 @@ class openstack::y004_neutron (
       service_type        => 'network',
       service_description => 'Neutron Networking Service',
       region              => $region,
-      admin_url           => "http://${admin_api_fqdn}:9696",
-      public_url          => "http://${public_api_fqdn}:9696",
-      internal_url        => "http://${internal_api_fqdn}:9696",
+      admin_url           => "http://${admin_network_fqdn}:9696",
+      public_url          => "http://${public_network_fqdn}:9696",
+      internal_url        => "http://${internal_network_fqdn}:9696",
     }
   } elsif $::hostname =~ /^*controller-\d*$/ {
     $sync_db = false
@@ -169,7 +177,7 @@ class openstack::y004_neutron (
     class { '::neutron::db':
       database_max_retries    => '-1',
       database_db_max_retries => '-1',
-      database_connection     => "mysql+pymysql://${user}:${password}@${internal_api_fqdn}/${dbname}",
+      database_connection     => "mysql+pymysql://${user}:${password}@${internal_fqdn}/${dbname}",
     }
 
     class { '::neutron::server':
@@ -196,7 +204,7 @@ class openstack::y004_neutron (
       password          => $nova_password,
       region_name       => $region,
       #
-      nova_url          => "http://${internal_api_fqdn}:8774/v2.1",
+      nova_url          => "http://${internal_compute_fqdn}:8774/v2.1",
       notify_nova_on_port_status_changes => true,
       notify_nova_on_port_data_changes   => true,
     }

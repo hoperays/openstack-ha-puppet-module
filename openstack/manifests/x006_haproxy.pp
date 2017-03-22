@@ -1,5 +1,6 @@
 class openstack::x006_haproxy (
   $bootstrap_node            = hiera('controller_1_hostname'),
+  $admin_vip                 = hiera('admin_vip'),
   $public_vip                = hiera('public_vip'),
   $internal_vip              = hiera('internal_vip'),
   $controller_1_fqdn         = join(any2array([
@@ -7,11 +8,11 @@ class openstack::x006_haproxy (
     hiera('region_name'),
     hiera('domain_name')]), '.'),
   $controller_2_fqdn         = join(any2array([
-    hiera('controller_1_hostname'),
+    hiera('controller_2_hostname'),
     hiera('region_name'),
     hiera('domain_name')]), '.'),
   $controller_3_fqdn         = join(any2array([
-    hiera('controller_1_hostname'),
+    hiera('controller_3_hostname'),
     hiera('region_name'),
     hiera('domain_name')]), '.'),
   $controller_1_internal_ip  = hiera('controller_1_internal_ip'),
@@ -31,19 +32,19 @@ class openstack::x006_haproxy (
   $haproxy_listen_options    = {},
   $haproxy_member_options    = [],
   $service_certificate       = '',
-  $refresh          = '',
-  $mysql            = false,
-  $redis            = false,
-  $keystone         = false,
-  $glance           = false,
-  $cinder           = false,
-  $neutron          = false,
-  $nova             = false,
-  $horizon          = false,
-  $ceilometer       = false,
-  $gnocchi          = false,
-  $aodh             = false,
-  $zabbix           = false,
+  $refresh                   = '',
+  $mysql                     = false,
+  $redis                     = false,
+  $keystone                  = false,
+  $glance                    = false,
+  $cinder                    = false,
+  $neutron                   = false,
+  $nova                      = false,
+  $horizon                   = false,
+  $ceilometer                = false,
+  $gnocchi                   = false,
+  $aodh                      = false,
+  $zabbix                    = false,
 ) {
   class { '::haproxy':
     service_ensure   => $manage_resources,
@@ -163,7 +164,7 @@ class openstack::x006_haproxy (
   if $keystone {
     haproxy::listen { 'keystone_admin':
       bind    => {
-        "$public_vip:35357"    => $haproxy_listen_bind_param,
+        "$admin_vip:35357"    => $haproxy_listen_bind_param,
         "$internal_vip:35357" => $haproxy_listen_bind_param
       }
       ,
@@ -412,6 +413,9 @@ class openstack::x006_haproxy (
 
   if $::hostname == $bootstrap_node {
     Class['::haproxy'] ->
+    pacemaker::resource::ip { "ip-$admin_vip":
+      ip_address => $admin_vip,
+    } ->
     pacemaker::resource::ip { "ip-$public_vip":
       ip_address => $public_vip,
     } ->
@@ -438,6 +442,19 @@ class openstack::x006_haproxy (
     pacemaker::resource::service { 'haproxy':
       op_params    => 'start timeout=200s stop timeout=200s',
       clone_params => true,
+    } ->
+    pacemaker::constraint::base { "order-ip-$admin_vip-haproxy-clone-Optional":
+      constraint_type   => 'order',
+      first_action      => 'start',
+      first_resource    => "ip-$admin_vip",
+      second_action     => 'start',
+      second_resource   => 'haproxy-clone',
+      constraint_params => 'kind=Optional',
+    } ->
+    pacemaker::constraint::colocation { "colocation-ip-$admin_vip-haproxy-clone-INFINITY":
+      source => "ip-$admin_vip",
+      target => 'haproxy-clone',
+      score  => 'INFINITY',
     } ->
     pacemaker::constraint::base { "order-ip-$public_vip-haproxy-clone-Optional":
       constraint_type   => 'order',

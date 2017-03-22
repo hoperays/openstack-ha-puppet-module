@@ -19,7 +19,10 @@ class openstack::z001_zabbix (
   $refreshactivechecks      = '',
   $unsafeuserparameters     = '',
   $zabbix_url               = '',
-  $zabbix_server            = '',
+  $zabbix_server            = join(any2array([
+    'internal',
+    hiera('region_name'),
+    hiera('domain_name')]), '.'),
   $database_type            = '',
   $zabbix_timezone          = '',
   $manage_service           = false,

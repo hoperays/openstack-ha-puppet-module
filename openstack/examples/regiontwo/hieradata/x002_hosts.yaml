@@ -1,0 +1,162 @@
+openstack::x002_hosts::hosts:
+  pxeserver.cn-bj-1.examplecloud.com:
+    ip: 172.17.101.2
+    host_aliases:
+    - pxeserver
+  admin.identity.examplecloud.com:
+    ip: 172.17.103.50
+  public.identity.examplecloud.com:
+    ip: 172.17.102.50
+  internal.identity.examplecloud.com:
+    ip: 172.17.103.50
+  admin.image.cn-dl-1.examplecloud.com:
+    ip: 172.17.103.50
+  public.image.cn-dl-1.examplecloud.com:
+    ip: 172.17.102.50
+  internal.image.cn-dl-1.examplecloud.com:
+    ip: 172.17.103.50
+  admin.volume.cn-dl-1.examplecloud.com:
+    ip: 172.17.103.50
+  public.volume.cn-dl-1.examplecloud.com:
+    ip: 172.17.102.50
+  internal.volume.cn-dl-1.examplecloud.com:
+    ip: 172.17.103.50
+  admin.network.cn-dl-1.examplecloud.com:
+    ip: 172.17.103.50
+  public.network.cn-dl-1.examplecloud.com:
+    ip: 172.17.102.50
+  internal.network.cn-dl-1.examplecloud.com:
+    ip: 172.17.103.50
+  admin.compute.cn-dl-1.examplecloud.com:
+    ip: 172.17.103.50
+  public.compute.cn-dl-1.examplecloud.com:
+    ip: 172.17.102.50
+  internal.compute.cn-dl-1.examplecloud.com:
+    ip: 172.17.103.50
+  admin.metering.cn-dl-1.examplecloud.com:
+    ip: 172.17.103.50
+  public.metering.cn-dl-1.examplecloud.com:
+    ip: 172.17.102.50
+  internal.metering.cn-dl-1.examplecloud.com:
+    ip: 172.17.103.50
+  admin.metric.cn-dl-1.examplecloud.com:
+    ip: 172.17.103.50
+  public.metric.cn-dl-1.examplecloud.com:
+    ip: 172.17.102.50
+  internal.metric.cn-dl-1.examplecloud.com:
+    ip: 172.17.103.50
+  admin.alarming.cn-dl-1.examplecloud.com:
+    ip: 172.17.103.50
+  public.alarming.cn-dl-1.examplecloud.com:
+    ip: 172.17.102.50
+  internal.alarming.cn-dl-1.examplecloud.com:
+    ip: 172.17.103.50
+  admin.image.cn-bj-1.examplecloud.com:
+    ip: 172.17.103.60
+  public.image.cn-bj-1.examplecloud.com:
+    ip: 172.17.102.60
+  internal.image.cn-bj-1.examplecloud.com:
+    ip: 172.17.103.60
+  admin.volume.cn-bj-1.examplecloud.com:
+    ip: 172.17.103.60
+  public.volume.cn-bj-1.examplecloud.com:
+    ip: 172.17.102.60
+  internal.volume.cn-bj-1.examplecloud.com:
+    ip: 172.17.103.60
+  admin.network.cn-bj-1.examplecloud.com:
+    ip: 172.17.103.60
+  public.network.cn-bj-1.examplecloud.com:
+    ip: 172.17.102.60
+  internal.network.cn-bj-1.examplecloud.com:
+    ip: 172.17.103.60
+  admin.compute.cn-bj-1.examplecloud.com:
+    ip: 172.17.103.60
+  public.compute.cn-bj-1.examplecloud.com:
+    ip: 172.17.102.60
+  internal.compute.cn-bj-1.examplecloud.com:
+    ip: 172.17.103.60
+  admin.metering.cn-bj-1.examplecloud.com:
+    ip: 172.17.103.60
+  public.metering.cn-bj-1.examplecloud.com:
+    ip: 172.17.102.60
+  internal.metering.cn-bj-1.examplecloud.com:
+    ip: 172.17.103.60
+  admin.metric.cn-bj-1.examplecloud.com:
+    ip: 172.17.103.60
+  public.metric.cn-bj-1.examplecloud.com:
+    ip: 172.17.102.60
+  internal.metric.cn-bj-1.examplecloud.com:
+    ip: 172.17.103.60
+  admin.alarming.cn-bj-1.examplecloud.com:
+    ip: 172.17.103.60
+  public.alarming.cn-bj-1.examplecloud.com:
+    ip: 172.17.102.60
+  internal.alarming.cn-bj-1.examplecloud.com:
+    ip: 172.17.103.60
+  internal.cn-bj-1.examplecloud.com:
+    ip: 172.17.103.60
+  controller-1.cn-bj-1.examplecloud.com:
+    ip: 172.17.103.61
+    host_aliases:
+    - controller-1
+  controller-2.cn-bj-1.examplecloud.com:
+    ip: 172.17.103.62
+    host_aliases:
+    - controller-2
+  controller-3.cn-bj-1.examplecloud.com:
+    ip: 172.17.103.63
+    host_aliases:
+    - controller-3
+  novacompute-1.cn-bj-1.examplecloud.com:
+    ip: 172.17.103.64
+    host_aliases:
+    - novacompute-1
+  novacompute-2.cn-bj-1.examplecloud.com:
+    ip: 172.17.103.65
+    host_aliases:
+    - novacompute-2
+  novacompute-3.cn-bj-1.examplecloud.com:
+    ip: 172.17.103.66
+    host_aliases:
+    - novacompute-3
+  cephstorage-1.cn-bj-1.examplecloud.com:
+    ip: 172.17.103.67
+    host_aliases:
+    - cephstorage-1
+  cephstorage-2.cn-bj-1.examplecloud.com:
+    ip: 172.17.103.68
+    host_aliases:
+    - cephstorage-2
+  cephstorage-3.cn-bj-1.examplecloud.com:
+    ip: 172.17.103.69
+    host_aliases:
+    - cephstorage-3
+openstack::x002_hosts::id_rsa: |-
+  -----BEGIN RSA PRIVATE KEY-----
+  MIIEpAIBAAKCAQEAz+F5DwS48IGevS+E2TQ9PNdwVuDjFINyLrYHKUuuu7FM6Wx5
+  MjIkWAayJDPuwl55Zc52nQSDpP7MVWwt2SWioVa+BfMG8WC+t7Flj5Yml1X6JrUQ
+  RE5Xs3y3bqZqjsnt/jhcbl1csXd+u/AOn9pxqGDORVIIROuZU7Lf7t2YKkJ3sqy9
+  2oxxSNWjWMhYftIGQAnlGPX9zREKHCDIJglOb+tEmeh9/+vkj93aoDjpdVnSls17
+  X9ZQ3z/vrw8vcARxNMVIMAQdTj2QHPqHnfZp8JR0sWdlYOrsargh6W/eqk3LlUcS
+  L/9a3JwX2G+5OxzOGUQJoG4NDEMvuSMlfSBemwIDAQABAoIBAQC/vEgrOQDXG8bs
+  2cpfiBY/aro795qazg5f1RbP2PVmOsckuR8j1Cm/YxWl3JyIfBjedMrkUkiVw0l2
+  NJwpH9RbmSUVWa16ru/Zf+6bvDMF/JAIaZKCXfv4Gb0aerXn04oGo7dlOAmJyhyD
+  fYwPlqykT/2Q5HOqFd/K2j4/E/YIarJIW6E81NnmgCsLzp3ALS5ZnROO+/1HmG5z
+  zcP0Dc8Is7+VWJlnrMN1peGUbGrzmYe0c3FKEXAUkXYyhagBhASAiWjxW6nCk9yX
+  iGgBur0JBseymj4FKQOVOXIYDsgo8jocHuA3y8UrPvib9KblmA4aiMESIK86NFvS
+  CCLON6cRAoGBAOzILE1TlxiT3PWpLUkzIMXvZ/axzA4xyieC3sAFfzoAjz09jLXW
+  gYktIE7SEymcwGh4AR18HydxQpnNV68GBUfW/2MTjXaF6jtQ0Cw+x8iXFnk9YvRa
+  H/di0zs+e2JYJ77MT1QF1OYuzcZ5FMIbjNfsl13cMlM+3lPWh5mvWCc5AoGBAODA
+  y2/K5Lu48H1a3Mt6ypieNJExLBhBxwXIcuswd/luA34SFidF2FaOUXx24gdAA7by
+  A/zUysYmafIsqXoXHYxoBtAho/VQMIn/U14T1QH8yDDrfpNKiIfMOKQALtlMvR7Y
+  qK4mHfvHbpit7ru8yowYV6Grp1sCGgumwdP3/MBzAoGAULLoZnJWzMmYRSGjjY8f
+  XFZ72FhAc5YEj/LKeCdndR07tGOF0XOKMnZuzG5MmaIS8Yf02Ve0Rn0TddfGSqCC
+  rDlaUSoYzIxXiF/Ck1HSRUs5HZkOYLlWq7nCxC5HXv0sjpqTbs+N/+VzvHEH4iAB
+  oJXCAPtLK5QBshErpfVc1gECgYBy7uSZ1J3HyblhwVdrzu1PwoeLQCQWe3y1Xl42
+  G2Ee8r1ieQlPKA6LpNfS2FCZ+Ihtw7F6V68iSX6gU2qPfsajiIcDZFCeIFXSG/mc
+  AHRLQeN18NeXpuPO3gaRB27tvKpx3cXU2LU4jjHmbfvJka/amJAnospAZgC/uJUi
+  OozMNQKBgQCs1uzkc/UrWeh0yHqPlRQrfGi7jP0jJzHQ1zR9m+Ee41LQJA6PPdof
+  Ns8m8JdlBgKTlTI4y1rlIRgB1bZOYmyEjR4g5cMkn/xd4jO2eDRVcTRYY9Vt0DJz
+  fHiAV2iSID4k7AO+06xGz+aAsRyRxoyF6QhYjdfBWh6YY2oaM7fkqg==
+  -----END RSA PRIVATE KEY-----
+openstack::x002_hosts::id_rsa_pub: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDP4XkPBLjwgZ69L4TZND0813BW4OMUg3IutgcpS667sUzpbHkyMiRYBrIkM+7CXnllznadBIOk/sxVbC3ZJaKhVr4F8wbxYL63sWWPliaXVfomtRBETlezfLdupmqOye3+OFxuXVyxd3678A6f2nGoYM5FUghE65lTst/u3ZgqQneyrL3ajHFI1aNYyFh+0gZACeUY9f3NEQocIMgmCU5v60SZ6H3/6+SP3dqgOOl1WdKWzXtf1lDfP++vDy9wBHE0xUgwBB1OPZAc+oed9mnwlHSxZ2Vg6uxquCHpb96qTcuVRxIv/1rcnBfYb7k7HM4ZRAmgbg0MQy+5IyV9IF6b ssh_from_controller_to_other_nodes

@@ -7,24 +7,28 @@ class openstack::y002_glance (
   $user                     = hiera('glance_username'),
   $password                 = hiera('glance_password'),
   $admin_identity_fqdn      = join(any2array([
-    hiera('admin_identity'),
+    'admin.identity',
     hiera('domain_name')]), '.'),
   $public_identity_fqdn     = join(any2array([
-    hiera('public_identity'),
+    'public.identity',
     hiera('domain_name')]), '.'),
   $internal_identity_fqdn   = join(any2array([
-    hiera('internal_identity'),
+    'internal.identity',
     hiera('domain_name')]), '.'),
-  $admin_api_fqdn           = join(any2array([
-    hiera('admin_api'),
+  $admin_image_fqdn         = join(any2array([
+    'admin.image',
     hiera('region_name'),
     hiera('domain_name')]), '.'),
-  $public_api_fqdn          = join(any2array([
-    hiera('public_api'),
+  $public_image_fqdn        = join(any2array([
+    'public.image',
     hiera('region_name'),
     hiera('domain_name')]), '.'),
-  $internal_api_fqdn        = join(any2array([
-    hiera('internal_api'),
+  $internal_image_fqdn      = join(any2array([
+    'internal.image',
+    hiera('region_name'),
+    hiera('domain_name')]), '.'),
+  $internal_fqdn            = join(any2array([
+    'internal',
     hiera('region_name'),
     hiera('domain_name')]), '.'),
   $controller_1_internal_ip = hiera('controller_1_internal_ip'),
@@ -66,9 +70,9 @@ class openstack::y002_glance (
       region              => $region,
       tenant              => 'services',
       service_description => 'OpenStack Image Service',
-      admin_url           => "http://${admin_api_fqdn}:9292",
-      public_url          => "http://${public_api_fqdn}:9292",
-      internal_url        => "http://${internal_api_fqdn}:9292",
+      admin_url           => "http://${admin_image_fqdn}:9292",
+      public_url          => "http://${public_image_fqdn}:9292",
+      internal_url        => "http://${internal_image_fqdn}:9292",
     }
   } elsif $::hostname =~ /^*controller-\d*$/ {
     $sync_db = false
@@ -106,11 +110,11 @@ class openstack::y002_glance (
     bind_host                    => $internal_interface,
     bind_port                    => '9292',
     image_cache_dir              => '/var/lib/glance/image-cache',
-    registry_host                => $internal_api_fqdn,
+    registry_host                => $internal_fqdn,
     registry_client_protocol     => 'http',
     log_file                     => '/var/log/glance/api.log',
     log_dir                      => '/var/log/glance',
-    database_connection          => "mysql+pymysql://${user}:${password}@${internal_api_fqdn}/${dbname}",
+    database_connection          => "mysql+pymysql://${user}:${password}@${internal_fqdn}/${dbname}",
     stores                       => ['glance.store.http.Store', 'glance.store.rbd.Store'],
     default_store                => 'rbd',
     os_region_name               => $region,
@@ -162,7 +166,7 @@ class openstack::y002_glance (
   class { '::glance::registry::db':
     database_max_retries    => '-1',
     database_db_max_retries => '-1',
-    database_connection     => "mysql+pymysql://${user}:${password}@${internal_api_fqdn}/${dbname}",
+    database_connection     => "mysql+pymysql://${user}:${password}@${internal_fqdn}/${dbname}",
   }
 
   class { '::glance::registry':

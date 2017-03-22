@@ -10,16 +10,16 @@ class openstack::y001_keystone (
   $user                     = hiera('keystone_username'),
   $password                 = hiera('keystone_password'),
   $admin_identity_fqdn      = join(any2array([
-    hiera('admin_identity'),
+    'admin.identity',
     hiera('domain_name')]), '.'),
   $public_identity_fqdn     = join(any2array([
-    hiera('public_identity'),
+    'public.identity',
     hiera('domain_name')]), '.'),
   $internal_identity_fqdn   = join(any2array([
-    hiera('internal_identity'),
+    'internal.identity',
     hiera('domain_name')]), '.'),
-  $internal_api_fqdn        = join(any2array([
-    hiera('internal_api'),
+  $internal_fqdn            = join(any2array([
+    'internal',
     hiera('region_name'),
     hiera('domain_name')]), '.'),
   $controller_1_internal_ip = hiera('controller_1_internal_ip'),
@@ -104,7 +104,7 @@ class openstack::y001_keystone (
   class { '::keystone::db':
     database_max_retries    => '-1',
     database_db_max_retries => '-1',
-    database_connection     => "mysql+pymysql://${user}:${password}@${internal_api_fqdn}/${dbname}",
+    database_connection     => "mysql+pymysql://${user}:${password}@${internal_fqdn}/${dbname}",
   }
 
   class { '::keystone':

@@ -4,7 +4,6 @@ openstack::z001_zabbix::manage_resources: true
 openstack::z001_zabbix::refreshactivechecks: 120
 openstack::z001_zabbix::unsafeuserparameters: 1
 openstack::z001_zabbix::zabbix_url: zabbix_vhost
-openstack::z001_zabbix::zabbix_server: examplecloud.internal.localdomain
 openstack::z001_zabbix::database_type: mysql
 openstack::z001_zabbix::zabbix_timezone: Asia/Shanghai
 openstack::z001_zabbix::manage_service: false

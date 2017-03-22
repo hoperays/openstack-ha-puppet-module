@@ -6,25 +6,33 @@ class openstack::y007_ceilometer (
   $dbname                    = hiera('ceilometer_dbname'),
   $user                      = hiera('ceilometer_username'),
   $password                  = hiera('ceilometer_password'),
-  $admin_identity_fqdn      = join(any2array([
-    hiera('admin_identity'),
+  $admin_identity_fqdn       = join(any2array([
+    'admin.identity',
     hiera('domain_name')]), '.'),
-  $public_identity_fqdn     = join(any2array([
-    hiera('public_identity'),
+  $public_identity_fqdn      = join(any2array([
+    'public.identity',
     hiera('domain_name')]), '.'),
-  $internal_identity_fqdn   = join(any2array([
-    hiera('internal_identity'),
+  $internal_identity_fqdn    = join(any2array([
+    'internal.identity',
     hiera('domain_name')]), '.'),
-  $admin_api_fqdn           = join(any2array([
-    hiera('admin_api'),
+  $admin_metering_fqdn       = join(any2array([
+    'admin.metering',
     hiera('region_name'),
     hiera('domain_name')]), '.'),
-  $public_api_fqdn          = join(any2array([
-    hiera('public_api'),
+  $public_metering_fqdn      = join(any2array([
+    'public.metering',
     hiera('region_name'),
     hiera('domain_name')]), '.'),
-  $internal_api_fqdn        = join(any2array([
-    hiera('internal_api'),
+  $internal_metering_fqdn    = join(any2array([
+    'internal.metering',
+    hiera('region_name'),
+    hiera('domain_name')]), '.'),
+  $internal_fqdn             = join(any2array([
+    'internal',
+    hiera('region_name'),
+    hiera('domain_name')]), '.'),
+  $internal_metric_fqdn      = join(any2array([
+    'internal.metric',
     hiera('region_name'),
     hiera('domain_name')]), '.'),
   $controller_1_internal_ip  = hiera('controller_1_internal_ip'),
@@ -54,9 +62,9 @@ class openstack::y007_ceilometer (
       region              => $region,
       tenant              => 'services',
       configure_endpoint  => true,
-      admin_url           => "http://${admin_api_fqdn}:8777",
-      public_url          => "http://${public_api_fqdn}:8777",
-      internal_url        => "http://${internal_api_fqdn}:8777",
+      admin_url           => "http://${admin_metering_fqdn}:8777",
+      public_url          => "http://${public_metering_fqdn}:8777",
+      internal_url        => "http://${internal_metering_fqdn}:8777",
     }
   } elsif $::hostname =~ /^*controller-\d*$/ {
     $sync_db = false
@@ -108,7 +116,7 @@ class openstack::y007_ceilometer (
     }
 
     class { '::ceilometer::agent::central':
-      coordination_url => "redis://:${redis_password}@${internal_api_fqdn}:6379",
+      coordination_url => "redis://:${redis_password}@${internal_fqdn}:6379",
     }
 
     class { '::ceilometer::agent::notification':
@@ -157,7 +165,7 @@ class openstack::y007_ceilometer (
       filter_project => 'services',
       archive_policy => 'low',
       resources_definition_file => 'gnocchi_resources.yaml',
-      url            => "http://${internal_api_fqdn}:8041",
+      url            => "http://${internal_metric_fqdn}:8041",
     }
 
     exec { "disable-metering-panel":

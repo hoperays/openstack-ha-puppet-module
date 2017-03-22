@@ -8,11 +8,8 @@ class openstack::y006_horizon (
     hiera('controller_2_internal_ip'),
     hiera('controller_3_internal_ip')],
   $secret_key                   = hiera('horizon_secret_key'),
-  $public_identity_fqdn         = join(any2array([
-    hiera('public_identity'),
-    hiera('domain_name')]), '.'),
   $internal_identity_fqdn       = join(any2array([
-    hiera('internal_identity'),
+    'internal.identity',
     hiera('domain_name')]), '.'),
   $api_result_limit             = '',
   $keystone_multidomain_support = false,

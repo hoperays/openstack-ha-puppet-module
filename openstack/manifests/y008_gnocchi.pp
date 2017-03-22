@@ -5,24 +5,28 @@ class openstack::y008_gnocchi (
   $user                     = hiera('gnocchi_username'),
   $password                 = hiera('gnocchi_password'),
   $admin_identity_fqdn      = join(any2array([
-    hiera('admin_identity'),
+    'admin.identity',
     hiera('domain_name')]), '.'),
   $public_identity_fqdn     = join(any2array([
-    hiera('public_identity'),
+    'public.identity',
     hiera('domain_name')]), '.'),
   $internal_identity_fqdn   = join(any2array([
-    hiera('internal_identity'),
+    'internal.identity',
     hiera('domain_name')]), '.'),
-  $admin_api_fqdn           = join(any2array([
-    hiera('admin_api'),
+  $admin_metric_fqdn        = join(any2array([
+    'admin.metric',
     hiera('region_name'),
     hiera('domain_name')]), '.'),
-  $public_api_fqdn          = join(any2array([
-    hiera('public_api'),
+  $public_metric_fqdn       = join(any2array([
+    'public.metric',
     hiera('region_name'),
     hiera('domain_name')]), '.'),
-  $internal_api_fqdn        = join(any2array([
-    hiera('internal_api'),
+  $internal_metric_fqdn     = join(any2array([
+    'internal.metric',
+    hiera('region_name'),
+    hiera('domain_name')]), '.'),
+  $internal_fqdn            = join(any2array([
+    'internal',
     hiera('region_name'),
     hiera('domain_name')]), '.'),
   $controller_1_internal_ip = hiera('controller_1_internal_ip'),
@@ -58,9 +62,9 @@ class openstack::y008_gnocchi (
       service_name        => 'gnocchi',
       service_type        => 'metric',
       region              => $region,
-      admin_url           => "http://${admin_api_fqdn}:8041",
-      public_url          => "http://${public_api_fqdn}:8041",
-      internal_url        => "http://${internal_api_fqdn}:8041",
+      admin_url           => "http://${admin_metric_fqdn}:8041",
+      public_url          => "http://${public_metric_fqdn}:8041",
+      internal_url        => "http://${internal_metric_fqdn}:8041",
       service_description => 'Openstack Metric Service',
     }
   } elsif $::hostname =~ /^*controller-\d*$/ {
@@ -69,7 +73,7 @@ class openstack::y008_gnocchi (
 
   class { '::gnocchi':
     log_dir             => '/var/log/gnocchi',
-    database_connection => "mysql+pymysql://${user}:${password}@${internal_api_fqdn}/${dbname}",
+    database_connection => "mysql+pymysql://${user}:${password}@${internal_fqdn}/${dbname}",
     #
     purge_config        => true,
   }
@@ -118,7 +122,7 @@ class openstack::y008_gnocchi (
   }
 
   class { '::gnocchi::storage':
-    coordination_url => "redis://:${redis_password}@${internal_api_fqdn}:6379",
+    coordination_url => "redis://:${redis_password}@${internal_fqdn}:6379",
   }
 
   class { '::gnocchi::storage::ceph':

@@ -78,7 +78,7 @@ class openstack::x004_ceph (
 
   if $::hostname =~ /^*controller-\d*$/ {
     ceph::mon { $::hostname:
-      cluster => $cluster_name,
+    # cluster => $cluster_name,
       key     => $mon_key,
     }
 

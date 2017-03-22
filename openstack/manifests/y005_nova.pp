@@ -9,25 +9,37 @@ class openstack::y005_nova (
   $dbname_2                  = hiera('nova_api_dbname'),
   $user_2                    = hiera('nova_api_username'),
   $password_2                = hiera('nova_api_password'),
-  $admin_identity_fqdn      = join(any2array([
-    hiera('admin_identity'),
+  $admin_identity_fqdn       = join(any2array([
+    'admin.identity',
     hiera('domain_name')]), '.'),
-  $public_identity_fqdn     = join(any2array([
-    hiera('public_identity'),
+  $public_identity_fqdn      = join(any2array([
+    'public.identity',
     hiera('domain_name')]), '.'),
-  $internal_identity_fqdn   = join(any2array([
-    hiera('internal_identity'),
+  $internal_identity_fqdn    = join(any2array([
+    'internal.identity',
     hiera('domain_name')]), '.'),
-  $admin_api_fqdn           = join(any2array([
-    hiera('admin_api'),
+  $admin_compute_fqdn        = join(any2array([
+    'admin.compute',
     hiera('region_name'),
     hiera('domain_name')]), '.'),
-  $public_api_fqdn          = join(any2array([
-    hiera('public_api'),
+  $public_compute_fqdn       = join(any2array([
+    'public.compute',
     hiera('region_name'),
     hiera('domain_name')]), '.'),
-  $internal_api_fqdn        = join(any2array([
-    hiera('internal_api'),
+  $internal_compute_fqdn     = join(any2array([
+    'internal.compute',
+    hiera('region_name'),
+    hiera('domain_name')]), '.'),
+  $internal_fqdn             = join(any2array([
+    'internal',
+    hiera('region_name'),
+    hiera('domain_name')]), '.'),
+  $internal_image_fqdn       = join(any2array([
+    'internal.image',
+    hiera('region_name'),
+    hiera('domain_name')]), '.'),
+  $internal_network_fqdn     = join(any2array([
+    'internal.network',
     hiera('region_name'),
     hiera('domain_name')]), '.'),
   $public_vip                = hiera('public_vip'),
@@ -96,9 +108,9 @@ class openstack::y005_nova (
       region              => $region,
       tenant              => 'services',
       email               => $email_1,
-      admin_url           => "http://${admin_api_fqdn}:8774/v2.1",
-      public_url          => "http://${public_api_fqdn}:8774/v2.1",
-      internal_url        => "http://${internal_api_fqdn}:8774/v2.1",
+      admin_url           => "http://${admin_compute_fqdn}:8774/v2.1",
+      public_url          => "http://${public_compute_fqdn}:8774/v2.1",
+      internal_url        => "http://${internal_compute_fqdn}:8774/v2.1",
       configure_endpoint  => true,
       configure_user      => true,
       configure_user_role => true,
@@ -128,8 +140,8 @@ class openstack::y005_nova (
   class { '::nova::db':
     database_max_retries    => '-1',
     database_db_max_retries => '-1',
-    database_connection     => "mysql+pymysql://${user_1}:${password_1}@${internal_api_fqdn}/${dbname_1}",
-    api_database_connection => "mysql+pymysql://${user_2}:${password_2}@${internal_api_fqdn}/${dbname_2}",
+    database_connection     => "mysql+pymysql://${user_1}:${password_1}@${internal_fqdn}/${dbname_1}",
+    api_database_connection => "mysql+pymysql://${user_2}:${password_2}@${internal_fqdn}/${dbname_2}",
   }
 
   class { '::nova':
@@ -144,7 +156,7 @@ class openstack::y005_nova (
       "${controller_3_internal_ip}:5672"],
     auth_strategy          => 'keystone',
     #
-    glance_api_servers     => "http://${internal_api_fqdn}:9292",
+    glance_api_servers     => "http://${internal_image_fqdn}:9292",
     cinder_catalog_info    => 'volumev2:cinderv2:publicURL',
     log_dir                => '/var/log/nova',
     notify_api_faults      => false,
@@ -177,7 +189,7 @@ class openstack::y005_nova (
 
   class { '::nova::network::neutron':
     neutron_auth_url                => "http://${admin_identity_fqdn}:35357/v3",
-    neutron_url                     => "http://${internal_api_fqdn}:9696",
+    neutron_url                     => "http://${internal_network_fqdn}:9696",
     #
     neutron_auth_type               => 'v3password',
     neutron_project_domain_name     => 'default',

@@ -7,24 +7,32 @@ class openstack::y003_cinder (
   $user                     = hiera('cinder_username'),
   $password                 = hiera('cinder_password'),
   $admin_identity_fqdn      = join(any2array([
-    hiera('admin_identity'),
+    'admin.identity',
     hiera('domain_name')]), '.'),
   $public_identity_fqdn     = join(any2array([
-    hiera('public_identity'),
+    'public.identity',
     hiera('domain_name')]), '.'),
   $internal_identity_fqdn   = join(any2array([
-    hiera('internal_identity'),
+    'internal.identity',
     hiera('domain_name')]), '.'),
-  $admin_api_fqdn           = join(any2array([
-    hiera('admin_api'),
+  $admin_volume_fqdn        = join(any2array([
+    'admin.volume',
     hiera('region_name'),
     hiera('domain_name')]), '.'),
-  $public_api_fqdn          = join(any2array([
-    hiera('public_api'),
+  $public_volume_fqdn       = join(any2array([
+    'public.volume',
     hiera('region_name'),
     hiera('domain_name')]), '.'),
-  $internal_api_fqdn        = join(any2array([
-    hiera('internal_api'),
+  $internal_volume_fqdn     = join(any2array([
+    'internal.volume',
+    hiera('region_name'),
+    hiera('domain_name')]), '.'),
+  $internal_fqdn            = join(any2array([
+    'internal',
+    hiera('region_name'),
+    hiera('domain_name')]), '.'),
+  $internal_image_fqdn      = join(any2array([
+    'internal.image',
     hiera('region_name'),
     hiera('domain_name')]), '.'),
   $controller_1_internal_ip = hiera('controller_1_internal_ip'),
@@ -71,15 +79,15 @@ class openstack::y003_cinder (
       email                  => $email,
       email_user_v2          => undef,
       email_user_v3          => undef,
-      admin_url              => "http://${admin_api_fqdn}:8776/v1/%(tenant_id)s",
-      public_url             => "http://${public_api_fqdn}:8776/v1/%(tenant_id)s",
-      internal_url           => "http://${internal_api_fqdn}:8776/v1/%(tenant_id)s",
-      admin_url_v2           => "http://${admin_api_fqdn}:8776/v2/%(tenant_id)s",
-      public_url_v2          => "http://${public_api_fqdn}:8776/v2/%(tenant_id)s",
-      internal_url_v2        => "http://${internal_api_fqdn}:8776/v2/%(tenant_id)s",
-      admin_url_v3           => "http://${admin_api_fqdn}:8776/v3/%(tenant_id)s",
-      public_url_v3          => "http://${public_api_fqdn}:8776/v3/%(tenant_id)s",
-      internal_url_v3        => "http://${internal_api_fqdn}:8776/v3/%(tenant_id)s",
+      admin_url              => "http://${admin_volume_fqdn}:8776/v1/%(tenant_id)s",
+      public_url             => "http://${public_volume_fqdn}:8776/v1/%(tenant_id)s",
+      internal_url           => "http://${internal_volume_fqdn}:8776/v1/%(tenant_id)s",
+      admin_url_v2           => "http://${admin_volume_fqdn}:8776/v2/%(tenant_id)s",
+      public_url_v2          => "http://${public_volume_fqdn}:8776/v2/%(tenant_id)s",
+      internal_url_v2        => "http://${internal_volume_fqdn}:8776/v2/%(tenant_id)s",
+      admin_url_v3           => "http://${admin_volume_fqdn}:8776/v3/%(tenant_id)s",
+      public_url_v3          => "http://${public_volume_fqdn}:8776/v3/%(tenant_id)s",
+      internal_url_v3        => "http://${internal_volume_fqdn}:8776/v3/%(tenant_id)s",
       configure_endpoint     => true,
       configure_endpoint_v2  => true,
       configure_endpoint_v3  => true,
@@ -129,7 +137,7 @@ class openstack::y003_cinder (
   class { '::cinder::db':
     database_max_retries    => '-1',
     database_db_max_retries => '-1',
-    database_connection     => "mysql+pymysql://${user}:${password}@${internal_api_fqdn}/${dbname}",
+    database_connection     => "mysql+pymysql://${user}:${password}@${internal_fqdn}/${dbname}",
   }
 
   class { '::cinder':
@@ -189,7 +197,7 @@ class openstack::y003_cinder (
   }
 
   class { '::cinder::glance':
-    glance_api_servers => "http://${internal_api_fqdn}:9292",
+    glance_api_servers => "http://${internal_image_fqdn}:9292",
     glance_api_version => '2',
   }
 

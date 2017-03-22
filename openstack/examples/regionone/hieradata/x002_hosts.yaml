@@ -9,18 +9,92 @@ openstack::x002_hosts::hosts:
     ip: 172.17.102.50
   internal.identity.examplecloud.com:
     ip: 172.17.103.50
-  admin.api.cn-dl-1.examplecloud.com:
+  admin.image.cn-dl-1.examplecloud.com:
     ip: 172.17.103.50
-    host_aliases:
-    - admin.api
-  public.api.cn-dl-1.examplecloud.com:
+  public.image.cn-dl-1.examplecloud.com:
     ip: 172.17.102.50
-    host_aliases:
-    - public.api
-  internal.api.cn-dl-1.examplecloud.com:
+  internal.image.cn-dl-1.examplecloud.com:
     ip: 172.17.103.50
-    host_aliases:
-    - internal.api
+  admin.volume.cn-dl-1.examplecloud.com:
+    ip: 172.17.103.50
+  public.volume.cn-dl-1.examplecloud.com:
+    ip: 172.17.102.50
+  internal.volume.cn-dl-1.examplecloud.com:
+    ip: 172.17.103.50
+  admin.network.cn-dl-1.examplecloud.com:
+    ip: 172.17.103.50
+  public.network.cn-dl-1.examplecloud.com:
+    ip: 172.17.102.50
+  internal.network.cn-dl-1.examplecloud.com:
+    ip: 172.17.103.50
+  admin.compute.cn-dl-1.examplecloud.com:
+    ip: 172.17.103.50
+  public.compute.cn-dl-1.examplecloud.com:
+    ip: 172.17.102.50
+  internal.compute.cn-dl-1.examplecloud.com:
+    ip: 172.17.103.50
+  admin.metering.cn-dl-1.examplecloud.com:
+    ip: 172.17.103.50
+  public.metering.cn-dl-1.examplecloud.com:
+    ip: 172.17.102.50
+  internal.metering.cn-dl-1.examplecloud.com:
+    ip: 172.17.103.50
+  admin.metric.cn-dl-1.examplecloud.com:
+    ip: 172.17.103.50
+  public.metric.cn-dl-1.examplecloud.com:
+    ip: 172.17.102.50
+  internal.metric.cn-dl-1.examplecloud.com:
+    ip: 172.17.103.50
+  admin.alarming.cn-dl-1.examplecloud.com:
+    ip: 172.17.103.50
+  public.alarming.cn-dl-1.examplecloud.com:
+    ip: 172.17.102.50
+  internal.alarming.cn-dl-1.examplecloud.com:
+    ip: 172.17.103.50
+  admin.image.cn-bj-1.examplecloud.com:
+    ip: 172.17.103.60
+  public.image.cn-bj-1.examplecloud.com:
+    ip: 172.17.102.60
+  internal.image.cn-bj-1.examplecloud.com:
+    ip: 172.17.103.60
+  admin.volume.cn-bj-1.examplecloud.com:
+    ip: 172.17.103.60
+  public.volume.cn-bj-1.examplecloud.com:
+    ip: 172.17.102.60
+  internal.volume.cn-bj-1.examplecloud.com:
+    ip: 172.17.103.60
+  admin.network.cn-bj-1.examplecloud.com:
+    ip: 172.17.103.60
+  public.network.cn-bj-1.examplecloud.com:
+    ip: 172.17.102.60
+  internal.network.cn-bj-1.examplecloud.com:
+    ip: 172.17.103.60
+  admin.compute.cn-bj-1.examplecloud.com:
+    ip: 172.17.103.60
+  public.compute.cn-bj-1.examplecloud.com:
+    ip: 172.17.102.60
+  internal.compute.cn-bj-1.examplecloud.com:
+    ip: 172.17.103.60
+  admin.metering.cn-bj-1.examplecloud.com:
+    ip: 172.17.103.60
+  public.metering.cn-bj-1.examplecloud.com:
+    ip: 172.17.102.60
+  internal.metering.cn-bj-1.examplecloud.com:
+    ip: 172.17.103.60
+  admin.metric.cn-bj-1.examplecloud.com:
+    ip: 172.17.103.60
+  public.metric.cn-bj-1.examplecloud.com:
+    ip: 172.17.102.60
+  internal.metric.cn-bj-1.examplecloud.com:
+    ip: 172.17.103.60
+  admin.alarming.cn-bj-1.examplecloud.com:
+    ip: 172.17.103.60
+  public.alarming.cn-bj-1.examplecloud.com:
+    ip: 172.17.102.60
+  internal.alarming.cn-bj-1.examplecloud.com:
+    ip: 172.17.103.60
+  internal.cn-dl-1.examplecloud.com:
+    ip: 172.17.103.50
   controller-1.cn-dl-1.examplecloud.com:
     ip: 172.17.103.51
     host_aliases:
@@ -46,15 +120,15 @@ openstack::x002_hosts::hosts:
     host_aliases:
     - novacompute-3
   cephstorage-1.cn-dl-1.examplecloud.com:
-    ip: 172.17.103.151
+    ip: 172.17.103.57
     host_aliases:
     - cephstorage-1
   cephstorage-2.cn-dl-1.examplecloud.com:
-    ip: 172.17.103.152
+    ip: 172.17.103.58
     host_aliases:
     - cephstorage-2
   cephstorage-3.cn-dl-1.examplecloud.com:
-    ip: 172.17.103.153
+    ip: 172.17.103.59
     host_aliases:
     - cephstorage-3
 openstack::x002_hosts::id_rsa: |-
