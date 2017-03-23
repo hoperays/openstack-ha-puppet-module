@@ -1,5 +1,0 @@
-[gerrit]
-host=review.openstack.org
-port=29418
-project=openstack/puppet-vswitch.git
-defaultbranch=stable/newton
