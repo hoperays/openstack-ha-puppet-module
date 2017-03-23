@@ -40,7 +40,7 @@ class openstack::y003_cinder (
   $controller_3_internal_ip = hiera('controller_3_internal_ip'),
   $internal_interface       = hiera('internal_interface'),
   $rbd_secret_uuid          = hiera('rbd_secret_uuid'),
-  $backend_host             = join(any2array([
+  $cluster_name             = join(any2array([
     hiera('cloud_name'),
     hiera('region_name')]), '-'),
   $region                   = hiera('region_name'),
@@ -142,7 +142,7 @@ class openstack::y003_cinder (
 
   class { '::cinder':
     enable_v3_api    => true,
-    host             => 'hostgroup',
+    host             => $cluster_name,
     storage_availability_zone          => 'nova',
     default_availability_zone          => 'nova',
     log_dir          => '/var/log/cinder',
@@ -203,7 +203,7 @@ class openstack::y003_cinder (
 
   cinder::backend::rbd { 'rbd':
     rbd_pool              => 'volumes',
-    backend_host          => $backend_host,
+    backend_host          => $cluster_name,
     rbd_secret_uuid       => $rbd_secret_uuid,
     volume_backend_name   => 'rbd',
     rbd_user              => 'openstack',
