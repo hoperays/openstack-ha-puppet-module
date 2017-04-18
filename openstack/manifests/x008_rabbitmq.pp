@@ -5,7 +5,8 @@ class openstack::x008_rabbitmq (
   $cluster_nodes            = [
     hiera('controller_1_hostname'),
     hiera('controller_2_hostname'),
-    hiera('controller_3_hostname')],
+    hiera('controller_3_hostname'),
+  ],
   $node_ip_address          = hiera('internal_interface'),
   $cluster_node_type        = '',
   $erlang_cookie            = '',

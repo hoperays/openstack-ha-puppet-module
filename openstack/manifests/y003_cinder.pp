@@ -6,35 +6,14 @@ class openstack::y003_cinder (
   $dbname                   = hiera('cinder_dbname'),
   $user                     = hiera('cinder_username'),
   $password                 = hiera('cinder_password'),
-  $admin_identity_fqdn      = join(any2array([
-    'admin.identity',
-    hiera('domain_name')]), '.'),
-  $public_identity_fqdn     = join(any2array([
-    'public.identity',
-    hiera('domain_name')]), '.'),
-  $internal_identity_fqdn   = join(any2array([
-    'internal.identity',
-    hiera('domain_name')]), '.'),
-  $admin_volume_fqdn        = join(any2array([
-    'admin.volume',
-    hiera('region_name'),
-    hiera('domain_name')]), '.'),
-  $public_volume_fqdn       = join(any2array([
-    'public.volume',
-    hiera('region_name'),
-    hiera('domain_name')]), '.'),
-  $internal_volume_fqdn     = join(any2array([
-    'internal.volume',
-    hiera('region_name'),
-    hiera('domain_name')]), '.'),
-  $internal_fqdn            = join(any2array([
-    'internal',
-    hiera('region_name'),
-    hiera('domain_name')]), '.'),
-  $internal_image_fqdn      = join(any2array([
-    'internal.image',
-    hiera('region_name'),
-    hiera('domain_name')]), '.'),
+  $admin_identity_fqdn      = hiera('admin_identity_fqdn'),
+  $public_identity_fqdn     = hiera('public_identity_fqdn'),
+  $internal_identity_fqdn   = hiera('internal_identity_fqdn'),
+  $admin_volume_fqdn        = hiera('admin_volume_fqdn'),
+  $public_volume_fqdn       = hiera('public_volume_fqdn'),
+  $internal_volume_fqdn     = hiera('internal_volume_fqdn'),
+  $internal_fqdn            = hiera('internal_fqdn'),
+  $internal_image_fqdn      = hiera('internal_image_fqdn'),
   $controller_1_internal_ip = hiera('controller_1_internal_ip'),
   $controller_2_internal_ip = hiera('controller_2_internal_ip'),
   $controller_3_internal_ip = hiera('controller_3_internal_ip'),
@@ -51,7 +30,11 @@ class openstack::y003_cinder (
       user          => $user,
       password      => $password,
       host          => 'localhost',
-      allowed_hosts => [$controller_1_internal_ip, $controller_2_internal_ip, $controller_3_internal_ip],
+      allowed_hosts => [
+        $controller_1_internal_ip,
+        $controller_2_internal_ip,
+        $controller_3_internal_ip,
+      ],
     }
     $sync_db = true
 
@@ -141,26 +124,27 @@ class openstack::y003_cinder (
   }
 
   class { '::cinder':
-    enable_v3_api    => true,
-    host             => $cluster_name,
+    enable_v3_api                      => true,
+    host                               => $cluster_name,
     storage_availability_zone          => 'nova',
     default_availability_zone          => 'nova',
-    log_dir          => '/var/log/cinder',
-    rpc_backend      => 'rabbit',
-    control_exchange => 'openstack',
-    api_paste_config => '/etc/cinder/api-paste.ini',
-    lock_path        => '/var/lib/cinder/tmp',
-    rabbit_hosts     => [
+    log_dir                            => '/var/log/cinder',
+    rpc_backend                        => 'rabbit',
+    control_exchange                   => 'openstack',
+    api_paste_config                   => '/etc/cinder/api-paste.ini',
+    lock_path                          => '/var/lib/cinder/tmp',
+    rabbit_hosts                       => [
       "${controller_1_internal_ip}:5672",
       "${controller_2_internal_ip}:5672",
-      "${controller_3_internal_ip}:5672"],
-    rabbit_use_ssl   => false,
-    rabbit_password  => $rabbit_password,
-    rabbit_userid    => $rabbit_userid,
-    rabbit_ha_queues => true,
+      "${controller_3_internal_ip}:5672",
+    ],
+    rabbit_use_ssl                     => false,
+    rabbit_password                    => $rabbit_password,
+    rabbit_userid                      => $rabbit_userid,
+    rabbit_ha_queues                   => true,
     rabbit_heartbeat_timeout_threshold => '60',
     #
-    purge_config     => true,
+    purge_config                       => true,
   }
 
   class { '::cinder::keystone::authtoken':
@@ -169,7 +153,8 @@ class openstack::y003_cinder (
     memcached_servers   => [
       "${controller_1_internal_ip}:11211",
       "${controller_2_internal_ip}:11211",
-      "${controller_3_internal_ip}:11211"],
+      "${controller_3_internal_ip}:11211",
+    ],
     auth_type           => 'password',
     project_domain_name => 'default',
     user_domain_name    => 'default',
@@ -202,16 +187,16 @@ class openstack::y003_cinder (
   }
 
   cinder::backend::rbd { 'rbd':
-    rbd_pool              => 'volumes',
-    backend_host          => $cluster_name,
-    rbd_secret_uuid       => $rbd_secret_uuid,
-    volume_backend_name   => 'rbd',
-    rbd_user              => 'openstack',
-    rbd_ceph_conf         => '/etc/ceph/ceph.conf',
+    rbd_pool                         => 'volumes',
+    backend_host                     => $cluster_name,
+    rbd_secret_uuid                  => $rbd_secret_uuid,
+    volume_backend_name              => 'rbd',
+    rbd_user                         => 'openstack',
+    rbd_ceph_conf                    => '/etc/ceph/ceph.conf',
     rbd_flatten_volume_from_snapshot => false,
-    rbd_max_clone_depth   => '5',
-    rbd_store_chunk_size  => '4',
-    rados_connect_timeout => '-1',
+    rbd_max_clone_depth              => '5',
+    rbd_store_chunk_size             => '4',
+    rados_connect_timeout            => '-1',
   }
 
   class { '::cinder::volume':

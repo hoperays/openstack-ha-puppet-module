@@ -4,7 +4,8 @@ class openstack::x010_mongodb (
   $bind_ip                  = hiera('internal_interface'),
   $replset                  = join(any2array([
     hiera('cloud_name'),
-    hiera('region_name')]), '-'),
+    hiera('region_name'),
+  ]), '-'),
   $smallfiles               = false,
   $controller_1_internal_ip = hiera('controller_1_internal_ip'),
   $controller_2_internal_ip = hiera('controller_2_internal_ip'),
@@ -25,7 +26,8 @@ class openstack::x010_mongodb (
       members => [
         "${controller_1_internal_ip}:27017",
         "${controller_2_internal_ip}:27017",
-        "${controller_3_internal_ip}:27017"],
+        "${controller_3_internal_ip}:27017",
+      ],
     }
   }
 }

@@ -4,31 +4,13 @@ class openstack::y008_gnocchi (
   $dbname                   = hiera('gnocchi_dbname'),
   $user                     = hiera('gnocchi_username'),
   $password                 = hiera('gnocchi_password'),
-  $admin_identity_fqdn      = join(any2array([
-    'admin.identity',
-    hiera('domain_name')]), '.'),
-  $public_identity_fqdn     = join(any2array([
-    'public.identity',
-    hiera('domain_name')]), '.'),
-  $internal_identity_fqdn   = join(any2array([
-    'internal.identity',
-    hiera('domain_name')]), '.'),
-  $admin_metric_fqdn        = join(any2array([
-    'admin.metric',
-    hiera('region_name'),
-    hiera('domain_name')]), '.'),
-  $public_metric_fqdn       = join(any2array([
-    'public.metric',
-    hiera('region_name'),
-    hiera('domain_name')]), '.'),
-  $internal_metric_fqdn     = join(any2array([
-    'internal.metric',
-    hiera('region_name'),
-    hiera('domain_name')]), '.'),
-  $internal_fqdn            = join(any2array([
-    'internal',
-    hiera('region_name'),
-    hiera('domain_name')]), '.'),
+  $admin_identity_fqdn      = hiera('admin_identity_fqdn'),
+  $public_identity_fqdn     = hiera('public_identity_fqdn'),
+  $internal_identity_fqdn   = hiera('internal_identity_fqdn'),
+  $admin_metric_fqdn        = hiera('admin_metric_fqdn'),
+  $public_metric_fqdn       = hiera('public_metric_fqdn'),
+  $internal_metric_fqdn     = hiera('internal_metric_fqdn'),
+  $internal_fqdn            = hiera('internal_fqdn'),
   $controller_1_internal_ip = hiera('controller_1_internal_ip'),
   $controller_2_internal_ip = hiera('controller_2_internal_ip'),
   $controller_3_internal_ip = hiera('controller_3_internal_ip'),
@@ -47,7 +29,11 @@ class openstack::y008_gnocchi (
       user          => $user,
       password      => $password,
       host          => 'localhost',
-      allowed_hosts => [$controller_1_internal_ip, $controller_2_internal_ip, $controller_3_internal_ip],
+      allowed_hosts => [
+        $controller_1_internal_ip,
+        $controller_2_internal_ip,
+        $controller_3_internal_ip,
+      ],
     }
     $sync_db = true
 
@@ -84,7 +70,8 @@ class openstack::y008_gnocchi (
     memcached_servers   => [
       "${controller_1_internal_ip}:11211",
       "${controller_2_internal_ip}:11211",
-      "${controller_3_internal_ip}:11211"],
+      "${controller_3_internal_ip}:11211",
+    ],
     auth_type           => 'password',
     project_domain_name => 'default',
     user_domain_name    => 'default',
@@ -95,14 +82,14 @@ class openstack::y008_gnocchi (
   }
 
   class { '::gnocchi::api':
-    max_limit     => '1000',
-    host          => $internal_interface,
-    port          => '8041',
+    max_limit                    => '1000',
+    host                         => $internal_interface,
+    port                         => '8041',
     enable_proxy_headers_parsing => true,
     #
-    service_name  => 'httpd',
-    auth_strategy => 'keystone',
-    sync_db       => $sync_db,
+    service_name                 => 'httpd',
+    auth_strategy                => 'keystone',
+    sync_db                      => $sync_db,
   }
 
   class { '::gnocchi::wsgi::apache':

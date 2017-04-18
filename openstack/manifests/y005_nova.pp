@@ -9,39 +9,15 @@ class openstack::y005_nova (
   $dbname_2                  = hiera('nova_api_dbname'),
   $user_2                    = hiera('nova_api_username'),
   $password_2                = hiera('nova_api_password'),
-  $admin_identity_fqdn       = join(any2array([
-    'admin.identity',
-    hiera('domain_name')]), '.'),
-  $public_identity_fqdn      = join(any2array([
-    'public.identity',
-    hiera('domain_name')]), '.'),
-  $internal_identity_fqdn    = join(any2array([
-    'internal.identity',
-    hiera('domain_name')]), '.'),
-  $admin_compute_fqdn        = join(any2array([
-    'admin.compute',
-    hiera('region_name'),
-    hiera('domain_name')]), '.'),
-  $public_compute_fqdn       = join(any2array([
-    'public.compute',
-    hiera('region_name'),
-    hiera('domain_name')]), '.'),
-  $internal_compute_fqdn     = join(any2array([
-    'internal.compute',
-    hiera('region_name'),
-    hiera('domain_name')]), '.'),
-  $internal_fqdn             = join(any2array([
-    'internal',
-    hiera('region_name'),
-    hiera('domain_name')]), '.'),
-  $internal_image_fqdn       = join(any2array([
-    'internal.image',
-    hiera('region_name'),
-    hiera('domain_name')]), '.'),
-  $internal_network_fqdn     = join(any2array([
-    'internal.network',
-    hiera('region_name'),
-    hiera('domain_name')]), '.'),
+  $admin_identity_fqdn       = hiera('admin_identity_fqdn'),
+  $public_identity_fqdn      = hiera('public_identity_fqdn'),
+  $internal_identity_fqdn    = hiera('internal_identity_fqdn'),
+  $admin_compute_fqdn        = hiera('admin_compute_fqdn'),
+  $public_compute_fqdn       = hiera('public_compute_fqdn'),
+  $internal_compute_fqdn     = hiera('internal_compute_fqdn'),
+  $internal_fqdn             = hiera('internal_fqdn'),
+  $internal_image_fqdn       = hiera('internal_image_fqdn'),
+  $internal_network_fqdn     = hiera('internal_network_fqdn'),
   $public_vip                = hiera('public_vip'),
   $controller_1_internal_ip  = hiera('controller_1_internal_ip'),
   $controller_2_internal_ip  = hiera('controller_2_internal_ip'),
@@ -50,7 +26,10 @@ class openstack::y005_nova (
   $metadata_secret           = hiera('metadata_secret'),
   $neutron_username          = hiera('neutron_username'),
   $neutron_password          = hiera('neutron_password'),
-  $remote_authkey            = hiera('remote_authkey'),
+  $dhcp_domain               = join(any2array([
+    hiera('region_name'),
+    hiera('domain_name'),
+  ]), '.'),
   $rbd_secret_uuid           = hiera('rbd_secret_uuid'),
   $cpu_allocation_ratio      = '',
   $ram_allocation_ratio      = '',
@@ -66,14 +45,22 @@ class openstack::y005_nova (
       user          => $user_1,
       password      => $password_1,
       host          => 'localhost',
-      allowed_hosts => [$controller_1_internal_ip, $controller_2_internal_ip, $controller_3_internal_ip],
+      allowed_hosts => [
+        $controller_1_internal_ip,
+        $controller_2_internal_ip,
+        $controller_3_internal_ip,
+      ],
     } ->
     class { '::nova::db::mysql_api':
       dbname        => $dbname_2,
       user          => $user_2,
       password      => $password_2,
       host          => 'localhost',
-      allowed_hosts => [$controller_1_internal_ip, $controller_2_internal_ip, $controller_3_internal_ip],
+      allowed_hosts => [
+        $controller_1_internal_ip,
+        $controller_2_internal_ip,
+        $controller_3_internal_ip,
+      ],
     }
     $sync_db = true
     $sync_db_api = true
@@ -145,37 +132,38 @@ class openstack::y005_nova (
   }
 
   class { '::nova':
-    rabbit_userid          => $rabbit_userid,
-    rabbit_password        => $rabbit_password,
-    rabbit_ha_queues       => true,
-    rabbit_use_ssl         => false,
+    rabbit_userid                      => $rabbit_userid,
+    rabbit_password                    => $rabbit_password,
+    rabbit_ha_queues                   => true,
+    rabbit_use_ssl                     => false,
     rabbit_heartbeat_timeout_threshold => '60',
-    rabbit_hosts           => [
+    rabbit_hosts                       => [
       "${controller_1_internal_ip}:5672",
       "${controller_2_internal_ip}:5672",
-      "${controller_3_internal_ip}:5672"],
-    auth_strategy          => 'keystone',
+      "${controller_3_internal_ip}:5672",
+    ],
+    auth_strategy                      => 'keystone',
     #
-    glance_api_servers     => "http://${internal_image_fqdn}:9292",
-    cinder_catalog_info    => 'volumev2:cinderv2:publicURL',
-    log_dir                => '/var/log/nova',
-    notify_api_faults      => false,
-    state_path             => '/var/lib/nova',
-    report_interval        => '10',
-    image_service          => 'nova.image.glance.GlanceImageService',
-    notify_on_state_change => 'vm_and_task_state',
-    use_ipv6               => false,
-    cpu_allocation_ratio   => $cpu_allocation_ratio,
-    ram_allocation_ratio   => $ram_allocation_ratio,
-    disk_allocation_ratio  => $disk_allocation_ratio,
-    service_down_time      => '60',
-    host                   => $::hostname,
-    rootwrap_config        => '/etc/nova/rootwrap.conf',
-    rpc_backend            => 'rabbit',
-    notification_driver    => 'messagingv2',
-    os_region_name         => $region,
+    glance_api_servers                 => "http://${internal_image_fqdn}:9292",
+    cinder_catalog_info                => 'volumev2:cinderv2:publicURL',
+    log_dir                            => '/var/log/nova',
+    notify_api_faults                  => false,
+    state_path                         => '/var/lib/nova',
+    report_interval                    => '10',
+    image_service                      => 'nova.image.glance.GlanceImageService',
+    notify_on_state_change             => 'vm_and_task_state',
+    use_ipv6                           => false,
+    cpu_allocation_ratio               => $cpu_allocation_ratio,
+    ram_allocation_ratio               => $ram_allocation_ratio,
+    disk_allocation_ratio              => $disk_allocation_ratio,
+    service_down_time                  => '60',
+    host                               => $::hostname,
+    rootwrap_config                    => '/etc/nova/rootwrap.conf',
+    rpc_backend                        => 'rabbit',
+    notification_driver                => 'messagingv2',
+    os_region_name                     => $region,
     #
-    purge_config           => true,
+    purge_config                       => true,
   }
 
   class { '::nova::cache':
@@ -184,7 +172,8 @@ class openstack::y005_nova (
     memcache_servers => [
       "${controller_1_internal_ip}:11211",
       "${controller_2_internal_ip}:11211",
-      "${controller_3_internal_ip}:11211"],
+      "${controller_3_internal_ip}:11211",
+    ],
   }
 
   class { '::nova::network::neutron':
@@ -205,7 +194,7 @@ class openstack::y005_nova (
     firewall_driver                 => 'nova.virt.firewall.NoopFirewallDriver',
     vif_plugging_is_fatal           => true, # false
     vif_plugging_timeout            => '300', # 0
-    dhcp_domain                     => 'novalocal',
+    dhcp_domain                     => $dhcp_domain,
   }
 
   if $::hostname =~ /^*controller-\d*$/ {
@@ -215,7 +204,8 @@ class openstack::y005_nova (
       memcached_servers   => [
         "${controller_1_internal_ip}:11211",
         "${controller_2_internal_ip}:11211",
-        "${controller_3_internal_ip}:11211"],
+        "${controller_3_internal_ip}:11211",
+      ],
       auth_type           => 'password',
       project_domain_name => 'default',
       user_domain_name    => 'default',
@@ -226,21 +216,21 @@ class openstack::y005_nova (
     }
 
     class { '::nova::api':
-      api_bind_address       => $internal_interface,
+      api_bind_address                     => $internal_interface,
       osapi_compute_listen_port            => '8774',
-      metadata_listen        => $internal_interface,
-      metadata_listen_port   => '8775',
-      enabled_apis           => ['osapi_compute', 'metadata'],
+      metadata_listen                      => $internal_interface,
+      metadata_listen_port                 => '8775',
+      enabled_apis                         => ['osapi_compute', 'metadata'],
       neutron_metadata_proxy_shared_secret => $metadata_secret,
-      instance_name_template => 'instance-%08x',
-      default_floating_pool  => 'public',
-      use_forwarded_for      => 'false',
+      instance_name_template               => 'instance-%08x',
+      default_floating_pool                => 'public',
+      use_forwarded_for                    => 'false',
       allow_resize_to_same_host            => true,
-      fping_path             => '/usr/sbin/fping',
+      fping_path                           => '/usr/sbin/fping',
       enable_proxy_headers_parsing         => true,
       #
-      sync_db                => $sync_db,
-      sync_db_api            => $sync_db_api,
+      sync_db                              => $sync_db,
+      sync_db_api                          => $sync_db_api,
     }
 
     class { '::nova::conductor':

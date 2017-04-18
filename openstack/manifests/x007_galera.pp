@@ -5,17 +5,19 @@ class openstack::x007_galera (
   $galera_nodes          = join(any2array([
     hiera('controller_1_hostname'),
     hiera('controller_2_hostname'),
-    hiera('controller_3_hostname')]), ','),
+    hiera('controller_3_hostname'),
+  ]), ','),
   $cluster_name          = join(any2array([
     hiera('cloud_name'),
-    hiera('region_name')]), '-'),
+    hiera('region_name'),
+  ]), '-'),
   $gmcast_listen_addr    = hiera('internal_interface'),
   $clustercheck_username = hiera('clustercheck_username'),
   $clustercheck_password = hiera('clustercheck_password'),
   $mysql_config_file     = '',
   $manage_resources      = false,
 ) {
-  $galera_nodes_count   = count(split($galera_nodes, ','))
+  $galera_nodes_count = count(split($galera_nodes, ','))
   $mysql_server_options = {
     'mysqld' => {
       'skip-name-resolve'              => '1',
@@ -61,7 +63,8 @@ class openstack::x007_galera (
   }
 
   exec { 'create-root-sysconfig-clustercheck':
-    command => "/bin/echo 'MYSQL_USERNAME=root\nMYSQL_PASSWORD=\'\'\nMYSQL_HOST=localhost\n' > /etc/sysconfig/clustercheck",
+    command =>
+      "/bin/echo 'MYSQL_USERNAME=root\nMYSQL_PASSWORD=\'\'\nMYSQL_HOST=localhost\n' > /etc/sysconfig/clustercheck",
     unless  => '/bin/test -e /etc/sysconfig/clustercheck && grep -q clustercheck /etc/sysconfig/clustercheck',
     require => Class['::mysql::server'],
   }
@@ -110,17 +113,18 @@ class openstack::x007_galera (
     mode    => '0600',
     owner   => 'root',
     group   => 'root',
-    content => "MYSQL_USERNAME=${clustercheck_username}\nMYSQL_PASSWORD=${clustercheck_password}\nMYSQL_HOST=localhost\n",
+    content =>
+      "MYSQL_USERNAME=${clustercheck_username}\nMYSQL_PASSWORD=${clustercheck_password}\nMYSQL_HOST=localhost\n",
     require => Mysql_grant["${clustercheck_username}@localhost/*.*"],
   }
 
   exec { 'delete user host like %controller-%':
     command => "/bin/echo \"DELETE FROM mysql.user WHERE host LIKE \'%controller-%\'; \
-                  flush privileges;\" | \
-                  /bin/mysql",
+                flush privileges;\" | \
+                /bin/mysql",
     unless  => "/bin/echo \"DELETE FROM mysql.user WHERE host LIKE \'%controller-%\'; \
-                  flush privileges;\" | \
-                  /bin/mysql",
+                flush privileges;\" | \
+                /bin/mysql",
     require => Exec['galera-ready'],
   }
 
@@ -128,7 +132,9 @@ class openstack::x007_galera (
     pacemaker::resource::ocf { 'galera':
       ensure          => 'present',
       ocf_agent_name  => 'heartbeat:galera',
-      resource_params => "additional_parameters='--open-files-limit=16384' enable_creation=true wsrep_cluster_address='gcomm://${galera_nodes}'",
+      resource_params =>
+        "additional_parameters='--open-files-limit=16384' enable_creation=true wsrep_cluster_address='gcomm://${
+          galera_nodes}'",
       meta_params     => "master-max=${galera_nodes_count} ordered=true",
       op_params       => 'promote timeout=300s on-fail=block',
       master_params   => true,
@@ -136,8 +142,17 @@ class openstack::x007_galera (
       before          => Exec['galera-ready'],
     }
 
-    mysql_user { ['root@127.0.0.1', 'root@::1', '@localhost', '@%']: ensure => 'absent', }
+    mysql_user { [
+      'root@127.0.0.1',
+      'root@::1',
+      '@localhost',
+      '@%',
+    ]:
+      ensure => 'absent',
+    }
 
-    mysql_database { 'test': ensure => 'absent', }
+    mysql_database { 'test':
+      ensure => 'absent',
+    }
   }
 }

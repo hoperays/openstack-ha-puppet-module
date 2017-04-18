@@ -7,14 +7,26 @@ class openstack::x003_ntp (
   $ntp_interfaces        = [
     hiera('admin_interface'),
     hiera('public_interface'),
-    hiera('internal_interface')],
+    hiera('internal_interface'),
+  ],
 ) {
   class { '::ntp':
     servers           => $hostname ? {
       $controller_1_hostname => union($ntp_servers, ['127.127.1.0']),
-      $controller_2_hostname => [$controller_1_hostname, '127.127.1.0'],
-      $controller_3_hostname => [$controller_1_hostname, $controller_2_hostname, '127.127.1.0'],
-      default                => [$controller_1_hostname, $controller_2_hostname, $controller_3_hostname],
+      $controller_2_hostname => [
+        $controller_1_hostname,
+        '127.127.1.0',
+      ],
+      $controller_3_hostname => [
+        $controller_1_hostname,
+        $controller_2_hostname,
+        '127.127.1.0',
+      ],
+      default                => [
+        $controller_1_hostname,
+        $controller_2_hostname,
+        $controller_3_hostname,
+      ],
     },
     preferred_servers => $hostname ? {
       $controller_1_hostname => $ntp_servers,

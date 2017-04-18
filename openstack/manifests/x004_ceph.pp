@@ -4,15 +4,18 @@ class openstack::x004_ceph (
   $fsid                        = '',
   $cluster_name                = join(any2array([
     hiera('cloud_name'),
-    hiera('region_name')]), '-'),
+    hiera('region_name'),
+  ]), '-'),
   $mon_initial_members         = join(any2array([
     hiera('controller_1_hostname'),
     hiera('controller_2_hostname'),
-    hiera('controller_3_hostname')]), ','),
+    hiera('controller_3_hostname'),
+  ]), ','),
   $mon_host                    = join(any2array([
     hiera('controller_1_storage_ip'),
     hiera('controller_2_storage_ip'),
-    hiera('controller_3_storage_ip')]), ','),
+    hiera('controller_3_storage_ip'),
+  ]), ','),
   $authentication_type         = '',
   $public_network              = '',
   $cluster_network             = '',
@@ -28,11 +31,11 @@ class openstack::x004_ceph (
   $osd_crush_chooseleaf_type   = '',
   # ceph-authtool --gen-print-key
   $mon_key                     = '',
-  $controller_keys             = {},
-  $cephstorage_keys            = {},
-  $novacompute_keys            = {},
-  $osds                        = {},
-  $pools                       = {},
+  $controller_keys             = { },
+  $cephstorage_keys            = { },
+  $novacompute_keys            = { },
+  $osds                        = { },
+  $pools                       = { },
   $controller_as_cephstorage   = hiera('controller_as_cephstorage'),
   $novacompute_as_cephstorage  = hiera('novacompute_as_cephstorage'),
   # throttling backfill and recovery
@@ -78,8 +81,8 @@ class openstack::x004_ceph (
 
   if $::hostname =~ /^*controller-\d*$/ {
     ceph::mon { $::hostname:
-    # cluster => $cluster_name,
-      key     => $mon_key,
+      # cluster => $cluster_name,
+      key => $mon_key,
     }
 
     Ceph::Key {

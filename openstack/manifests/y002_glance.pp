@@ -6,31 +6,13 @@ class openstack::y002_glance (
   $dbname                   = hiera('glance_dbname'),
   $user                     = hiera('glance_username'),
   $password                 = hiera('glance_password'),
-  $admin_identity_fqdn      = join(any2array([
-    'admin.identity',
-    hiera('domain_name')]), '.'),
-  $public_identity_fqdn     = join(any2array([
-    'public.identity',
-    hiera('domain_name')]), '.'),
-  $internal_identity_fqdn   = join(any2array([
-    'internal.identity',
-    hiera('domain_name')]), '.'),
-  $admin_image_fqdn         = join(any2array([
-    'admin.image',
-    hiera('region_name'),
-    hiera('domain_name')]), '.'),
-  $public_image_fqdn        = join(any2array([
-    'public.image',
-    hiera('region_name'),
-    hiera('domain_name')]), '.'),
-  $internal_image_fqdn      = join(any2array([
-    'internal.image',
-    hiera('region_name'),
-    hiera('domain_name')]), '.'),
-  $internal_fqdn            = join(any2array([
-    'internal',
-    hiera('region_name'),
-    hiera('domain_name')]), '.'),
+  $admin_identity_fqdn      = hiera('admin_identity_fqdn'),
+  $public_identity_fqdn     = hiera('public_identity_fqdn'),
+  $internal_identity_fqdn   = hiera('internal_identity_fqdn'),
+  $admin_image_fqdn         = hiera('admin_image_fqdn'),
+  $public_image_fqdn        = hiera('public_image_fqdn'),
+  $internal_image_fqdn      = hiera('internal_image_fqdn'),
+  $internal_fqdn            = hiera('internal_fqdn'),
   $controller_1_internal_ip = hiera('controller_1_internal_ip'),
   $controller_2_internal_ip = hiera('controller_2_internal_ip'),
   $controller_3_internal_ip = hiera('controller_3_internal_ip'),
@@ -43,7 +25,11 @@ class openstack::y002_glance (
       user          => $user,
       password      => $password,
       host          => 'localhost',
-      allowed_hosts => [$controller_1_internal_ip, $controller_2_internal_ip, $controller_3_internal_ip],
+      allowed_hosts => [
+        $controller_1_internal_ip,
+        $controller_2_internal_ip,
+        $controller_3_internal_ip,
+      ],
     }
     $sync_db = true
 
@@ -94,7 +80,8 @@ class openstack::y002_glance (
     memcached_servers   => [
       "${controller_1_internal_ip}:11211",
       "${controller_2_internal_ip}:11211",
-      "${controller_3_internal_ip}:11211"],
+      "${controller_3_internal_ip}:11211",
+    ],
     auth_type           => 'password',
     project_domain_name => 'default',
     user_domain_name    => 'default',
@@ -153,7 +140,8 @@ class openstack::y002_glance (
     memcached_servers   => [
       "${controller_1_internal_ip}:11211",
       "${controller_2_internal_ip}:11211",
-      "${controller_3_internal_ip}:11211"],
+      "${controller_3_internal_ip}:11211",
+    ],
     auth_type           => 'password',
     project_domain_name => 'default',
     user_domain_name    => 'default',

@@ -6,31 +6,13 @@ class openstack::y009_aodh (
   $dbname                   = hiera('aodh_dbname'),
   $user                     = hiera('aodh_username'),
   $password                 = hiera('aodh_password'),
-  $admin_identity_fqdn      = join(any2array([
-    'admin.identity',
-    hiera('domain_name')]), '.'),
-  $public_identity_fqdn     = join(any2array([
-    'public.identity',
-    hiera('domain_name')]), '.'),
-  $internal_identity_fqdn   = join(any2array([
-    'internal.identity',
-    hiera('domain_name')]), '.'),
-  $admin_alarming_fqdn      = join(any2array([
-    'admin.alarming',
-    hiera('region_name'),
-    hiera('domain_name')]), '.'),
-  $public_alarming_fqdn     = join(any2array([
-    'public.alarming',
-    hiera('region_name'),
-    hiera('domain_name')]), '.'),
-  $internal_alarming_fqdn   = join(any2array([
-    'internal.alarming',
-    hiera('region_name'),
-    hiera('domain_name')]), '.'),
-  $internal_fqdn            = join(any2array([
-    'internal',
-    hiera('region_name'),
-    hiera('domain_name')]), '.'),
+  $admin_identity_fqdn      = hiera('admin_identity_fqdn'),
+  $public_identity_fqdn     = hiera('public_identity_fqdn'),
+  $internal_identity_fqdn   = hiera('internal_identity_fqdn'),
+  $admin_alarming_fqdn      = hiera('admin_alarming_fqdn'),
+  $public_alarming_fqdn     = hiera('public_alarming_fqdn'),
+  $internal_alarming_fqdn   = hiera('internal_alarming_fqdn'),
+  $internal_fqdn            = hiera('internal_fqdn'),
   $controller_1_internal_ip = hiera('controller_1_internal_ip'),
   $controller_2_internal_ip = hiera('controller_2_internal_ip'),
   $controller_3_internal_ip = hiera('controller_3_internal_ip'),
@@ -44,7 +26,11 @@ class openstack::y009_aodh (
       user          => $user,
       password      => $password,
       host          => 'localhost',
-      allowed_hosts => [$controller_1_internal_ip, $controller_2_internal_ip, $controller_3_internal_ip],
+      allowed_hosts => [
+        $controller_1_internal_ip,
+        $controller_2_internal_ip,
+        $controller_3_internal_ip,
+      ],
     }
     $sync_db = true
 
@@ -74,20 +60,21 @@ class openstack::y009_aodh (
   }
 
   class { '::aodh':
-    log_dir          => '/var/log/aodh',
-    rpc_backend      => 'rabbit',
+    log_dir                            => '/var/log/aodh',
+    rpc_backend                        => 'rabbit',
     #
-    rabbit_hosts     => [
+    rabbit_hosts                       => [
       "${controller_1_internal_ip}:5672",
       "${controller_2_internal_ip}:5672",
-      "${controller_3_internal_ip}:5672"],
-    rabbit_use_ssl   => false,
-    rabbit_password  => $rabbit_password,
-    rabbit_userid    => $rabbit_userid,
-    rabbit_ha_queues => true,
+      "${controller_3_internal_ip}:5672",
+    ],
+    rabbit_use_ssl                     => false,
+    rabbit_password                    => $rabbit_password,
+    rabbit_userid                      => $rabbit_userid,
+    rabbit_ha_queues                   => true,
     rabbit_heartbeat_timeout_threshold => '60',
     #
-    purge_config     => true,
+    purge_config                       => true,
   }
 
   class { '::aodh::keystone::authtoken':
@@ -96,7 +83,8 @@ class openstack::y009_aodh (
     memcached_servers   => [
       "${controller_1_internal_ip}:11211",
       "${controller_2_internal_ip}:11211",
-      "${controller_3_internal_ip}:11211"],
+      "${controller_3_internal_ip}:11211",
+    ],
     auth_type           => 'password',
     project_domain_name => 'default',
     user_domain_name    => 'default',
@@ -108,13 +96,13 @@ class openstack::y009_aodh (
 
   class { '::aodh::api':
     # enable_combination_alarms = False
-    host          => $internal_interface,
-    port          => '8042',
+    host                         => $internal_interface,
+    port                         => '8042',
     enable_proxy_headers_parsing => true,
     #
-    service_name  => 'httpd',
-    auth_strategy => 'keystone',
-    sync_db       => $sync_db,
+    service_name                 => 'httpd',
+    auth_strategy                => 'keystone',
+    sync_db                      => $sync_db,
   }
 
   # aodh_config { 'api/enable_combination_alarms': value => false; }

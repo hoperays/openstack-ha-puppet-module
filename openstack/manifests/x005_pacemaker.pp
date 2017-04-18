@@ -3,15 +3,17 @@ class openstack::x005_pacemaker (
   $cluster_members            = join(any2array([
     hiera('controller_1_hostname'),
     hiera('controller_2_hostname'),
-    hiera('controller_3_hostname')]), ' '),
+    hiera('controller_3_hostname'),
+  ]), ' '),
   $cluster_name               = join(any2array([
     hiera('cloud_name'),
-    hiera('region_name')]), '-'),
+    hiera('region_name'),
+  ]), '-'),
   $hacluster_pwd              = hiera('hacluster_password'),
   $remote_authkey             = hiera('remote_authkey'),
   $manage_fw                  = false,
-  $pacemaker_property         = {},
-  $pacemaker_resource_default = {},
+  $pacemaker_property         = { },
+  $pacemaker_resource_default = { },
 ) {
   if $::hostname == $bootstrap_node {
     $setup_cluster = true
@@ -33,7 +35,9 @@ class openstack::x005_pacemaker (
       setup_cluster   => $setup_cluster,
     }
   } elsif $::hostname =~ /^*novacompute-\d*$/ {
-    package { 'pacemaker-remote': ensure => 'present', } ->
+    package { 'pacemaker-remote':
+      ensure => 'present',
+    } ->
     file { '/etc/pacemaker':
       ensure => directory,
       mode   => '0750',

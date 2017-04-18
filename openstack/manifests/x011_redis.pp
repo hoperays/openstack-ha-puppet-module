@@ -14,7 +14,8 @@ class openstack::x011_redis (
   }
 
   file { '/etc/security/limits.d/redis.conf':
-    content => inline_template("redis soft nofile <%= @redis_file_limit %>\nredis hard nofile <%= @redis_file_limit %>\n"),
+    content => inline_template(
+      "redis soft nofile <%= @redis_file_limit %>\nredis hard nofile <%= @redis_file_limit %>\n"),
     owner   => 'root',
     group   => 'root',
     mode    => '0644',
@@ -31,7 +32,10 @@ class openstack::x011_redis (
       meta_params     => 'notify=true ordered=true interleave=true',
       resource_params => 'wait_last_known_master=true',
       op_params       => 'start timeout=200s stop timeout=200s',
-      require         => [Class['::redis'], Package['python-redis']],
+      require         => [
+        Class['::redis'],
+        Package['python-redis'],
+      ],
     }
   }
 }

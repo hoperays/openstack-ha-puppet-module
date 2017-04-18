@@ -6,15 +6,18 @@ class openstack::x006_haproxy (
   $controller_1_fqdn         = join(any2array([
     hiera('controller_1_hostname'),
     hiera('region_name'),
-    hiera('domain_name')]), '.'),
+    hiera('domain_name'),
+  ]), '.'),
   $controller_2_fqdn         = join(any2array([
     hiera('controller_2_hostname'),
     hiera('region_name'),
-    hiera('domain_name')]), '.'),
+    hiera('domain_name'),
+  ]), '.'),
   $controller_3_fqdn         = join(any2array([
     hiera('controller_3_hostname'),
     hiera('region_name'),
-    hiera('domain_name')]), '.'),
+    hiera('domain_name'),
+  ]), '.'),
   $controller_1_internal_ip  = hiera('controller_1_internal_ip'),
   $controller_2_internal_ip  = hiera('controller_2_internal_ip'),
   $controller_3_internal_ip  = hiera('controller_3_internal_ip'),
@@ -29,7 +32,7 @@ class openstack::x006_haproxy (
   $haproxy_default_maxconn   = '',
   $haproxy_default_timeout   = [],
   $haproxy_listen_bind_param = [],
-  $haproxy_listen_options    = {},
+  $haproxy_listen_options    = { },
   $haproxy_member_options    = [],
   $service_certificate       = '',
   $refresh                   = '',
@@ -50,18 +53,17 @@ class openstack::x006_haproxy (
     service_ensure   => $manage_resources,
     service_manage   => $manage_resources,
     global_options   => {
-      daemon  => '',
-      user    => 'haproxy',
-      group   => 'haproxy',
-      log     => "$haproxy_log_address local0",
-      chroot  => '/var/lib/haproxy',
-      pidfile => '/var/run/haproxy.pid',
-      maxconn => "$haproxy_global_maxconn",
-      stats   => 'socket /var/lib/haproxy/stats',
+      daemon                   => '',
+      user                     => 'haproxy',
+      group                    => 'haproxy',
+      log                      => "$haproxy_log_address local0",
+      chroot                   => '/var/lib/haproxy',
+      pidfile                  => '/var/run/haproxy.pid',
+      maxconn                  => "$haproxy_global_maxconn",
+      stats                    => 'socket /var/lib/haproxy/stats',
       ssl-default-bind-ciphers => "$haproxy_ssl_cipher_suite",
       ssl-default-bind-options => "$haproxy_ssl_options",
-    }
-    ,
+    },
     defaults_options => {
       log     => 'global',
       stats   => 'enable',
@@ -71,7 +73,6 @@ class openstack::x006_haproxy (
       mode    => 'tcp',
       timeout => $haproxy_default_timeout,
     }
-    ,
   }
 
   haproxy::listen { 'stats':
@@ -80,9 +81,9 @@ class openstack::x006_haproxy (
       "$public_vip:13993" => union($haproxy_listen_bind_param, [
         'ssl',
         'crt',
-        $service_certificate])
-    }
-    ,
+        $service_certificate,
+      ])
+    },
     mode    => 'http',
     options => {
       monitor-uri  => '/status',
@@ -92,8 +93,11 @@ class openstack::x006_haproxy (
         'realm Haproxy\ Statistics',
         "auth ${haproxy_stats_user}:${haproxy_stats_password}",
         "refresh ${refresh}",
-        ],
-      acl          => ["clear dst_port 1993", "secure dst_port 13993"],
+      ],
+      acl          => [
+        "clear dst_port 1993",
+        "secure dst_port 13993",
+      ],
       http-request => ["redirect prefix https://$public_vip:13993 unless { ssl_fc } secure"],
     }
   }
@@ -102,12 +106,12 @@ class openstack::x006_haproxy (
     server_names => [
       $controller_1_fqdn,
       $controller_2_fqdn,
-      $controller_3_fqdn
+      $controller_3_fqdn,
     ],
     ipaddresses  => [
       $controller_1_internal_ip,
       $controller_2_internal_ip,
-      $controller_3_internal_ip
+      $controller_3_internal_ip,
     ],
     options      => $haproxy_member_options
   }
@@ -116,15 +120,18 @@ class openstack::x006_haproxy (
     haproxy::listen { 'mysql':
       bind    => {
         "$internal_vip:3306" => $haproxy_listen_bind_param
-      }
-      ,
+      },
       options => {
-        option      => ['tcpka', 'httpchk'],
+        option      => [
+          'tcpka',
+          'httpchk',
+        ],
         stick       => 'on dst',
         stick-table => 'type ip size 1000',
         timeout     => [
           'client 90m',
-          'server 90m'],
+          'server 90m',
+        ]
       }
     }
 
@@ -139,8 +146,7 @@ class openstack::x006_haproxy (
     haproxy::listen { 'redis':
       bind    => {
         "$internal_vip:6379" => $haproxy_listen_bind_param
-      }
-      ,
+      },
       options => {
         balance   => 'first',
         option    => 'tcp-check',
@@ -151,7 +157,8 @@ class openstack::x006_haproxy (
           'send info\ replication\r\n',
           'expect string role:master',
           'send QUIT\r\n',
-          'expect string +OK'],
+          'expect string +OK',
+        ]
       }
     }
 
@@ -164,10 +171,8 @@ class openstack::x006_haproxy (
   if $keystone {
     haproxy::listen { 'keystone_admin':
       bind    => {
-        "$admin_vip:35357"    => $haproxy_listen_bind_param,
-        "$internal_vip:35357" => $haproxy_listen_bind_param
-      }
-      ,
+        "$admin_vip:35357" => $haproxy_listen_bind_param
+      },
       mode    => 'http',
       options => $haproxy_listen_options,
     }
@@ -179,16 +184,27 @@ class openstack::x006_haproxy (
 
     haproxy::listen { 'keystone_public':
       bind    => {
-        "$public_vip:5000"   => $haproxy_listen_bind_param,
-        "$internal_vip:5000" => $haproxy_listen_bind_param
-      }
-      ,
+        "$public_vip:5000" => $haproxy_listen_bind_param
+      },
       mode    => 'http',
       options => $haproxy_listen_options,
     }
 
     haproxy::balancermember { 'keystone_public':
       listening_service => 'keystone_public',
+      ports             => '5000',
+    }
+
+    haproxy::listen { 'keystone_internal':
+      bind    => {
+        "$internal_vip:5000" => $haproxy_listen_bind_param
+      },
+      mode    => 'http',
+      options => $haproxy_listen_options,
+    }
+
+    haproxy::balancermember { 'keystone_internal':
+      listening_service => 'keystone_internal',
       ports             => '5000',
     }
   }
@@ -199,7 +215,6 @@ class openstack::x006_haproxy (
         "$public_vip:9191"   => $haproxy_listen_bind_param,
         "$internal_vip:9191" => $haproxy_listen_bind_param
       }
-      ,
     }
 
     haproxy::balancermember { 'glance_registry':
@@ -211,8 +226,7 @@ class openstack::x006_haproxy (
       bind    => {
         "$public_vip:9292"   => $haproxy_listen_bind_param,
         "$internal_vip:9292" => $haproxy_listen_bind_param
-      }
-      ,
+      },
       mode    => 'http',
       options => $haproxy_listen_options,
     }
@@ -228,8 +242,7 @@ class openstack::x006_haproxy (
       bind    => {
         "$public_vip:8776"   => $haproxy_listen_bind_param,
         "$internal_vip:8776" => $haproxy_listen_bind_param
-      }
-      ,
+      },
       mode    => 'http',
       options => $haproxy_listen_options,
     }
@@ -245,8 +258,7 @@ class openstack::x006_haproxy (
       bind    => {
         "$public_vip:9696"   => $haproxy_listen_bind_param,
         "$internal_vip:9696" => $haproxy_listen_bind_param
-      }
-      ,
+      },
       mode    => 'http',
       options => $haproxy_listen_options,
     }
@@ -262,7 +274,6 @@ class openstack::x006_haproxy (
       bind => {
         "$internal_vip:8775" => $haproxy_listen_bind_param
       }
-      ,
     }
 
     haproxy::balancermember { 'nova_metadata':
@@ -276,9 +287,9 @@ class openstack::x006_haproxy (
         "$public_vip:13080" => union($haproxy_listen_bind_param, [
           'ssl',
           'crt',
-          $service_certificate])
-      }
-      ,
+          $service_certificate,
+        ])
+      },
       options => {
         balance => 'source',
         timeout => 'tunnel 1h',
@@ -294,8 +305,7 @@ class openstack::x006_haproxy (
       bind    => {
         "$public_vip:8774"   => $haproxy_listen_bind_param,
         "$internal_vip:8774" => $haproxy_listen_bind_param
-      }
-      ,
+      },
       mode    => 'http',
       options => $haproxy_listen_options,
     }
@@ -313,17 +323,21 @@ class openstack::x006_haproxy (
         "$public_vip:443" => union($haproxy_listen_bind_param, [
           'ssl',
           'crt',
-          $service_certificate])
-      }
-      ,
+          $service_certificate,
+        ])
+      },
       mode    => 'http',
       options => {
         cookie       => 'SERVERID insert indirect nocache',
-        option       => ['forwardfor', 'httpclose'],
+        option       => [
+          'forwardfor',
+          'httpclose',
+        ],
         http-request => [
           'set-header X-Forwarded-Proto https if { ssl_fc }',
           'set-header X-Forwarded-Proto http if !{ ssl_fc }',
-          'redirect scheme https if !{ ssl_fc }'],
+          'redirect scheme https if !{ ssl_fc }',
+        ],
       }
     }
 
@@ -339,8 +353,7 @@ class openstack::x006_haproxy (
       bind    => {
         "$public_vip:8777"   => $haproxy_listen_bind_param,
         "$internal_vip:8777" => $haproxy_listen_bind_param
-      }
-      ,
+      },
       mode    => 'http',
       options => $haproxy_listen_options,
     }
@@ -356,8 +369,7 @@ class openstack::x006_haproxy (
       bind    => {
         "$public_vip:8041"   => $haproxy_listen_bind_param,
         "$internal_vip:8041" => $haproxy_listen_bind_param
-      }
-      ,
+      },
       mode    => 'http',
       options => $haproxy_listen_options,
     }
@@ -373,8 +385,7 @@ class openstack::x006_haproxy (
       bind    => {
         "$public_vip:8042"   => $haproxy_listen_bind_param,
         "$internal_vip:8042" => $haproxy_listen_bind_param
-      }
-      ,
+      },
       mode    => 'http',
       options => $haproxy_listen_options,
     }
@@ -392,14 +403,20 @@ class openstack::x006_haproxy (
         "$public_vip:1443" => union($haproxy_listen_bind_param, [
           'ssl',
           'crt',
-          $service_certificate])
-      }
-      ,
+          $service_certificate,
+        ])
+      },
       mode    => 'http',
       options => {
         cookie       => 'SERVERID insert indirect nocache',
-        option       => ['forwardfor', 'httpclose'],
-        acl          => ["clear dst_port 180", "secure dst_port 1443"],
+        option       => [
+          'forwardfor',
+          'httpclose',
+        ],
+        acl          => [
+          "clear dst_port 180",
+          "secure dst_port 1443",
+        ],
         http-request => ["redirect prefix https://$public_vip:1443 unless { ssl_fc } secure"],
       }
     }

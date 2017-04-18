@@ -11,30 +11,29 @@ openstack::y004_neutron::service_providers:
 - LOADBALANCERV2:Haproxy:neutron_lbaas.drivers.haproxy.plugin_driver.HaproxyOnHostPluginDriver:default
 - VPN:openswan:neutron_vpnaas.services.vpn.service_drivers.ipsec.IPsecVPNDriver:default
 openstack::y004_neutron::global_physnet_mtu: 1500
+openstack::y004_neutron::dhcp_lease_duration: -1
 openstack::y004_neutron::dhcp_agents_per_network: 3
 openstack::y004_neutron::bridge_mappings:
-- examplecloud:br-ex
+- examplecloud:br-provider
 openstack::y004_neutron::l3_ha: true
 openstack::y004_neutron::max_l3_agents_per_router: 3
+openstack::y004_neutron::router_distributed: true
 openstack::y004_neutron::type_drivers:
-- local
 - flat
 - vlan
-- gre
 - vxlan
 openstack::y004_neutron::tenant_network_types:
-- vlan
 - vxlan
 openstack::y004_neutron::mechanism_drivers:
 - openvswitch
+- l2population
 openstack::y004_neutron::extension_drivers:
 - port_security
 - qos
 openstack::y004_neutron::flat_networks: '*'
-openstack::y004_neutron::network_vlan_ranges:
-- examplecloud:200:299
-openstack::y004_neutron::tunnel_id_ranges:
-- 200:299
 openstack::y004_neutron::vxlan_group: 224.0.0.1
 openstack::y004_neutron::vni_ranges:
-- 200:299
+- 1:1000
+openstack::y004_neutron::enable_force_metadata: false
+openstack::y004_neutron::enable_isolated_metadata: true
+openstack::y004_neutron::enable_metadata_network: true

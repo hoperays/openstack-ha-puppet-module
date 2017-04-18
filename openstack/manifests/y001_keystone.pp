@@ -9,19 +9,10 @@ class openstack::y001_keystone (
   $dbname                   = hiera('keystone_dbname'),
   $user                     = hiera('keystone_username'),
   $password                 = hiera('keystone_password'),
-  $admin_identity_fqdn      = join(any2array([
-    'admin.identity',
-    hiera('domain_name')]), '.'),
-  $public_identity_fqdn     = join(any2array([
-    'public.identity',
-    hiera('domain_name')]), '.'),
-  $internal_identity_fqdn   = join(any2array([
-    'internal.identity',
-    hiera('domain_name')]), '.'),
-  $internal_fqdn            = join(any2array([
-    'internal',
-    hiera('region_name'),
-    hiera('domain_name')]), '.'),
+  $admin_identity_fqdn      = hiera('admin_identity_fqdn'),
+  $public_identity_fqdn     = hiera('public_identity_fqdn'),
+  $internal_identity_fqdn   = hiera('internal_identity_fqdn'),
+  $internal_fqdn            = hiera('internal_fqdn'),
   $controller_1_internal_ip = hiera('controller_1_internal_ip'),
   $controller_2_internal_ip = hiera('controller_2_internal_ip'),
   $controller_3_internal_ip = hiera('controller_3_internal_ip'),
@@ -29,11 +20,11 @@ class openstack::y001_keystone (
   $token_expiration         = '',
   $token_provider           = '',
   $token_driver             = '',
-  $fernet_keys              = {},
-  $credential_keys          = {},
+  $fernet_keys              = { },
+  $credential_keys          = { },
   $version                  = '',
   $region                   = hiera('region_name'),
-  $security_compliance      = {},
+  $security_compliance      = { },
 ) {
   if $::hostname == $bootstrap_node {
     class { '::keystone::db::mysql':
@@ -41,7 +32,11 @@ class openstack::y001_keystone (
       user          => $user,
       password      => $password,
       host          => 'localhost',
-      allowed_hosts => [$controller_1_internal_ip, $controller_2_internal_ip, $controller_3_internal_ip],
+      allowed_hosts => [
+        $controller_1_internal_ip,
+        $controller_2_internal_ip,
+        $controller_3_internal_ip,
+      ],
     }
     $sync_db = true
 
@@ -108,48 +103,50 @@ class openstack::y001_keystone (
   }
 
   class { '::keystone':
-    admin_token           => $admin_token,
-    admin_password        => $admin_password,
-    notification_format   => 'basic',
-    log_dir               => '/var/log/keystone',
-    public_port           => '5000',
-    public_bind_host      => $internal_interface,
-    admin_port            => '35357',
-    admin_bind_host       => $internal_interface,
-    catalog_template_file => '/etc/keystone/default_catalog.templates',
-    catalog_driver        => 'sql',
+    admin_token                        => $admin_token,
+    admin_password                     => $admin_password,
+    notification_format                => 'basic',
+    log_dir                            => '/var/log/keystone',
+    public_port                        => '5000',
+    public_bind_host                   => $internal_interface,
+    admin_port                         => '35357',
+    admin_bind_host                    => $internal_interface,
+    catalog_template_file              => '/etc/keystone/default_catalog.templates',
+    catalog_driver                     => 'sql',
     credential_key_repository          => '/etc/keystone/credential-keys',
-    fernet_key_repository => '/etc/keystone/fernet-keys',
-    notification_driver   => 'messaging',
-    rabbit_hosts          => [
+    fernet_key_repository              => '/etc/keystone/fernet-keys',
+    notification_driver                => 'messaging',
+    rabbit_hosts                       => [
       "${controller_1_internal_ip}:5672",
       "${controller_2_internal_ip}:5672",
-      "${controller_3_internal_ip}:5672"],
-    rabbit_use_ssl        => false,
-    rabbit_userid         => $rabbit_userid,
-    rabbit_password       => $rabbit_password,
-    rabbit_ha_queues      => true,
+      "${controller_3_internal_ip}:5672",
+    ],
+    rabbit_use_ssl                     => false,
+    rabbit_userid                      => $rabbit_userid,
+    rabbit_password                    => $rabbit_password,
+    rabbit_ha_queues                   => true,
     rabbit_heartbeat_timeout_threshold => '60',
     enable_proxy_headers_parsing       => true,
-    token_expiration      => $token_expiration,
-    token_provider        => $token_provider, # fernet,uuid
-    token_driver          => $token_driver, # memcache,sql
-    memcache_servers      => [
+    token_expiration                   => $token_expiration,
+    token_provider                     => $token_provider, # fernet,uuid
+    token_driver                       => $token_driver, # memcache,sql
+    memcache_servers                   => [
       "${controller_1_internal_ip}:11211",
       "${controller_2_internal_ip}:11211",
-      "${controller_3_internal_ip}:11211"],
-    revoke_by_id          => true,
-    enable_ssl            => false,
+      "${controller_3_internal_ip}:11211",
+    ],
+    revoke_by_id                       => true,
+    enable_ssl                         => false,
     #
-    sync_db               => $sync_db,
-    enable_bootstrap      => $sync_db,
-    enable_fernet_setup   => true,
-    fernet_keys           => $fernet_keys,
+    sync_db                            => $sync_db,
+    enable_bootstrap                   => $sync_db,
+    enable_fernet_setup                => true,
+    fernet_keys                        => $fernet_keys,
     enable_credential_setup            => true,
-    credential_keys       => $credential_keys,
-    service_name          => 'httpd',
+    credential_keys                    => $credential_keys,
+    service_name                       => 'httpd',
     #
-    purge_config          => true,
+    purge_config                       => true,
   }
 
   class { '::apache':

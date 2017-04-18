@@ -19,18 +19,15 @@ class openstack::z001_zabbix (
   $refreshactivechecks      = '',
   $unsafeuserparameters     = '',
   $zabbix_url               = '',
-  $zabbix_server            = join(any2array([
-    'internal',
-    hiera('region_name'),
-    hiera('domain_name')]), '.'),
+  $zabbix_server            = hiera('internal_fqdn'),
   $database_type            = '',
   $zabbix_timezone          = '',
   $manage_service           = false,
   $pacemaker                = false,
   $pacemaker_resource       = '',
   $apache_listenport        = '',
-  $userparameters           = {},
-  $templates                = {},
+  $userparameters           = { },
+  $templates                = { },
   $alertscriptspath         = '',
   $sendemail_source         = '',
   $startpollers             = '',
@@ -39,7 +36,7 @@ class openstack::z001_zabbix (
   $timeout                  = '',
 ) {
   if $::hostname == $bootstrap_node {
-    $manage_database  = true
+    $manage_database = true
     $api_password_md5 = md5($api_password)
 
     Class['::zabbix::database::mysql'] ->
@@ -68,9 +65,11 @@ class openstack::z001_zabbix (
     } ->
     pacemaker::resource::service { "$pacemaker_resource":
       op_params => 'start timeout=200s stop timeout=200s',
-      require   => [Class['::zabbix::server'],
-                    Class['::apache::mod::php'],
-                    Class['::zabbix::web']],
+      require   => [
+        Class['::zabbix::server'],
+        Class['::apache::mod::php'],
+        Class['::zabbix::web'],
+      ],
     } ->
     pacemaker::constraint::base { "order-ip-$internal_vip-$pacemaker_resource-Optional":
       constraint_type   => 'order',
