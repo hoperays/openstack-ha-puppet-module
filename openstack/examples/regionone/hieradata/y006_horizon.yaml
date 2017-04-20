@@ -11,4 +11,5 @@ openstack::y006_horizon::neutron_options:
   enable_lb: true
   enable_firewall: true
   enable_vpn: true
+  enable_distributed_router: true
   enable_ha_router: true

@@ -30,10 +30,13 @@ openstack::y004_neutron::mechanism_drivers:
 openstack::y004_neutron::extension_drivers:
 - port_security
 - qos
-openstack::y004_neutron::flat_networks: '*'
+openstack::y004_neutron::flat_networks:
+- '*'
+openstack::y004_neutron::network_vlan_ranges:
+- examplecloud:1000:1999
 openstack::y004_neutron::vxlan_group: 224.0.0.1
 openstack::y004_neutron::vni_ranges:
-- 1:1000
+- 1000:1999
 openstack::y004_neutron::enable_force_metadata: false
 openstack::y004_neutron::enable_isolated_metadata: true
 openstack::y004_neutron::enable_metadata_network: true

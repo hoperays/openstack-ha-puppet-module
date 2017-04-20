@@ -35,12 +35,14 @@ class openstack::y004_neutron (
   $tenant_network_types     = [],
   $mechanism_drivers        = [],
   $extension_drivers        = [],
-  $flat_networks            = '',
+  $flat_networks            = [],
+  $network_vlan_ranges      = [],
   $vxlan_group              = '',
-  $vni_ranges               = '',
+  $vni_ranges               = [],
   $enable_force_metadata    = false,
   $enable_isolated_metadata = false,
   $enable_metadata_network  = false,
+  $dhcp_domain              = hiera('dhcp_domain'),
   $region                   = hiera('region_name'),
 ) {
   if $::hostname == $bootstrap_node {
@@ -186,6 +188,35 @@ class openstack::y004_neutron (
       #
       purge_config  => true,
     }
+
+    class { '::neutron::agents::metering':
+      interface_driver => 'neutron.agent.linux.interface.OVSInterfaceDriver',
+      driver           => 'neutron.services.metering.drivers.noop.noop_driver.NoopMeteringDriver',
+      measure_interval => '30',
+      report_interval  => '300',
+      #
+      purge_config     => true,
+    }
+
+    class { '::neutron::services::lbaas':
+    }
+    class { '::neutron::agents::lbaas':
+      interface_driver       => 'neutron.agent.linux.interface.OVSInterfaceDriver',
+      device_driver          => 'neutron_lbaas.drivers.haproxy.namespace_driver.HaproxyNSDriver',
+      manage_haproxy_package => false,
+      #
+      purge_config           => true,
+    }
+
+    class { '::neutron::services::vpnaas':
+    }
+    class { '::neutron::agents::vpnaas':
+      vpn_device_driver           => 'neutron.services.vpn.device_drivers.ipsec.OpenSwanDriver',
+      interface_driver            => 'neutron.agent.linux.interface.OVSInterfaceDriver',
+      ipsec_status_check_interval => '30',
+      #
+      purge_config                => true,
+    }
   }
 
   if $::hostname =~ /^*controller-\d*$/ {
@@ -248,17 +279,10 @@ class openstack::y004_neutron (
       extension_drivers    => $extension_drivers,
       flat_networks        => $flat_networks,
       network_vlan_ranges  => $network_vlan_ranges,
-      tunnel_id_ranges     => $tunnel_id_ranges,
       vxlan_group          => $vxlan_group,
       vni_ranges           => $vni_ranges,
       #
       purge_config         => true,
-    }
-
-    class { '::neutron::services::lbaas':
-    }
-
-    class { '::neutron::services::vpnaas':
     }
 
     class { '::neutron::agents::dhcp':
@@ -269,33 +293,9 @@ class openstack::y004_neutron (
       enable_force_metadata    => $enable_force_metadata,
       enable_isolated_metadata => $enable_isolated_metadata,
       enable_metadata_network  => $enable_metadata_network,
+      dhcp_domain              => $dhcp_domain,
       #
       purge_config             => true,
-    }
-
-    class { '::neutron::agents::lbaas':
-      interface_driver       => 'neutron.agent.linux.interface.OVSInterfaceDriver',
-      device_driver          => 'neutron_lbaas.drivers.haproxy.namespace_driver.HaproxyNSDriver',
-      manage_haproxy_package => false,
-      #
-      purge_config           => true,
-    }
-
-    class { '::neutron::agents::vpnaas':
-      vpn_device_driver           => 'neutron.services.vpn.device_drivers.ipsec.OpenSwanDriver',
-      interface_driver            => 'neutron.agent.linux.interface.OVSInterfaceDriver',
-      ipsec_status_check_interval => '30',
-      #
-      purge_config                => true,
-    }
-
-    class { 'neutron::agents::metering':
-      interface_driver => 'neutron.agent.linux.interface.OVSInterfaceDriver',
-      driver           => 'neutron.services.metering.drivers.noop.noop_driver.NoopMeteringDriver',
-      measure_interval => '30',
-      report_interval  => '300',
-      #
-      purge_config     => true,
     }
   }
 }

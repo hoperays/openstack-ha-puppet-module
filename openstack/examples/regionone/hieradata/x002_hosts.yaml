@@ -1,21 +1,108 @@
 openstack::x002_hosts::hosts:
-  admin.global.examplecloud.com:
+  # global fqdh
+  admin.identity.examplecloud.com:
     ip: 172.17.101.254
-  public.global.examplecloud.com:
+  public.identity.examplecloud.com:
     ip: 172.17.102.254
-  internal.global.examplecloud.com:
+  internal.identity.examplecloud.com:
     ip: 172.17.103.254
+  # cn-bj-1 fqdn
   admin.cn-bj-1.examplecloud.com:
     ip: 172.17.101.253
   public.cn-bj-1.examplecloud.com:
     ip: 172.17.102.253
   internal.cn-bj-1.examplecloud.com:
     ip: 172.17.103.253
+  admin.image.cn-bj-1.examplecloud.com:
+    ip: 172.17.101.253
+  public.image.cn-bj-1.examplecloud.com:
+    ip: 172.17.102.253
+  internal.image.cn-bj-1.examplecloud.com:
+    ip: 172.17.103.253
+  admin.volume.cn-bj-1.examplecloud.com:
+    ip: 172.17.101.253
+  public.volume.cn-bj-1.examplecloud.com:
+    ip: 172.17.102.253
+  internal.volume.cn-bj-1.examplecloud.com:
+    ip: 172.17.103.253
+  admin.network.cn-bj-1.examplecloud.com:
+    ip: 172.17.101.253
+  public.network.cn-bj-1.examplecloud.com:
+    ip: 172.17.102.253
+  internal.network.cn-bj-1.examplecloud.com:
+    ip: 172.17.103.253
+  admin.compute.cn-bj-1.examplecloud.com:
+    ip: 172.17.101.253
+  public.compute.cn-bj-1.examplecloud.com:
+    ip: 172.17.102.253
+  internal.compute.cn-bj-1.examplecloud.com:
+    ip: 172.17.103.253
+  admin.metering.cn-bj-1.examplecloud.com:
+    ip: 172.17.101.253
+  public.metering.cn-bj-1.examplecloud.com:
+    ip: 172.17.102.253
+  internal.metering.cn-bj-1.examplecloud.com:
+    ip: 172.17.103.253
+  admin.metric.cn-bj-1.examplecloud.com:
+    ip: 172.17.101.253
+  public.metric.cn-bj-1.examplecloud.com:
+    ip: 172.17.102.253
+  internal.metric.cn-bj-1.examplecloud.com:
+    ip: 172.17.103.253
+  admin.alarming.cn-bj-1.examplecloud.com:
+    ip: 172.17.101.253
+  public.alarming.cn-bj-1.examplecloud.com:
+    ip: 172.17.102.253
+  internal.alarming.cn-bj-1.examplecloud.com:
+    ip: 172.17.103.253
+  # cn-dl-1 fqdn
   admin.cn-dl-1.examplecloud.com:
     ip: 172.17.101.254
   public.cn-dl-1.examplecloud.com:
     ip: 172.17.102.254
   internal.cn-dl-1.examplecloud.com:
+    ip: 172.17.103.254
+  admin.image.cn-dl-1.examplecloud.com:
+    ip: 172.17.101.254
+  public.image.cn-dl-1.examplecloud.com:
+    ip: 172.17.102.254
+  internal.image.cn-dl-1.examplecloud.com:
+    ip: 172.17.103.254
+  admin.volume.cn-dl-1.examplecloud.com:
+    ip: 172.17.101.254
+  public.volume.cn-dl-1.examplecloud.com:
+    ip: 172.17.102.254
+  internal.volume.cn-dl-1.examplecloud.com:
+    ip: 172.17.103.254
+  admin.network.cn-dl-1.examplecloud.com:
+    ip: 172.17.101.254
+  public.network.cn-dl-1.examplecloud.com:
+    ip: 172.17.102.254
+  internal.network.cn-dl-1.examplecloud.com:
+    ip: 172.17.103.254
+  admin.compute.cn-dl-1.examplecloud.com:
+    ip: 172.17.101.254
+  public.compute.cn-dl-1.examplecloud.com:
+    ip: 172.17.102.254
+  internal.compute.cn-dl-1.examplecloud.com:
+    ip: 172.17.103.254
+  admin.metering.cn-dl-1.examplecloud.com:
+    ip: 172.17.101.254
+  public.metering.cn-dl-1.examplecloud.com:
+    ip: 172.17.102.254
+  internal.metering.cn-dl-1.examplecloud.com:
+    ip: 172.17.103.254
+  admin.metric.cn-dl-1.examplecloud.com:
+    ip: 172.17.101.254
+  public.metric.cn-dl-1.examplecloud.com:
+    ip: 172.17.102.254
+  internal.metric.cn-dl-1.examplecloud.com:
+    ip: 172.17.103.254
+  admin.alarming.cn-dl-1.examplecloud.com:
+    ip: 172.17.101.254
+  public.alarming.cn-dl-1.examplecloud.com:
+    ip: 172.17.102.254
+  internal.alarming.cn-dl-1.examplecloud.com:
     ip: 172.17.103.254
   pxeserver.cn-dl-1.examplecloud.com:
     ip: 172.17.1.2

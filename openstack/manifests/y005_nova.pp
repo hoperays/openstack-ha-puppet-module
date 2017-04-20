@@ -26,10 +26,7 @@ class openstack::y005_nova (
   $metadata_secret           = hiera('metadata_secret'),
   $neutron_username          = hiera('neutron_username'),
   $neutron_password          = hiera('neutron_password'),
-  $dhcp_domain               = join(any2array([
-    hiera('region_name'),
-    hiera('domain_name'),
-  ]), '.'),
+  $dhcp_domain               = hiera('dhcp_domain'),
   $rbd_secret_uuid           = hiera('rbd_secret_uuid'),
   $cpu_allocation_ratio      = '',
   $ram_allocation_ratio      = '',

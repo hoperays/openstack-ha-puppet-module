@@ -3,21 +3,9 @@ class openstack::x006_haproxy (
   $admin_vip                 = hiera('admin_vip'),
   $public_vip                = hiera('public_vip'),
   $internal_vip              = hiera('internal_vip'),
-  $controller_1_fqdn         = join(any2array([
-    hiera('controller_1_hostname'),
-    hiera('region_name'),
-    hiera('domain_name'),
-  ]), '.'),
-  $controller_2_fqdn         = join(any2array([
-    hiera('controller_2_hostname'),
-    hiera('region_name'),
-    hiera('domain_name'),
-  ]), '.'),
-  $controller_3_fqdn         = join(any2array([
-    hiera('controller_3_hostname'),
-    hiera('region_name'),
-    hiera('domain_name'),
-  ]), '.'),
+  $controller_1_hostname     = hiera('controller_1_hostname'),
+  $controller_2_hostname     = hiera('controller_2_hostname'),
+  $controller_3_hostname     = hiera('controller_3_hostname'),
   $controller_1_internal_ip  = hiera('controller_1_internal_ip'),
   $controller_2_internal_ip  = hiera('controller_2_internal_ip'),
   $controller_3_internal_ip  = hiera('controller_3_internal_ip'),
@@ -104,9 +92,9 @@ class openstack::x006_haproxy (
 
   Haproxy::Balancermember {
     server_names => [
-      $controller_1_fqdn,
-      $controller_2_fqdn,
-      $controller_3_fqdn,
+      $controller_1_hostname,
+      $controller_2_hostname,
+      $controller_3_hostname,
     ],
     ipaddresses  => [
       $controller_1_internal_ip,
