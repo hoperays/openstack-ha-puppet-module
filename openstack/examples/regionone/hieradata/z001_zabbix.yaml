@@ -1,6 +1,6 @@
 openstack::z001_zabbix::manage_firewall: false
 openstack::z001_zabbix::manage_repo: false
-openstack::z001_zabbix::manage_resources: true
+openstack::z001_zabbix::manage_resources: false
 openstack::z001_zabbix::refreshactivechecks: 120
 openstack::z001_zabbix::unsafeuserparameters: 1
 openstack::z001_zabbix::zabbix_url: zabbix_vhost

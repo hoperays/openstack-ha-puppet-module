@@ -85,7 +85,9 @@ class openstack::z001_zabbix (
       score  => 'INFINITY',
     }
 
-    create_resources('zabbix::template', $templates)
+    if $manage_resources == true {
+      create_resources('zabbix::template', $templates)
+    }
   } elsif $::hostname =~ /^*controller-\d*$/ {
     $manage_database = false
   }
@@ -101,7 +103,6 @@ class openstack::z001_zabbix (
     hostname             => $::hostname,
     refreshactivechecks  => $refreshactivechecks,
     unsafeuserparameters => $unsafeuserparameters,
-    userparameter        => $userparameter,
     timeout              => $timeout,
   }
 

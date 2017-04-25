@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <zabbix_export>
     <version>3.0</version>
-    <date>2017-03-11T04:27:54Z</date>
+    <date>2017-04-25T02:27:46Z</date>
     <groups>
         <group>
             <name>Templates</name>
@@ -4063,7 +4063,7 @@
                     <snmp_community/>
                     <multiplier>0</multiplier>
                     <snmp_oid/>
-                    <key>ss.state[listen]</key>
+                    <key>ss.state[listening]</key>
                     <delay>30</delay>
                     <history>7</history>
                     <trends>365</trends>
@@ -5016,7 +5016,7 @@
                     <type>0</type>
                     <item>
                         <host>zbx_tcp_connection_template</host>
-                        <key>ss.state[listen]</key>
+                        <key>ss.state[listening]</key>
                     </item>
                 </graph_item>
                 <graph_item>
