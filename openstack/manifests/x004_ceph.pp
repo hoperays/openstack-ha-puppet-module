@@ -38,6 +38,7 @@ class openstack::x004_ceph (
   $pools                       = { },
   $controller_as_cephstorage   = hiera('controller_as_cephstorage'),
   $novacompute_as_cephstorage  = hiera('novacompute_as_cephstorage'),
+  $set_osd_params              = false,
   # throttling backfill and recovery
   $osd_max_backfills           = '',
   $osd_recovery_max_active     = '',

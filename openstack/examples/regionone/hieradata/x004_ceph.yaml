@@ -12,6 +12,7 @@ openstack::x004_ceph::osd_mkfs_type: xfs
 openstack::x004_ceph::osd_mkfs_options_xfs: -f -i size=2048
 openstack::x004_ceph::osd_mount_options_xfs: rw,noatime,inode64,logbsize=256k,delaylog
 openstack::x004_ceph::osd_crush_chooseleaf_type: 1
+openstack::x004_ceph::set_osd_params: true
 openstack::x004_ceph::osd_max_backfills: 1
 openstack::x004_ceph::osd_recovery_max_active: 3
 openstack::x004_ceph::osd_recovery_op_priority: 3
