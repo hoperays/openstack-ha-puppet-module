@@ -20,7 +20,7 @@ class openstack::x006_haproxy (
   $haproxy_default_maxconn   = '',
   $haproxy_default_timeout   = [],
   $haproxy_listen_bind_param = [],
-  $haproxy_listen_options    = { },
+  $haproxy_listen_options    = {},
   $haproxy_member_options    = [],
   $service_certificate       = '',
   $refresh                   = '',

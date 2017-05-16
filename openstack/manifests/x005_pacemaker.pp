@@ -12,8 +12,8 @@ class openstack::x005_pacemaker (
   $hacluster_pwd              = hiera('hacluster_password'),
   $remote_authkey             = hiera('remote_authkey'),
   $manage_fw                  = false,
-  $pacemaker_property         = { },
-  $pacemaker_resource_default = { },
+  $pacemaker_property         = {},
+  $pacemaker_resource_default = {},
 ) {
   if $::hostname == $bootstrap_node {
     $setup_cluster = true

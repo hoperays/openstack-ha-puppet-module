@@ -20,11 +20,11 @@ class openstack::y001_keystone (
   $token_expiration         = '',
   $token_provider           = '',
   $token_driver             = '',
-  $fernet_keys              = { },
-  $credential_keys          = { },
+  $fernet_keys              = {},
+  $credential_keys          = {},
   $version                  = '',
   $region                   = hiera('region_name'),
-  $security_compliance      = { },
+  $security_compliance      = {},
 ) {
   if $::hostname == $bootstrap_node {
     class { '::keystone::db::mysql':

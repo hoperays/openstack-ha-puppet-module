@@ -105,6 +105,10 @@ zabbix_mail_from: monitor@examplecloud.com
 zabbix_mail_server: smtp.examplecloud.com
 zabbix_mail_username: monitor@examplecloud.com
 zabbix_mail_password: fe4f61bdaaad1052934bbc689557bf58
+zabbix_wechat_cropid: wx9b41d5470df759ca
+zabbix_wechat_secret: dc256475763a4f5cc1fc5501d51404588080652c2e2f5d6433db88cfadb99246
+zabbix_wechat_appid: 1
+zabbix_wechat_partyid: 1
 zabbix_dbname: zabbix
 zabbix_username: zabbix
 zabbix_password: 38f50636412e3d04af7cb1d7ec9b1c8d

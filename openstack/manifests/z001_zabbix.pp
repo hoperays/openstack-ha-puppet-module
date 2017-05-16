@@ -9,6 +9,10 @@ class openstack::z001_zabbix (
   $mail_server              = hiera('zabbix_mail_server'),
   $mail_username            = hiera('zabbix_mail_username'),
   $mail_password            = hiera('zabbix_mail_password'),
+  $wechat_cropid            = hiera('zabbix_wechat_cropid'),
+  $wechat_secret            = hiera('zabbix_wechat_secret'),
+  $wechat_appid             = hiera('zabbix_wechat_appid'),
+  $wechat_partyid           = hiera('zabbix_wechat_partyid'),
   $internal_vip             = hiera('internal_vip'),
   $controller_2_internal_ip = hiera('controller_2_internal_ip'),
   $controller_3_internal_ip = hiera('controller_3_internal_ip'),
@@ -26,8 +30,8 @@ class openstack::z001_zabbix (
   $pacemaker                = false,
   $pacemaker_resource       = '',
   $apache_listenport        = '',
-  $userparameters           = { },
-  $templates                = { },
+  $userparameters           = {},
+  $templates                = {},
   $alertscriptspath         = '',
   $sendemail_source         = '',
   $startpollers             = '',
@@ -180,6 +184,39 @@ $alertscriptspath/sendEmail \\
 -m \"\$3\" \\
 -o message-content-type=html \\
 -o message-charset=utf8
+",
+    } ->
+    file { "$alertscriptspath/wechat.sh":
+      ensure  => file,
+      mode    => '0755',
+      owner   => 'zabbix',
+      group   => 'zabbix',
+      content => "#!/bin/bash
+
+CropID='$wechat_cropid'
+Secret='$wechat_secret'
+GURL=\"https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=\$CropID&corpsecret=\$Secret\"
+
+Gtoken=$(/usr/bin/curl -s -G \$GURL | awk -F\\\" '{print \$4}')
+PURL=\"https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=\$Gtoken\"
+
+function body() {
+local AppID=$wechat_appid
+local UserID=\$1
+local PartyID=$wechat_partyid
+local Msg=$(echo \"$@\" | cut -d\" \" -f3-)
+printf '{\\n'
+printf '\\t\"touser\": \"'\"\$UserID\"\\\"\",\\n\"
+printf '\\t\"toparty\": \"'\"\$PartyID\"\\\"\",\\n\"
+printf '\\t\"msgtype\": \"text\",\\n'
+printf '\\t\"agentid\": \"'\" \$AppID \"\\\"\",\\n\"
+printf '\\t\"text\": {\\n'
+printf '\\t\\t\"content\": \"'\"\$Msg\"\\\"\"\\n\"
+printf '\\t},\\n'
+printf '\\t\"safe\":\"0\"\\n'
+printf '}\\n'
+}
+/usr/bin/curl --data-ascii \"$(body $@)\" \$PURL
 ",
     }
   }

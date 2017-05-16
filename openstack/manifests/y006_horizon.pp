@@ -15,7 +15,7 @@ class openstack::y006_horizon (
   $keystone_default_domain      = '',
   $timezone                     = '',
   $session_timeout              = '',
-  $neutron_options              = { },
+  $neutron_options              = {},
 ) {
   class { '::horizon':
     bind_address                 => $bind_address,

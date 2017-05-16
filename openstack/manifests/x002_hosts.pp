@@ -1,5 +1,5 @@
 class openstack::x002_hosts (
-  $hosts      = { },
+  $hosts      = {},
   $id_rsa     = '',
   $id_rsa_pub = '',
 ) {
