@@ -10,6 +10,8 @@ class openstack::x003_ntp (
     hiera('internal_interface'),
   ],
 ) {
+  Host <||> -> Class['::ntp']
+
   class { '::ntp':
     servers           => $hostname ? {
       $controller_1_hostname => union($ntp_servers, ['127.127.1.0']),

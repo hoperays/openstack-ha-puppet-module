@@ -36,6 +36,19 @@ class openstack::y008_gnocchi (
       ],
     }
     $sync_db = true
+    Pacemaker::Resource::Ocf['redis'] -> Exec['gnocchi-db-sync']
+
+    Exec['gnocchi-db-sync'] -> Exec["${dbname}-db-ready"]
+
+    exec { "${dbname}-db-ready":
+      timeout   => '3600',
+      tries     => '360',
+      try_sleep => '10',
+      command   => "/bin/ssh ${controller_2_internal_ip} 'touch /tmp/.${dbname}-db-ready' && \
+                    /bin/ssh ${controller_3_internal_ip} 'touch /tmp/.${dbname}-db-ready'",
+      unless    => "/bin/ssh ${controller_2_internal_ip} 'touch /tmp/.${dbname}-db-ready' && \
+                    /bin/ssh ${controller_3_internal_ip} 'touch /tmp/.${dbname}-db-ready'",
+    }
 
     class { '::gnocchi::keystone::auth':
       password            => $password,
@@ -55,6 +68,16 @@ class openstack::y008_gnocchi (
     }
   } elsif $::hostname =~ /^*controller-\d*$/ {
     $sync_db = false
+
+    Exec["${dbname}-db-ready"] -> Service <| tag == 'gnocchi-service' |>
+
+    exec { "${dbname}-db-ready":
+      timeout   => '3600',
+      tries     => '360',
+      try_sleep => '10',
+      command   => "/bin/ls /tmp/.${dbname}-db-ready",
+      unless    => "/bin/ls /tmp/.${dbname}-db-ready",
+    }
   }
 
   class { '::gnocchi':

@@ -33,6 +33,22 @@ class openstack::y009_aodh (
       ],
     }
     $sync_db = true
+    Pacemaker::Resource::Ocf['redis'] -> Service <| tag == 'aodh-service' |>
+    Pacemaker::Resource::Ocf['rabbitmq'] -> Service <| tag == 'aodh-service' |>
+
+    Exec['aodh-db-sync'] -> Exec["${dbname}-db-ready"]
+    Pacemaker::Resource::Ocf['redis'] -> Exec["${dbname}-db-ready"]
+    Pacemaker::Resource::Ocf['rabbitmq'] -> Exec["${dbname}-db-ready"]
+
+    exec { "${dbname}-db-ready":
+      timeout   => '3600',
+      tries     => '360',
+      try_sleep => '10',
+      command   => "/bin/ssh ${controller_2_internal_ip} 'touch /tmp/.${dbname}-db-ready' && \
+                    /bin/ssh ${controller_3_internal_ip} 'touch /tmp/.${dbname}-db-ready'",
+      unless    => "/bin/ssh ${controller_2_internal_ip} 'touch /tmp/.${dbname}-db-ready' && \
+                    /bin/ssh ${controller_3_internal_ip} 'touch /tmp/.${dbname}-db-ready'",
+    }
 
     class { '::aodh::keystone::auth':
       password            => $password,
@@ -51,6 +67,16 @@ class openstack::y009_aodh (
     }
   } elsif $::hostname =~ /^*controller-\d*$/ {
     $sync_db = false
+
+    Exec["${dbname}-db-ready"] -> Service <| tag == 'aodh-service' |>
+
+    exec { "${dbname}-db-ready":
+      timeout   => '3600',
+      tries     => '360',
+      try_sleep => '10',
+      command   => "/bin/ls /tmp/.${dbname}-db-ready",
+      unless    => "/bin/ls /tmp/.${dbname}-db-ready",
+    }
   }
 
   class { '::aodh::db':

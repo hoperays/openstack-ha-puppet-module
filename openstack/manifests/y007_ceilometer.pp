@@ -29,6 +29,21 @@ class openstack::y007_ceilometer (
 ) {
   if $::hostname == $bootstrap_node {
     $sync_db = true
+    Mongodb_replset <||> -> Exec['ceilometer-dbsync']
+    Pacemaker::Resource::Ocf['redis'] -> Service <| tag == 'ceilometer-service' |>
+
+    Exec['ceilometer-dbsync'] -> Exec["${dbname}-db-ready"]
+    Pacemaker::Resource::Ocf['redis'] -> Exec["${dbname}-db-ready"]
+
+    exec { "${dbname}-db-ready":
+      timeout   => '3600',
+      tries     => '360',
+      try_sleep => '10',
+      command   => "/bin/ssh ${controller_2_internal_ip} 'touch /tmp/.${dbname}-db-ready' && \
+                    /bin/ssh ${controller_3_internal_ip} 'touch /tmp/.${dbname}-db-ready'",
+      unless    => "/bin/ssh ${controller_2_internal_ip} 'touch /tmp/.${dbname}-db-ready' && \
+                    /bin/ssh ${controller_3_internal_ip} 'touch /tmp/.${dbname}-db-ready'",
+    }
 
     class { '::ceilometer::keystone::auth':
       password            => $password,
@@ -48,6 +63,16 @@ class openstack::y007_ceilometer (
     }
   } elsif $::hostname =~ /^*controller-\d*$/ {
     $sync_db = false
+
+    Exec["${dbname}-db-ready"] -> Service <| tag == 'ceilometer-service' |>
+
+    exec { "${dbname}-db-ready":
+      timeout   => '3600',
+      tries     => '360',
+      try_sleep => '10',
+      command   => "/bin/ls /tmp/.${dbname}-db-ready",
+      unless    => "/bin/ls /tmp/.${dbname}-db-ready",
+    }
   }
 
   class { '::ceilometer':
