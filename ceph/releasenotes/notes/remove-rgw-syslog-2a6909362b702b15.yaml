@@ -1,4 +1,0 @@
----
-deprecations:
-  - |
-    the ceph::rgw::syslog paramter is unused and will be removed

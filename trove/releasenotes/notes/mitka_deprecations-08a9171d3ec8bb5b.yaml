@@ -1,5 +1,0 @@
----
-deprecations:
-  - Deprecate old authentification parameters.
-  - Remove deprecated mysql_module parameter.
-  - Put all the logging related parameters to the logging class.

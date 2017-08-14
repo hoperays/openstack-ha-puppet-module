@@ -1,4 +1,0 @@
----
-deprecations:
-  - nova-network deployment is deprecated, since Nova deprecated it during Newton cycle.
-    Its support will be removed in the future.

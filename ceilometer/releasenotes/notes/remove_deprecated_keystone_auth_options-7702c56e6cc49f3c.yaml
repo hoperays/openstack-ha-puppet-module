@@ -1,3 +1,0 @@
----
-other:
- - Remove deprecated auth options for ::keystone::auth class

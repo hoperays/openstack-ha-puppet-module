@@ -1,3 +1,0 @@
----
-features:
-  - Normalize registry_host if IPv6 by adding brackets if not there.

@@ -1,7 +1,0 @@
----
-features:
-  - Nova service management.
-    Ability to remove services left behind by Nova after
-    disabling or decommissioning a host. Provider can
-    delete all (default) or an array of specified
-    service names.

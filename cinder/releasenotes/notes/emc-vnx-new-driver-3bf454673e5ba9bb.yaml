@@ -1,4 +1,0 @@
----
-upgrade:
-  - The default volume driver for cinder::backend::emc_vnx has been changed to be newton-compatible.
-  - A new parameter, 'storage_protocol' has been added to cinder::backend::emc_vnx to be newton-compatible.

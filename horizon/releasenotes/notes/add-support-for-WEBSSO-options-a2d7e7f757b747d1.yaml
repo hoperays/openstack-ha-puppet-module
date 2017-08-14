@@ -1,4 +1,0 @@
----
-features:
-  - Support was added for WEBSSO options in local_settings.py.erb.
-    WEBSSO options enables keystone web single-sign-on.

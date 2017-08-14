@@ -1,4 +1,0 @@
----
-deprecations:
- - enable_v1_api and enable_v2_api are deprecated (no parameters to
-   subistitute)

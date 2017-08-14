@@ -1,5 +1,0 @@
----
-features:
-  - Added new manifests to configure cinder backup drivers
-    for GlusterFS, Google Cloud Storage, Posix filesystem,
-    and Tivoli Storage Manager.

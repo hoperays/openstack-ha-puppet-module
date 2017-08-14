@@ -1,4 +1,0 @@
----
-deprecations:
-  - Deprecating the management of rabbitmq resources.
-    It will be dropped in the next release.

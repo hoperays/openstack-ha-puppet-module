@@ -1,4 +1,0 @@
----
-features:
-  - Configure database, logging and policy parameters for api,
-    registry and glare services from oslo defines.

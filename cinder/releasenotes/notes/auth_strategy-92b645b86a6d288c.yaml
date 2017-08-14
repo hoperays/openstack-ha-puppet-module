@@ -1,3 +1,0 @@
----
-deprecations:
-  - keystone_enabled is deprecated in favor of auth_strategy

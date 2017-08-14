@@ -1,4 +1,0 @@
----
-other:
-  - Replace defines for managing cinder types with providers.
-    It replaces Exec resources bu Ruby providers using openstacklib.

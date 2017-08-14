@@ -1,4 +1,0 @@
----
-fixes:
-  - Horizon Offline Generation Error on ubuntu systems. Previously, the 'manage.py compress' only ran on redhat. This change
-    allows the command to be executed on ubuntu also.

@@ -1,4 +1,0 @@
----
-deprecations:
-  - netapp_eseries_host_type parameter is deprecated in favor
-    of netapp_host_type.

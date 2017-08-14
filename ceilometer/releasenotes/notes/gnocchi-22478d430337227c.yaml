@@ -1,6 +1,0 @@
----
-features:
-  - Implement Gnocchi dispatcher configuration
-    Add dispatcher options to ceilometer::collector and
-    create ceilometer::dispatcher::gnocchi class, with current
-    upstream options.

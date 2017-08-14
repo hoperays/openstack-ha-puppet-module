@@ -1,4 +1,0 @@
----
-features:
-  - When deploying Ceph storage backend, allow to automatically install python-cradox
-    as a packaging dependency.

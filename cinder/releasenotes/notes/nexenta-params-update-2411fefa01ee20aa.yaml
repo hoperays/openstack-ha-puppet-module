@@ -1,4 +1,0 @@
----
-upgrade:
-  - allow to configure previously hardcoded parameter
-    and add more options in nexenta backend.

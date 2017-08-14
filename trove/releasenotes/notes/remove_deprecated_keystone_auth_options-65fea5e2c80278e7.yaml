@@ -1,3 +1,0 @@
----
-other:
-  - Removed deprecated options for trove::keystone::auth class.

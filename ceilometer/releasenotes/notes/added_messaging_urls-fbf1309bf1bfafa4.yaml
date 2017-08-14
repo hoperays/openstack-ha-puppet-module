@@ -1,4 +1,0 @@
----
-features:
-  - Added messaging_urls parameter to ceilometer agents notification. 
-    The parameter accepts an array.

@@ -1,4 +1,0 @@
----
-features:
-  - The client_package_name is now configurable.
-    It defaults to the name in the params class.

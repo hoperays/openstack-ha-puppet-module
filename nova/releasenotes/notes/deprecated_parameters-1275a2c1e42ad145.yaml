@@ -1,4 +1,0 @@
----
-deprecations:
-  - listen parameter from nova::compute::serial has no effect
-    anymore and will be removed in future.

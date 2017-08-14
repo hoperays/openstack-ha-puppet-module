@@ -1,3 +1,0 @@
----
-features:
-  - Implement crontab to purge deleted data using heat-manage purge_deleted tool.

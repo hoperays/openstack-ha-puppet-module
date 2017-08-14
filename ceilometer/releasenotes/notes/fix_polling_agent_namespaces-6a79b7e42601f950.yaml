@@ -1,3 +1,0 @@
----
-issues:
-  - Delete blank values from ceilometer::agent::polling namespaces array.

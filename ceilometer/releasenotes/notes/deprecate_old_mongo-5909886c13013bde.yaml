@@ -1,3 +1,0 @@
----
-deprecations:
-  - Deprecate mongodb_replica_set parameter.

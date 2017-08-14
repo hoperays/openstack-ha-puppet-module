@@ -1,3 +1,0 @@
----
-other:
-  - Rewrite nova_network provider with using only nova client.

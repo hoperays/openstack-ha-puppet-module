@@ -1,3 +1,0 @@
----
-other:
-  - Remove all Qpid support, it was deprecated in Mitaka.

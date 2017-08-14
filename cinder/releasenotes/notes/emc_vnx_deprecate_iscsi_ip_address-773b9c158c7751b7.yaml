@@ -1,4 +1,0 @@
----
-deprecations:
-  - Deprecate iscsi_ip_address parameter in cinder::backend::emc_vnx
-  - Deprecate iscsi_ip_address parameter in cinder::volume::emc_vnx

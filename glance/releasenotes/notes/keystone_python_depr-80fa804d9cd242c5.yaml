@@ -1,3 +1,0 @@
----
-deprecations:
-  - Remove usage of keystone::python class, that is deprecated.

@@ -1,3 +1,0 @@
----
-features:
-  - Allow to configure Glance API to communicate with Glance Registry using SSL.

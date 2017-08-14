@@ -1,5 +1,0 @@
----
-features:
-  - Making root_url configurable.
-    This needs to occur to allow people the ability to serve Horizon from the
-    root of a vhost.

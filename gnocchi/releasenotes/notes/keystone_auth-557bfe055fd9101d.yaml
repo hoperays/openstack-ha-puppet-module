@@ -1,5 +1,0 @@
----
-features:
-  - Enable correct auth pipeline when keystone is enabled.
-    Use gnocchi+auth in the main pipeline when we want to use keystone
-    authentification.
