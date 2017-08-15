@@ -41,8 +41,32 @@
       "version_requirement": ">=6.2.0 <7.0.0"
     },
     {
+      "name": "puppetlabs/stdlib",
+      "version_requirement": ">=4.18.0 <5.0.0"
+    },
+    {
       "name": "openstack/ceph",
       "version_requirement": ">=2.3.0 <3.0.0"
+    },
+    {
+      "name": "duritong/sysctl",
+      "version_requirement": ">=0.0.11 <1.0.0"
+    },
+    {
+      "name": "puppetlabs/apache",
+      "version_requirement": ">=1.11.0 <2.0.0"
+    },
+    {
+      "name": "puppetlabs/apt",
+      "version_requirement": ">=2.4.0 <3.0.0"
+    },
+    {
+      "name": "puppetlabs/concat",
+      "version_requirement": ">=2.2.1 <3.0.0"
+    },
+    {
+      "name": "puppetlabs/inifile",
+      "version_requirement": ">=1.6.0 <2.0.0"
     },
     {
       "name": "openstack/pacemaker",
@@ -57,12 +81,16 @@
       "version_requirement": ">=3.11.0 <4.0.0"
     },
     {
+      "name": "puppet/staging",
+      "version_requirement": ">=2.2.0 <3.0.0"
+    },
+    {
       "name": "puppetlabs/rabbitmq",
       "version_requirement": ">=5.6.0 <6.0.0"
     },
     {
       "name": "saz/memcached",
-      "version_requirement": ">=3.0.2 <4.0.0"
+      "version_requirement": ">=2.8.1 <3.0.0"
     },
     {
       "name": "puppetlabs/mongodb",
@@ -73,12 +101,56 @@
       "version_requirement": ">=3.2.0 <4.0.0"
     },
     {
+      "name": "herculesteam/augeasproviders_core",
+      "version_requirement": ">=2.1.3 <3.0.0"
+    },
+    {
+      "name": "herculesteam/augeasproviders_sysctl",
+      "version_requirement": ">=2.2.0 <3.0.0"
+    },
+    {
+      "name": "stahnma/epel",
+      "version_requirement": ">=1.2.2 <2.0.0"
+    },
+    {
       "name": "openstack/keystone",
       "version_requirement": ">=10.3.1 <11.0.0"
     },
     {
+      "name": "openstack/openstacklib",
+      "version_requirement": ">=10.4.1 <11.0.0"
+    },
+    {
+      "name": "openstack/oslo",
+      "version_requirement": ">=10.3.1 <11.0.0"
+    },
+    {
+      "name": "puppetlabs/postgresql",
+      "version_requirement": ">=4.9.0 <5.0.0"
+    },
+    {
       "name": "openstack/glance",
       "version_requirement": ">=10.3.1 <11.0.0"
+    },
+    {
+      "name": "openstack/swift",
+      "version_requirement": ">=10.3.1 <11.0.0"
+    },
+    {
+      "name": "puppetlabs/rsync",
+      "version_requirement": ">=0.4.0 <1.0.0"
+    },
+    {
+      "name": "puppetlabs/xinetd",
+      "version_requirement": ">=2.0.0 <2.0.1"
+    },
+    {
+      "name": "openstack/nova",
+      "version_requirement": ">=10.4.1 <11.0.0"
+    },
+    {
+      "name": "joshuabaird/ipaclient",
+      "version_requirement": ">=2.5.1 <3.0.0"
     },
     {
       "name": "openstack/cinder",
@@ -89,8 +161,12 @@
       "version_requirement": ">=10.3.1 <11.0.0"
     },
     {
-      "name": "openstack/nova",
-      "version_requirement": ">=10.4.1 <11.0.0"
+      "name": "openstack/vswitch",
+      "version_requirement": ">=6.3.1 <7.0.0"
+    },
+    {
+      "name": "camptocamp/kmod",
+      "version_requirement": ">=2.2.0 <3.0.0"
     },
     {
       "name": "openstack/horizon",
@@ -113,8 +189,40 @@
       "version_requirement": ">=10.4.1 <11.0.0"
     },
     {
+      "name": "openstack/heat",
+      "version_requirement": ">=10.3.1 <11.0.0"
+    },
+    {
+      "name": "openstack/murano",
+      "version_requirement": ">=10.3.1 <11.0.0"
+    },
+    {
+      "name": "openstack/sahara",
+      "version_requirement": ">=10.3.1 <11.0.0"
+    },
+    {
+      "name": "openstack/trove",
+      "version_requirement": ">=10.3.1 <11.0.0"
+    },
+    {
       "name": "puppet/zabbix",
       "version_requirement": ">=4.1.3 <5.0.0"
+    },
+    {
+      "name": "camptocamp/systemd",
+      "version_requirement": ">=1.0.0 <2.0.0"
+    },
+    {
+      "name": "puppet/selinux",
+      "version_requirement": ">=1.2.0 <2.0.0"
+    },
+    {
+      "name": "puppetlabs/pe_gem",
+      "version_requirement": ">=0.2.0 <2.0.0"
+    },
+    {
+      "name": "puppetlabs/ruby",
+      "version_requirement": ">=1.0.0 <2.0.0"
     }
   ]
 }

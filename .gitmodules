@@ -1,0 +1,192 @@
+[submodule "firewall"]
+	path = firewall
+	url = https://github.com/puppetlabs/puppetlabs-firewall.git
+	branch = master
+[submodule "ntp"]
+	path = ntp
+	url = https://github.com/puppetlabs/puppetlabs-ntp.git
+	branch = master
+[submodule "stdlib"]
+	path = stdlib
+	url = https://github.com/puppetlabs/puppetlabs-stdlib.git
+	branch = master
+[submodule "ceph"]
+	path = ceph
+	url = https://github.com/openstack/puppet-ceph.git
+	branch = master
+[submodule "sysctl"]
+	path = sysctl
+	url = https://github.com/duritong/puppet-sysctl.git
+	branch = master
+[submodule "apache"]
+	path = apache
+	url = https://github.com/puppetlabs/puppetlabs-apache.git
+	branch = master
+[submodule "apt"]
+	path = apt
+	url = https://github.com/puppetlabs/puppetlabs-apt.git
+	branch = master
+[submodule "concat"]
+	path = concat
+	url = https://github.com/puppetlabs/puppetlabs-concat.git
+	branch = master
+[submodule "inifile"]
+	path = inifile
+	url = https://github.com/puppetlabs/puppetlabs-inifile.git
+	branch = master
+[submodule "pacemaker"]
+	path = pacemaker
+	url = https://github.com/openstack/puppet-pacemaker.git
+	branch = master
+[submodule "haproxy"]
+	path = haproxy
+	url = https://github.com/puppetlabs/puppetlabs-haproxy.git
+	branch = master
+[submodule "mysql"]
+	path = mysql
+	url = https://github.com/puppetlabs/puppetlabs-mysql.git
+	branch = master
+[submodule "staging"]
+	path = staging
+	url = https://github.com/voxpupuli/puppet-staging.git
+	branch = master
+[submodule "rabbitmq"]
+	path = rabbitmq
+	url = https://github.com/puppetlabs/puppetlabs-rabbitmq.git
+	branch = master
+[submodule "memcached"]
+	path = memcached
+	url = https://github.com/saz/puppet-memcached.git
+	branch = master
+[submodule "mongodb"]
+	path = mongodb
+	url = https://github.com/puppetlabs/puppetlabs-mongodb.git
+	branch = master
+[submodule "redis"]
+	path = redis
+	url = https://github.com/arioch/puppet-redis.git
+	branch = master
+[submodule "augeasproviders_core"]
+	path = augeasproviders_core
+	url = https://github.com/hercules-team/augeasproviders_core.git
+	branch = master
+[submodule "augeasproviders_sysctl"]
+	path = augeasproviders_sysctl
+	url = https://github.com/hercules-team/augeasproviders_sysctl.git
+	branch = master
+[submodule "epel"]
+	path = epel
+	url = https://github.com/stahnma/puppet-module-epel.git
+	branch = master
+[submodule "keystone"]
+	path = keystone
+	url = https://github.com/openstack/puppet-keystone.git
+	branch = stable/ocata
+[submodule "openstacklib"]
+	path = openstacklib
+	url = https://github.com/openstack/puppet-openstacklib.git
+	branch = stable/ocata
+[submodule "oslo"]
+	path = oslo
+	url = https://github.com/openstack/puppet-oslo.git
+	branch = stable/ocata
+[submodule "postgresql"]
+	path = postgresql
+	url = https://github.com/puppetlabs/puppetlabs-postgresql.git
+	branch = master
+[submodule "glance"]
+	path = glance
+	url = https://github.com/openstack/puppet-glance.git
+	branch = stable/ocata
+[submodule "swift"]
+	path = swift
+	url = https://github.com/openstack/puppet-swift.git
+	branch = stable/ocata
+[submodule "rsync"]
+	path = rsync
+	url = https://github.com/puppetlabs/puppetlabs-rsync.git
+	branch = master
+[submodule "xinetd"]
+	path = xinetd
+	url = https://github.com/puppetlabs/puppetlabs-xinetd.git
+	branch = master
+[submodule "nova"]
+	path = nova
+	url = https://github.com/openstack/puppet-nova.git
+	branch = stable/ocata
+[submodule "ipaclient"]
+	path = ipaclient
+	url = https://github.com/joshuabaird/puppet-ipaclient.git
+	branch = master
+[submodule "cinder"]
+	path = cinder
+	url = https://github.com/openstack/puppet-cinder.git
+	branch = stable/ocata
+[submodule "neutron"]
+	path = neutron
+	url = https://github.com/openstack/puppet-neutron.git
+	branch = stable/ocata
+[submodule "vswitch"]
+	path = vswitch
+	url = https://github.com/openstack/puppet-vswitch.git
+	branch = stable/ocata
+[submodule "kmod"]
+	path = kmod
+	url = https://github.com/camptocamp/puppet-kmod.git
+	branch = master
+[submodule "horizon"]
+	path = horizon
+	url = https://github.com/openstack/puppet-horizon.git
+	branch = stable/ocata
+[submodule "ceilometer"]
+	path = ceilometer
+	url = https://github.com/openstack/puppet-ceilometer.git
+	branch = stable/ocata
+[submodule "gnocchi"]
+	path = gnocchi
+	url = https://github.com/openstack/puppet-gnocchi.git
+	branch = stable/ocata
+[submodule "panko"]
+	path = panko
+	url = https://github.com/openstack/puppet-panko.git
+	branch = stable/ocata
+[submodule "aodh"]
+	path = aodh
+	url = https://github.com/openstack/puppet-aodh.git
+	branch = stable/ocata
+[submodule "heat"]
+	path = heat
+	url = https://github.com/openstack/puppet-heat.git
+	branch = stable/ocata
+[submodule "murano"]
+	path = murano
+	url = https://github.com/openstack/puppet-murano.git
+	branch = stable/ocata
+[submodule "sahara"]
+	path = sahara
+	url = https://github.com/openstack/puppet-sahara.git
+	branch = stable/ocata
+[submodule "trove"]
+	path = trove
+	url = https://github.com/openstack/puppet-trove.git
+	branch = stable/ocata
+[submodule "zabbix"]
+	path = zabbix
+	url = https://github.com/voxpupuli/puppet-zabbix.git
+	branch = master
+[submodule "systemd"]
+	path = systemd
+	url = https://github.com/camptocamp/puppet-systemd.git
+	branch = master
+[submodule "selinux"]
+	path = selinux
+	url = https://github.com/voxpupuli/puppet-selinux.git
+	branch = master
+[submodule "pe_gem"]
+	path = pe_gem
+	url = https://github.com/puppetlabs/puppetlabs-pe_gem.git
+	branch = master
+[submodule "ruby"]
+	path = ruby
+	url = https://github.com/puppetlabs/puppetlabs-ruby.git
+	branch = master
